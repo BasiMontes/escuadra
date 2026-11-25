@@ -1,10 +1,11 @@
-import { useRef, useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { BadgeCheck, ChevronRight, LogOut, SlidersHorizontal, SquarePen, Trophy } from 'lucide-react'
-import { Link, useLocation, useNavigate } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import { BallIcon } from '../../components/BallIcon'
 import { Card } from '../../components/Card'
 import { ErrorNotice, Skeleton } from '../../components/States'
-import { useLoad, useRepository } from '../../data/hooks'
+import { useLoad } from '../../data/hooks'
+import { useSignOut } from '../../data/useSignOut'
 import { AppShell } from '../../layouts/AppShell'
 import { formatNumber } from '../../lib/game'
 import styles from './Perfil.module.css'
@@ -17,28 +18,12 @@ const MENU: Array<{ id: string; label: string; to: string; icon: ReactNode }> = 
 ]
 
 export function Perfil() {
-  const repo = useRepository()
-  const navigate = useNavigate()
   const saved = (useLocation().state as { saved?: boolean } | null)?.saved
   const { data, error, loading, reload } = useLoad(async (r) => {
     const [me, stats] = await Promise.all([r.getMe(), r.getStats()])
     return { me, stats }
   })
-  const [signOutFailed, setSignOutFailed] = useState(false)
-  const leaving = useRef(false)
-
-  async function signOut() {
-    if (leaving.current) return
-    leaving.current = true
-    setSignOutFailed(false)
-    try {
-      await repo.signOut()
-      navigate('/entrar')
-    } catch {
-      leaving.current = false
-      setSignOutFailed(true)
-    }
-  }
+  const { signOut, failed: signOutFailed } = useSignOut()
 
   return (
     <AppShell tab="perfil" title="Perfil">
