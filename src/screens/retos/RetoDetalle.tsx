@@ -14,15 +14,16 @@ export function RetoDetalle() {
   const { id = '' } = useParams()
   const { data, error, loading, reload } = useLoad(
     async (r) => {
-      const [challenge, competitions, states] = await Promise.all([
+      const [challenge, competitions, states, me] = await Promise.all([
         r.getChallenge(id),
         r.getCompetitions(),
         r.getChallengeStates(),
+        r.getMe(),
       ])
       if (!challenge) return { found: null }
       const competition = competitions.find((c) => c.id === challenge.competitionId)?.short ?? ''
       const state: ChallengeState = states[id] ?? { progress: 'nuevo', hintsUsed: 0 }
-      return { found: { challenge, competition, state } }
+      return { found: { challenge, competition, state, own: challenge.createdBy === me.id } }
     },
     [id],
   )
@@ -43,19 +44,26 @@ export function RetoDetalle() {
 
 const ACTION_LABEL = { nuevo: 'Comenzar reto', 'en-curso': 'Seguir reto', hecho: 'Reintentar jugada' }
 
+/** Estado de moderación que ve quien creó el reto */
+const OWN_NOTE = {
+  pendiente: 'Es tu reto y está pendiente de revisión.',
+  aprobado: 'Es tu reto: ya está aprobado, pero no puedes jugarlo.',
+  rechazado: 'Es tu reto y ha sido rechazado.',
+}
+
 function Detalle({
   challenge,
   competition,
   state,
+  own,
 }: {
   challenge: Challenge
   competition: string
   state: ChallengeState
+  own: boolean
 }) {
-  // Los retos de respuesta libre todavía no se pueden jugar
-  const playable = challenge.answerType === 'opciones'
-  const note = !playable
-    ? 'Los retos de respuesta libre estarán disponibles pronto.'
+  const note = own
+    ? OWN_NOTE[challenge.status]
     : state.progress === 'hecho'
       ? 'Ya has completado este reto: el reintento no suma puntos.'
       : null
@@ -95,7 +103,7 @@ function Detalle({
       </Card>
 
       <div className={styles.side}>
-        {playable ? (
+        {!own ? (
           <Button
             to={`/retos/${challenge.id}/jugar`}
             block

@@ -14,6 +14,7 @@ import type {
 /** Copia profunda para que las pantallas no muten los datos de ejemplo. */
 const clone = <T,>(v: T): T => structuredClone(v)
 
+// Las tarjetas de En curso son fijas en los datos de ejemplo
 function toCommunityCard({ id, icon, action }: (typeof db.inProgress)[number]): CommunityChallenge {
   const { competitionId, title, difficulty } = db.challenges.find((c) => c.id === id)!
   return { id, competitionId, title, difficulty, icon, action }
@@ -26,6 +27,10 @@ export function createMockRepository(): Repository {
   const stats: UserStats = clone(db.myStats)
   const attempts: AttemptResult[] = []
   const openAttempts = new Map<string, OpenAttempt>()
+  // Copias propias: los retos creados no deben tocar los datos de ejemplo compartidos
+  const challenges = clone(db.challenges)
+  const answers: Record<string, string> = { ...db.correctAnswers }
+  const find = (id: string) => challenges.find((c) => c.id === id)
 
   return {
     async signUp({ username, email }) {
@@ -60,13 +65,13 @@ export function createMockRepository(): Repository {
       return clone(stats)
     },
     async getTodayChallenges() {
-      return clone(db.challenges.filter((c) => c.kind === 'oficial' && c.id !== 'gol-final-2005'))
+      return clone(challenges.filter((c) => c.kind === 'oficial' && c.id !== 'gol-final-2005'))
     },
     async getDailyChallenge() {
-      return clone(db.challenges.find((c) => c.id === 'gol-final-2005')!)
+      return clone(find('gol-final-2005')!)
     },
     async getChallenge(id) {
-      return clone(db.challenges.find((c) => c.id === id) ?? null)
+      return clone(find(id) ?? null)
     },
     async getChallengeStates() {
       const states: Record<string, ChallengeState> = {}
@@ -83,14 +88,16 @@ export function createMockRepository(): Repository {
       return { inProgress: db.inProgress.map(toCommunityCard), discover: db.discover.map(toCommunityCard) }
     },
     async getNextChallengeId(currentId) {
-      const today = db.challenges.filter((c) => c.kind === 'oficial' && c.unlockDate === db.TODAY)
+      const today = challenges.filter((c) => c.kind === 'oficial' && c.unlockDate === db.TODAY)
       const from = today.findIndex((c) => c.id === currentId) + 1
       const ordered = [...today.slice(from), ...today.slice(0, from)]
       const next = ordered.find((c) => c.id !== currentId && !attempts.some((a) => a.challengeId === c.id))
       return next?.id ?? null
     },
     async startAttempt(challengeId) {
-      if (!db.challenges.some((c) => c.id === challengeId)) throw new Error(`Reto desconocido: ${challengeId}`)
+      const challenge = find(challengeId)
+      if (!challenge) throw new Error(`Reto desconocido: ${challengeId}`)
+      if (challenge.createdBy === profile.id) throw new Error('No puedes jugar tu propio reto.')
       let open = openAttempts.get(challengeId)
       if (!open) {
         open = { challengeId, startedAt: Date.now(), revealedHints: [] }
@@ -99,7 +106,7 @@ export function createMockRepository(): Repository {
       return clone(open)
     },
     async revealHint(challengeId, alreadyRevealed) {
-      const c = db.challenges.find((x) => x.id === challengeId)
+      const c = find(challengeId)
       if (!c || alreadyRevealed >= c.hints.length) return null
       const open = openAttempts.get(challengeId)
       // Una pista ya revelada en este intento no se vuelve a cobrar
@@ -111,9 +118,9 @@ export function createMockRepository(): Repository {
       return { hint: c.hints[alreadyRevealed], hintsLeft: stats.hintsLeft }
     },
     async submitAttempt({ challengeId, answer, timeSeconds, hintsUsed }) {
-      const c = db.challenges.find((x) => x.id === challengeId)
+      const c = find(challengeId)
       if (!c) throw new Error(`Reto desconocido: ${challengeId}`)
-      const correctAnswer = db.correctAnswers[challengeId]
+      const correctAnswer = answers[challengeId]
       const timedOut = answer === null
       const isCorrect = !timedOut && answersMatch(answer, correctAnswer)
       const isFirst = !attempts.some((a) => a.challengeId === challengeId)
@@ -127,7 +134,9 @@ export function createMockRepository(): Repository {
         stats.matchesPlayed += 1
         stats.totalPoints += points
         stats.weeklyPoints += points
-        if (attempts.filter((a) => a.isFirst).length === 1) stats.streak += 1
+        // La racha solo cuenta retos oficiales, una vez al día
+        const officialDone = attempts.filter((a) => a.isFirst && find(a.challengeId)?.kind === 'oficial')
+        if (c.kind === 'oficial' && officialDone.length === 1) stats.streak += 1
       }
       return clone(result)
     },
@@ -141,9 +150,28 @@ export function createMockRepository(): Repository {
     async getAchievements() {
       return clone(db.achievements)
     },
-    async createChallenge() {
+    async createChallenge(draft) {
+      const id = `reto-propio-${challenges.length + 1}`
+      challenges.push({
+        id,
+        kind: 'usuario',
+        answerType: draft.type,
+        competitionId: draft.competitionId,
+        difficulty: draft.difficulty,
+        basePoints: draft.basePoints,
+        title: draft.title,
+        question: draft.description,
+        imageUrl: '/img/estadio.jpg',
+        unlockDate: db.TODAY,
+        options: [],
+        hints: [...draft.hints],
+        completedBy: 0,
+        status: 'pendiente',
+        createdBy: profile.id,
+      })
+      answers[id] = draft.answer
       stats.challengesCreated += 1
-      return { id: `reto-${Date.now()}`, status: 'pendiente' as const }
+      return { id, status: 'pendiente' as const }
     },
     async sendSupportTicket() {},
     async changePassword({ current }) {

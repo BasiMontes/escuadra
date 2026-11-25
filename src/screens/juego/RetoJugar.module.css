@@ -103,6 +103,12 @@
   background: var(--c-yellow);
 }
 
+.free {
+  display: grid;
+  gap: var(--s-6);
+  margin-top: var(--s-8);
+}
+
 .letter {
   display: inline-flex;
   flex: none;
@@ -147,6 +153,11 @@
   .options {
     gap: var(--s-3);
     margin-top: var(--s-4);
+  }
+
+  .free {
+    gap: var(--s-4);
+    margin-top: var(--s-5);
   }
 
   .option {
