@@ -8,6 +8,7 @@ import { Contrasena } from './screens/ajustes/Contrasena'
 import { Notificaciones } from './screens/ajustes/Notificaciones'
 import { Privacidad } from './screens/ajustes/Privacidad'
 import { Soporte } from './screens/ajustes/Soporte'
+import { Ranking } from './screens/ranking/Ranking'
 import { CrearProvider } from './screens/crear/CrearContext'
 import { PasoInformacion } from './screens/crear/PasoInformacion'
 import { PasoNivel } from './screens/crear/PasoNivel'
@@ -64,7 +65,7 @@ export default function App() {
           <Route path="/retos/:id/jugar" element={<RetoJugar />} />
           <Route path="/retos/:id/resultado" element={<RetoResultado />} />
           <Route path="/retos/*" element={<Pendiente title="Retos" tab="retos" />} />
-          <Route path="/ranking" element={<Pendiente title="Ranking" tab="ranking" />} />
+          <Route path="/ranking" element={<Ranking />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/perfil/editar" element={<EditarPerfil />} />
           <Route path="/perfil/logros" element={<Logros />} />
