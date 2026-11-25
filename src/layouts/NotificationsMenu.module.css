@@ -1,0 +1,82 @@
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + var(--s-3));
+  right: 0;
+  z-index: 30;
+  display: grid;
+  gap: var(--s-3);
+  width: min(320px, calc(100vw - 48px));
+  padding: var(--s-4);
+  border: var(--border);
+  background: var(--c-white);
+  box-shadow: var(--shadow-md);
+  color: var(--c-black);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.panel ul {
+  display: grid;
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel li a {
+  display: flex;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  border: var(--border-thin);
+  text-decoration: none;
+}
+
+.panel li a:hover {
+  background: var(--c-cream);
+}
+
+.panel li a > span:last-child {
+  display: grid;
+  gap: var(--s-1);
+}
+
+.panel strong {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: var(--border-thin);
+  background: var(--c-yellow);
+}
+
+.icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.settings {
+  justify-self: start;
+}
+
+.retry {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+}

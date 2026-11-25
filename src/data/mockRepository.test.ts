@@ -164,3 +164,16 @@ describe('perfil', () => {
     expect((await repo.getMe()).username).toBe('BasiMontes')
   })
 })
+
+describe('avisos', () => {
+  it('solo incluye los tipos activados', async () => {
+    const repo = createMockRepository()
+    expect((await repo.getNotifications()).map((n) => n.kind)).toEqual(['reto'])
+
+    await repo.updateSettings({ notifAchievements: true })
+    expect((await repo.getNotifications()).map((n) => n.kind)).toEqual(['reto', 'logro'])
+
+    await repo.updateSettings({ notifDaily: false, notifAchievements: false })
+    expect(await repo.getNotifications()).toEqual([])
+  })
+})

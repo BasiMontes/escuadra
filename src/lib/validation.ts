@@ -94,3 +94,10 @@ export function validateAvatar(file: { type: string; size: number }): string | n
   if (file.size > AVATAR_MAX_BYTES) return 'La foto no puede pesar más de 2 MB.'
   return null
 }
+
+export const SUPPORT_MESSAGE_MIN = 10
+export const SUPPORT_MESSAGE_MAX = 1000
+
+export function validateSupportMessage(v: string): string | null {
+  return validateText(v, 'Escribe tu mensaje.', SUPPORT_MESSAGE_MIN, SUPPORT_MESSAGE_MAX)
+}

@@ -10,6 +10,7 @@ import type {
   CommunityChallenge,
   Competition,
   NewChallengeDraft,
+  NotificationItem,
   OpenAttempt,
   Profile,
   RankingRow,
@@ -53,4 +54,8 @@ export interface Repository {
   createChallenge(draft: NewChallengeDraft): Promise<{ id: string; status: 'pendiente' }>
   sendSupportTicket(input: { subject: string; message: string }): Promise<void>
   changePassword(input: { current: string; next: string }): Promise<void>
+  /** Avisos pendientes, solo de los tipos que el usuario tiene activados */
+  getNotifications(): Promise<NotificationItem[]>
+  /** Borra la cuenta y sus datos. No se puede deshacer */
+  deleteAccount(): Promise<void>
 }

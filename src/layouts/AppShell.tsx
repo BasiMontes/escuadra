@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
 import { NavLink, Link } from 'react-router'
-import { Bell, BarChart3, Flame, House, Lightbulb, Plus, Trophy, User } from 'lucide-react'
+import { BarChart3, Flame, House, Lightbulb, Plus, Trophy, User } from 'lucide-react'
 import { Logo } from '../components/Logo'
 import { cx } from '../components/cx'
 import { useLoad } from '../data/hooks'
+import { NotificationsMenu } from './NotificationsMenu'
 import styles from './AppShell.module.css'
 
 export type Tab = 'inicio' | 'retos' | 'ranking' | 'perfil'
@@ -66,9 +67,7 @@ export function AppShell({ tab, title, mobileBg = 'yellow', narrow = false, hint
             <Logo size={48} shadow />
             <span>Escuadra</span>
           </Link>
-          <Link to="/avisos" className={styles.bell} aria-label="Avisos" data-testid="header-avisos">
-            <Bell />
-          </Link>
+          <NotificationsMenu buttonClass={styles.bell} testId="header-avisos" />
         </header>
 
         {/* Cabecera desktop */}
@@ -81,9 +80,7 @@ export function AppShell({ tab, title, mobileBg = 'yellow', narrow = false, hint
             <span className={styles.pill} data-testid="topbar-pistas">
               <Lightbulb aria-hidden="true" /> Pistas {hintsLeft ?? stats?.hintsLeft ?? 0}
             </span>
-            <Link to="/avisos" className={styles.topBell} aria-label="Avisos" data-testid="topbar-avisos">
-              <Bell />
-            </Link>
+            <NotificationsMenu buttonClass={styles.topBell} testId="topbar-avisos" />
           </div>
         </header>
 

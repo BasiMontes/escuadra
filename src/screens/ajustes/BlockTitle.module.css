@@ -1,0 +1,18 @@
+.title {
+  justify-self: start;
+  max-width: 100%;
+  background: var(--c-ink);
+  color: var(--c-yellow);
+  overflow-wrap: anywhere;
+}
+
+.lg {
+  padding: var(--s-3) var(--s-5);
+  box-shadow: var(--shadow-sm);
+  font-size: 26px;
+}
+
+.sm {
+  padding: var(--s-2);
+  font-size: 20px;
+}

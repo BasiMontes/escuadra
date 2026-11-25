@@ -41,6 +41,8 @@ export type UserStats = {
   globalRank: number
   weeklyRank: number
   weeklyPoints: number
+  /** Parte de las notificaciones respondidas esta semana (0 a 1) */
+  notificationResponseRate: number
 }
 
 export type ChallengeOption = { label: 'A' | 'B' | 'C' | 'D'; text: string }
@@ -137,4 +139,14 @@ export type NewChallengeDraft = {
   basePoints: number
   hints: string[]
   answer: string
+}
+
+/** Aviso del panel de la campana */
+export type NotificationItem = {
+  id: string
+  kind: 'reto' | 'logro'
+  title: string
+  text: string
+  /** Pantalla a la que lleva */
+  to: string
 }
