@@ -1,13 +1,14 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { DataProvider } from './data/DataProvider'
-import { AppShell, type Tab } from './layouts/AppShell'
-import { Card } from './components/Card'
 import { Componentes } from './screens/Componentes'
 import { Ajustes } from './screens/ajustes/Ajustes'
 import { Contrasena } from './screens/ajustes/Contrasena'
 import { Notificaciones } from './screens/ajustes/Notificaciones'
 import { Privacidad } from './screens/ajustes/Privacidad'
 import { Soporte } from './screens/ajustes/Soporte'
+import { NoEncontrada } from './screens/NoEncontrada'
+import { Bienvenida } from './screens/landing/Bienvenida'
+import { Legal } from './screens/landing/Legal'
 import { Ranking } from './screens/ranking/Ranking'
 import { CrearProvider } from './screens/crear/CrearContext'
 import { PasoInformacion } from './screens/crear/PasoInformacion'
@@ -28,18 +29,6 @@ import { Competiciones, Configuracion, Resumen } from './screens/onboarding/Step
 import { EditarPerfil } from './screens/perfil/EditarPerfil'
 import { Logros } from './screens/perfil/Logros'
 import { Perfil } from './screens/perfil/Perfil'
-
-/** Marcador para las pantallas que aún no están construidas. */
-function Pendiente({ title, tab }: { title: string; tab: Tab | null }) {
-  return (
-    <AppShell tab={tab} title={title}>
-      <Card>
-        <h2>{title}</h2>
-        <p style={{ marginTop: 12 }}>Pantalla en construcción.</p>
-      </Card>
-    </AppShell>
-  )
-}
 
 export default function App() {
   return (
@@ -64,7 +53,6 @@ export default function App() {
           <Route path="/retos/:id/intro" element={<RetoIntro />} />
           <Route path="/retos/:id/jugar" element={<RetoJugar />} />
           <Route path="/retos/:id/resultado" element={<RetoResultado />} />
-          <Route path="/retos/*" element={<Pendiente title="Retos" tab="retos" />} />
           <Route path="/ranking" element={<Ranking />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/perfil/editar" element={<EditarPerfil />} />
@@ -74,6 +62,9 @@ export default function App() {
           <Route path="/ajustes/privacidad" element={<Privacidad />} />
           <Route path="/ajustes/soporte" element={<Soporte />} />
           <Route path="/ajustes/contrasena" element={<Contrasena />} />
+          <Route path="/bienvenida" element={<Bienvenida />} />
+          <Route path="/privacidad" element={<Legal title="Privacidad" />} />
+          <Route path="/terminos" element={<Legal title="Términos" />} />
           <Route path="/crear" element={<CrearProvider />}>
             <Route index element={<Navigate to="1" replace />} />
             <Route path="1" element={<PasoInformacion />} />
@@ -82,7 +73,7 @@ export default function App() {
             <Route path="4" element={<PasoPublicado />} />
             <Route path="*" element={<Navigate to="/crear/1" replace />} />
           </Route>
-          <Route path="*" element={<Pendiente title="Página no encontrada" tab={null} />} />
+          <Route path="*" element={<NoEncontrada />} />
         </Routes>
       </BrowserRouter>
     </DataProvider>

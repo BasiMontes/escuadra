@@ -1,0 +1,20 @@
+.page {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: var(--s-6);
+}
+
+.card {
+  display: grid;
+  gap: var(--s-5);
+  width: min(100%, 480px);
+}
+
+.card h1 {
+  font-size: 30px;
+}
+
+.card p {
+  font-weight: 700;
+}

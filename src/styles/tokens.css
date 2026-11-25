@@ -32,6 +32,8 @@
   --c-green: #16a34a;
   /* Verde para texto sobre blanco: #16a34a no llega a 4.5:1 de contraste */
   --c-green-text: #15803d;
+  /* Verde para texto sobre el amarillo de marca */
+  --c-green-on-yellow: #166534;
   --c-green-success: #4ade80;
   --c-mint: #00d68f;
   --c-coral: #f87171;
