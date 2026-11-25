@@ -71,7 +71,9 @@ npm run test:e2e       # Playwright: móvil 390, desktop 1440×900 y portátil 1
   temporizador y pistas (`/retos/:id/jugar`), Correcto / Incorrecto / Tiempo agotado
   (`/retos/:id/resultado`). El intento en marcha (`startAttempt`) conserva reloj y pistas.
 - Pendiente del juego: retos de respuesta libre (llegan con Crear reto).
-- Siguiente: Retos (lista, detalle, en curso), Crear reto (4 pasos), Ranking, Perfil, Logros, Ajustes
+- Hecho: bloque de Retos (`src/screens/retos/`): Retos del día (`/retos`, filtro por liga con
+  `?liga=`), Detalle (`/retos/:id`) y En curso (`/retos/en-curso`).
+- Siguiente: Crear reto (4 pasos), Ranking, Perfil, Logros, Ajustes
   (Notificaciones, Privacidad, Soporte, Cambiar contraseña), landing pública y conexión con Supabase.
 - Las capturas de referencia visuales aún no están en el repo: se generan con Docker (ver README).
 

@@ -1,10 +1,23 @@
 import { answersMatch, scoreAttempt } from '../lib/game'
 import * as db from './mock'
 import type { RankingScope, Repository } from './repository'
-import type { AttemptResult, OpenAttempt, Profile, UserSettings, UserStats } from './types'
+import type {
+  AttemptResult,
+  ChallengeState,
+  CommunityChallenge,
+  OpenAttempt,
+  Profile,
+  UserSettings,
+  UserStats,
+} from './types'
 
 /** Copia profunda para que las pantallas no muten los datos de ejemplo. */
 const clone = <T,>(v: T): T => structuredClone(v)
+
+function toCommunityCard({ id, icon, action }: (typeof db.inProgress)[number]): CommunityChallenge {
+  const { competitionId, title, difficulty } = db.challenges.find((c) => c.id === id)!
+  return { id, competitionId, title, difficulty, icon, action }
+}
 
 /** Repositorio en memoria con los datos del diseño. Se reinicia al recargar la página. */
 export function createMockRepository(): Repository {
@@ -47,13 +60,27 @@ export function createMockRepository(): Repository {
       return clone(stats)
     },
     async getTodayChallenges() {
-      return clone(db.challenges.filter((c) => c.id !== 'gol-final-2005'))
+      return clone(db.challenges.filter((c) => c.kind === 'oficial' && c.id !== 'gol-final-2005'))
     },
     async getDailyChallenge() {
       return clone(db.challenges.find((c) => c.id === 'gol-final-2005')!)
     },
     async getChallenge(id) {
       return clone(db.challenges.find((c) => c.id === id) ?? null)
+    },
+    async getChallengeStates() {
+      const states: Record<string, ChallengeState> = {}
+      for (const open of openAttempts.values()) {
+        states[open.challengeId] = { progress: 'en-curso', hintsUsed: open.revealedHints.length }
+      }
+      // Un reto ya completado sigue "hecho" aunque se esté reintentando
+      for (const a of attempts.filter((x) => x.isFirst)) {
+        states[a.challengeId] = { progress: 'hecho', hintsUsed: a.hintsUsed }
+      }
+      return states
+    },
+    async getCommunityChallenges() {
+      return { inProgress: db.inProgress.map(toCommunityCard), discover: db.discover.map(toCommunityCard) }
     },
     async getNextChallengeId(currentId) {
       const today = db.challenges.filter((c) => c.kind === 'oficial' && c.unlockDate === db.TODAY)

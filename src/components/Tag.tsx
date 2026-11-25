@@ -27,9 +27,17 @@ export function Tag({ tone = 'black', size = 'sm', icon, children, className, ..
 
 const DIFFICULTY_TONE: Record<Difficulty, TagTone> = { facil: 'mint', medio: 'yellow', dificil: 'red' }
 
-export function DifficultyTag({ level, size = 'sm' }: { level: Difficulty; size?: 'sm' | 'md' }) {
+export function DifficultyTag({
+  level,
+  size = 'sm',
+  className,
+}: {
+  level: Difficulty
+  size?: 'sm' | 'md'
+  className?: string
+}) {
   return (
-    <Tag tone={DIFFICULTY_TONE[level]} size={size} data-testid={`tag-dificultad-${level}`}>
+    <Tag tone={DIFFICULTY_TONE[level]} size={size} className={className} data-testid={`tag-dificultad-${level}`}>
       {DIFFICULTY_LABEL[level]}
     </Tag>
   )
