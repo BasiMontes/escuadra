@@ -124,6 +124,8 @@ export type Achievement = {
   state: AchievementState
   /** 0 a 1 */
   progress: number
+  /** Felicitación del aviso "¡Logro desbloqueado!" */
+  unlockedMessage?: string
 }
 
 export type NewChallengeDraft = {

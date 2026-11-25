@@ -1,0 +1,136 @@
+.form {
+  display: grid;
+  gap: var(--s-10);
+}
+
+.photo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-6);
+}
+
+.avatar {
+  position: relative;
+}
+
+.avatar img {
+  width: 128px;
+  height: 128px;
+  border: var(--border);
+  box-shadow: var(--shadow-lg);
+  object-fit: cover;
+}
+
+.avatar span {
+  position: absolute;
+  right: calc(var(--s-2) * -1);
+  bottom: calc(var(--s-2) * -1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: var(--border);
+  background: var(--c-yellow);
+  box-shadow: var(--shadow-sm);
+}
+
+.avatar svg {
+  width: 20px;
+  height: 20px;
+}
+
+.change {
+  min-height: 28px;
+  padding: var(--s-1) var(--s-2);
+  border: 0;
+  background: var(--c-ink);
+  color: var(--c-white);
+  font-family: var(--font-display);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.fields {
+  display: grid;
+  gap: var(--s-8);
+  min-width: 0;
+}
+
+.fields input,
+.fields textarea {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.bio textarea {
+  min-height: 104px;
+}
+
+.error,
+.formError {
+  color: var(--c-red-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.formError {
+  padding: var(--s-3) var(--s-4);
+  border: var(--border);
+  background: var(--c-white);
+}
+
+.actions {
+  display: grid;
+  gap: var(--s-4);
+  margin-top: var(--s-4);
+}
+
+@media (min-width: 1024px) {
+  .form {
+    max-width: 448px;
+    margin-inline: auto;
+    padding-top: var(--s-6);
+  }
+}
+
+/* Portátiles: la foto a un lado y los botones en fila */
+@media (min-width: 1024px) and (max-height: 899px) {
+  .form {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: var(--s-12);
+    max-width: 720px;
+    padding-top: 0;
+  }
+
+  .fields {
+    gap: var(--s-4);
+  }
+
+  .fields > div {
+    gap: var(--s-2);
+  }
+
+  .fields input {
+    padding-block: var(--s-3);
+  }
+
+  .bio textarea {
+    min-height: 72px;
+    height: 72px;
+    padding-block: var(--s-3);
+  }
+
+  .actions {
+    grid-template-columns: 1fr 1fr;
+    margin-top: var(--s-2);
+  }
+
+  .actions button,
+  .actions a {
+    min-height: 54px;
+    font-size: 15px;
+  }
+}

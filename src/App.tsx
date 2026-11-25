@@ -19,6 +19,9 @@ import { Entrar, Recuperar, Registro } from './screens/onboarding/Auth'
 import { OnboardingProvider } from './screens/onboarding/OnboardingContext'
 import { Splash } from './screens/onboarding/Splash'
 import { Competiciones, Configuracion, Resumen } from './screens/onboarding/Steps'
+import { EditarPerfil } from './screens/perfil/EditarPerfil'
+import { Logros } from './screens/perfil/Logros'
+import { Perfil } from './screens/perfil/Perfil'
 
 /** Marcador para las pantallas que aún no están construidas. */
 function Pendiente({ title, tab }: { title: string; tab: Tab | null }) {
@@ -57,7 +60,10 @@ export default function App() {
           <Route path="/retos/:id/resultado" element={<RetoResultado />} />
           <Route path="/retos/*" element={<Pendiente title="Retos" tab="retos" />} />
           <Route path="/ranking" element={<Pendiente title="Ranking" tab="ranking" />} />
-          <Route path="/perfil/*" element={<Pendiente title="Perfil" tab="perfil" />} />
+          <Route path="/perfil" element={<Perfil />} />
+          <Route path="/perfil/editar" element={<EditarPerfil />} />
+          <Route path="/perfil/logros" element={<Logros />} />
+          <Route path="/ajustes/*" element={<Pendiente title="Ajustes" tab="perfil" />} />
           <Route path="/crear" element={<CrearProvider />}>
             <Route index element={<Navigate to="1" replace />} />
             <Route path="1" element={<PasoInformacion />} />

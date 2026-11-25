@@ -50,6 +50,7 @@ export function createMockRepository(): Repository {
       return clone(profile)
     },
     async updateMe(patch) {
+      if (patch.username?.toLowerCase() === 'ocupado') throw new Error('Ese nombre de usuario ya existe.')
       profile = { ...profile, ...patch }
       return clone(profile)
     },

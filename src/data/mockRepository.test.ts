@@ -150,3 +150,17 @@ describe('retos de usuario', () => {
     expect((await repo.getStats()).streak).toBe(1)
   })
 })
+
+describe('perfil', () => {
+  it('guarda los cambios', async () => {
+    const repo = createMockRepository()
+    await repo.updateMe({ username: 'NuevoNombre', bio: 'Hola' })
+    expect(await repo.getMe()).toMatchObject({ username: 'NuevoNombre', bio: 'Hola' })
+  })
+
+  it('rechaza un nombre de usuario ocupado sin cambiar nada', async () => {
+    const repo = createMockRepository()
+    await expect(repo.updateMe({ username: 'Ocupado' })).rejects.toThrow('Ese nombre de usuario ya existe.')
+    expect((await repo.getMe()).username).toBe('BasiMontes')
+  })
+})

@@ -218,10 +218,26 @@ export const weeklyRanking: RankingRow[] = [
 ]
 
 export const achievements: Achievement[] = [
-  { code: 'rey-del-gol', name: 'Rey del gol', description: 'Marca 50 goles en partidos de trivia.', icon: 'trophy', state: 'desbloqueado', progress: 1 },
+  {
+    code: 'rey-del-gol',
+    name: 'Rey del gol',
+    description: 'Marca 50 goles en partidos de trivia.',
+    icon: 'trophy',
+    state: 'desbloqueado',
+    progress: 1,
+    unlockedMessage: 'Has anotado 50 goles en partidos de trivia. ¡Eres imparable!',
+  },
   { code: 'maestro-trivia', name: 'Maestro de la trivia', description: 'Consigue 100 puntuaciones perfectas.', icon: 'medal', state: 'en-progreso', progress: 0.8 },
   { code: 'campeon-liga', name: 'Campeón de liga', description: 'Gana 10 ligas online seguidas.', icon: 'lock', state: 'bloqueado', progress: 0.15 },
   { code: 'heroe-hat-trick', name: 'Héroe del hat-trick', description: '3 respuestas correctas en 5 segundos.', icon: 'star', state: 'en-progreso', progress: 0.3 },
-  { code: 'porteria-cero', name: 'Portería a cero', description: 'Termina un día sin errores.', icon: 'shield', state: 'desbloqueado', progress: 1 },
+  {
+    code: 'porteria-cero',
+    name: 'Portería a cero',
+    description: 'Termina un día sin errores.',
+    icon: 'shield',
+    state: 'desbloqueado',
+    progress: 1,
+    unlockedMessage: 'Has terminado un día sin errores. ¡Eres imparable!',
+  },
   { code: 'bota-de-oro', name: 'Bota de oro', description: 'Máxima puntuación mensual de tu región.', icon: 'award', state: 'bloqueado', progress: 0 },
 ]

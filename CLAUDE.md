@@ -76,7 +76,9 @@ npm run test:e2e       # Playwright: móvil 390, desktop 1440×900 y portátil 1
   `?liga=`), Detalle (`/retos/:id`) y En curso (`/retos/en-curso`).
 - Hecho: Crear reto (`src/screens/crear/`, `/crear/1` a `/crear/4`). La "Descripción" del paso 1
   es la pregunta del reto; el borrador vive mientras se está en `/crear`.
-- Siguiente: Ranking, Perfil, Logros, Ajustes
+- Hecho: Perfil (`src/screens/perfil/`): Perfil, Editar perfil y Mis logros. El aviso de logro se
+  abre con `/perfil/logros?nuevo=<código>`; nada lo lanza solo todavía (irá con Supabase).
+- Siguiente: Ranking, Ajustes
   (Notificaciones, Privacidad, Soporte, Cambiar contraseña), landing pública y conexión con Supabase.
 - Las capturas de referencia visuales aún no están en el repo: se generan con Docker (ver README).
 
@@ -91,7 +93,7 @@ No las resuelvas por tu cuenta: la columna "Hoy" es el comportamiento provisiona
 | ¿Puede alguien jugar su propio reto? | No |
 | ¿La pregunta del reto necesita campo propio? | Se usa la "Descripción" del paso 1 |
 | ¿Un reintento vuelve a gastar pistas? | Sí |
-| ¿Dónde ve el creador sus retos y su estado? | Solo abriendo el enlace del reto |
+| ¿Dónde ve el creador sus retos y su estado? | Solo abriendo el enlace: "Mis retos" lleva a En curso, con tarjetas de ejemplo |
 | ¿Origen y licencia de las imágenes de estadio? | Sin confirmar |
 | ¿Avatares por defecto con ilustraciones propias? | Sin decidir |
 
