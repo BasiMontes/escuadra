@@ -70,12 +70,30 @@ npm run test:e2e       # Playwright: móvil 390, desktop 1440×900 y portátil 1
 - Hecho: bloque de juego (`src/screens/juego/`): Reto del día (`/retos/:id/intro`), Reto con
   temporizador y pistas (`/retos/:id/jugar`), Correcto / Incorrecto / Tiempo agotado
   (`/retos/:id/resultado`). El intento en marcha (`startAttempt`) conserva reloj y pistas.
-- Pendiente del juego: retos de respuesta libre (llegan con Crear reto).
+- El juego admite opciones y respuesta libre. El reto propio no se puede jugar y solo los retos
+  oficiales cuentan para la racha.
 - Hecho: bloque de Retos (`src/screens/retos/`): Retos del día (`/retos`, filtro por liga con
   `?liga=`), Detalle (`/retos/:id`) y En curso (`/retos/en-curso`).
-- Siguiente: Crear reto (4 pasos), Ranking, Perfil, Logros, Ajustes
+- Hecho: Crear reto (`src/screens/crear/`, `/crear/1` a `/crear/4`). La "Descripción" del paso 1
+  es la pregunta del reto; el borrador vive mientras se está en `/crear`.
+- Siguiente: Ranking, Perfil, Logros, Ajustes
   (Notificaciones, Privacidad, Soporte, Cambiar contraseña), landing pública y conexión con Supabase.
 - Las capturas de referencia visuales aún no están en el repo: se generan con Docker (ver README).
+
+## Decisiones de producto pendientes
+
+No las resuelvas por tu cuenta: la columna "Hoy" es el comportamiento provisional.
+
+| Pregunta | Hoy |
+|---|---|
+| ¿Los retos de la comunidad suman puntos al ranking? El creador elige puntos y dificultad, así que se podría inflar | Sí suman (no cuentan para la racha) |
+| ¿Qué puntos base puede poner un usuario? | De 10 a 200 |
+| ¿Puede alguien jugar su propio reto? | No |
+| ¿La pregunta del reto necesita campo propio? | Se usa la "Descripción" del paso 1 |
+| ¿Un reintento vuelve a gastar pistas? | Sí |
+| ¿Dónde ve el creador sus retos y su estado? | Solo abriendo el enlace del reto |
+| ¿Origen y licencia de las imágenes de estadio? | Sin confirmar |
+| ¿Avatares por defecto con ilustraciones propias? | Sin decidir |
 
 ## Git
 

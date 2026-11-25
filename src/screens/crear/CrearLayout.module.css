@@ -1,0 +1,128 @@
+.screen {
+  display: grid;
+  gap: var(--s-8);
+}
+
+.aside {
+  display: grid;
+  align-content: start;
+  gap: var(--s-8);
+  min-width: 0;
+}
+
+.head {
+  display: grid;
+  justify-items: start;
+  gap: var(--s-4);
+}
+
+/* Sin subtítulo, el botón de volver va en la misma línea que el título */
+.inline {
+  display: flex;
+  align-items: center;
+}
+
+.inline .title {
+  font-size: 22px;
+}
+
+.back {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: var(--bw-thick) solid var(--c-black);
+  background: var(--c-white);
+  box-shadow: var(--shadow-md);
+}
+
+.back svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.5;
+}
+
+.title {
+  max-width: 300px;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.subtitle {
+  max-width: 300px;
+  margin-top: var(--s-2);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.progress {
+  border-width: var(--bw-thick);
+}
+
+.progress p {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: var(--s-2);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+}
+
+.progress span {
+  font-size: 12px;
+}
+
+.progress strong {
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.progress [role='progressbar'] {
+  border-width: var(--bw-thin);
+  background: var(--c-grey-soft);
+}
+
+.panel {
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .screen {
+    grid-template-columns: minmax(0, 378fr) minmax(0, 642fr);
+    align-items: start;
+    column-gap: 56px;
+    max-width: 1080px;
+  }
+
+  .panel {
+    padding: var(--s-8);
+    border: var(--border);
+    background: var(--c-white);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+/* Columna estrecha: el título del paso 1 debe caber junto al botón de volver */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .inline {
+    gap: var(--s-3);
+  }
+
+  .inline .title {
+    font-size: 19px;
+  }
+}
+
+@media (min-width: 1024px) and (max-height: 899px) {
+  .aside {
+    gap: var(--s-5);
+  }
+
+  .panel {
+    padding: var(--s-5) var(--s-6);
+  }
+}

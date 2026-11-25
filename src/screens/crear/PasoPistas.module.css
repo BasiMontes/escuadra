@@ -1,0 +1,179 @@
+.form {
+  display: grid;
+  gap: var(--s-8);
+}
+
+.hints {
+  display: grid;
+  gap: var(--s-4);
+  min-width: 0;
+}
+
+.hintsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.hintsHead h3 {
+  font-size: 18px;
+}
+
+.list {
+  display: grid;
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+}
+
+.box {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--s-4);
+  min-width: 0;
+  min-height: 70px;
+  padding: var(--s-4);
+  border: var(--border);
+  background: var(--c-white);
+}
+
+.box:focus-within {
+  outline: 3px solid var(--c-ink);
+  outline-offset: 3px;
+}
+
+.box > span {
+  color: var(--c-grey-muted);
+  font-family: var(--font-display);
+  font-size: 16px;
+}
+
+.invalid {
+  border-color: var(--c-red-strong);
+}
+
+.grow {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.grow::after {
+  content: attr(data-value) ' ';
+  visibility: hidden;
+  white-space: pre-wrap;
+}
+
+.grow::after,
+.grow textarea {
+  grid-area: 1 / 1;
+  min-width: 0;
+  font: 500 16px / 1.5 var(--font-body);
+  overflow-wrap: anywhere;
+}
+
+.grow textarea {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  resize: none;
+  overflow: hidden;
+}
+
+.grow textarea:focus {
+  outline: none;
+}
+
+.grow textarea::placeholder {
+  color: var(--c-slate-400);
+}
+
+.remove {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 66px;
+  padding: 0;
+  border: var(--border);
+  background: var(--c-coral);
+  box-shadow: var(--shadow-sm);
+}
+
+.remove:disabled {
+  background: var(--c-grey-disabled);
+  cursor: not-allowed;
+}
+
+.remove svg {
+  width: 22px;
+  height: 22px;
+}
+
+.error {
+  margin-top: var(--s-2);
+  color: var(--c-red-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.answer label {
+  font-size: 18px;
+}
+
+.answer input {
+  font-family: var(--font-display);
+  font-size: 20px;
+  text-transform: uppercase;
+}
+
+.answer input::placeholder {
+  color: var(--c-slate-400);
+}
+
+@media (min-width: 1024px) and (max-height: 899px) {
+  .form {
+    gap: var(--s-4);
+  }
+
+  .hints {
+    gap: var(--s-3);
+  }
+
+  .list {
+    gap: var(--s-2);
+  }
+
+  .box {
+    min-height: 46px;
+    padding-block: var(--s-2);
+  }
+
+  .remove {
+    height: 46px;
+  }
+
+  .answer {
+    gap: var(--s-2);
+  }
+
+  .answer input {
+    padding-block: var(--s-3);
+    font-size: 16px;
+  }
+
+  .form button[type='submit'] {
+    min-height: 54px;
+  }
+}
