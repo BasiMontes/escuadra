@@ -48,14 +48,20 @@ jobs:
     name: Comparación visual
     runs-on: ubuntu-latest
     needs: check
-    # Solo cuando ya hay capturas de referencia en el repo
-    if: ${{ hashFiles('e2e/__screenshots__/**/*.png') != '' }}
     container:
       image: mcr.microsoft.com/playwright:v1.65.1-noble
     steps:
       - uses: actions/checkout@v4
-      - run: npm ci
-      - run: npm run test:visual
+      # Solo se compara cuando ya hay capturas de referencia en el repo
+      - id: refs
+        run: |
+          if ls e2e/__screenshots__/linux/*/*.png >/dev/null 2>&1; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.refs.outputs.present == 'false'
+        run: echo "::notice::Sin capturas de referencia todavía; se omite la comparación visual."
+      - if: steps.refs.outputs.present == 'true'
+        run: npm ci
+      - if: steps.refs.outputs.present == 'true'
+        run: npm run test:visual
         env:
           HOME: /root
       - uses: actions/upload-artifact@v4
