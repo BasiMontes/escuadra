@@ -17,6 +17,12 @@ import type {
 export type RankingScope = 'semanal' | 'global' | 'amigos'
 
 export interface Repository {
+  /** Crea la cuenta. Lanza un Error con mensaje para el usuario si falla. */
+  signUp(input: { username: string; email: string; password: string }): Promise<void>
+  signIn(input: { email: string; password: string }): Promise<void>
+  /** Envía el enlace para restablecer la contraseña */
+  requestPasswordReset(email: string): Promise<void>
+  signOut(): Promise<void>
   getCompetitions(): Promise<Competition[]>
   getMe(): Promise<Profile>
   updateMe(patch: Partial<Pick<Profile, 'username' | 'email' | 'bio' | 'isPublic' | 'showInRanking'>>): Promise<Profile>

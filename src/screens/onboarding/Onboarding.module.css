@@ -1,0 +1,408 @@
+/* Estilos compartidos por las pantallas de acceso y primeros pasos.
+   Medidas del PDF: tarjetas de 358 px en móvil y 448 px en desktop, padding 36 o 27. */
+
+/* ───── Splash ───── */
+.splash {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  border: 0;
+  width: 100%;
+  cursor: pointer;
+}
+
+.splashWord {
+  font-family: var(--font-display);
+  font-size: 50px;
+  line-height: 1;
+}
+
+/* ───── Tarjeta de formulario (Registro, Login, Recuperar) ───── */
+.formWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  width: 100%;
+}
+
+.formCard {
+  padding: 40px 36px 36px;
+}
+
+.formTitle {
+  font-size: 36px;
+  letter-spacing: -0.05em;
+  text-align: center;
+}
+
+.formSub {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #6b6b6b;
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  margin-top: 36px;
+}
+
+.form label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.form input {
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.form input::placeholder {
+  color: #b5b5b5;
+}
+
+.formError {
+  margin-top: -12px;
+  padding: 12px 14px;
+  border: var(--bw-thin) solid var(--c-red);
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.formNote {
+  padding: 12px 14px;
+  border: var(--bw-thin) solid var(--c-green-text);
+  background: #f0fdf4;
+  color: var(--c-green-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.submit {
+  min-height: 68px;
+  box-shadow: 8px 8px 0 0 var(--c-ink);
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 36px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-align: center;
+  color: #6b6b6b;
+}
+
+.links a {
+  color: var(--c-black);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.version {
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  padding-left: 8px;
+}
+
+/* Panel negro de marca: solo desktop */
+.brandPanel {
+  display: none;
+}
+
+.brandTitle {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+}
+
+.desktopOnly {
+  display: none;
+}
+
+/* ───── Cabecera de paso (Competiciones) ───── */
+.stepCard {
+  padding: 27px;
+}
+
+.stepTitle {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.stepSub {
+  margin-top: 14px;
+  font-size: 14px;
+}
+
+/* ───── Competiciones ───── */
+.leaguesLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* ───── Lista de competiciones ───── */
+.leagueList {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.league {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 62px;
+  padding: 16px 19px;
+  background: var(--c-white);
+  border: var(--border);
+  box-shadow: 6px 6px 0 0 var(--c-ink);
+  font-family: var(--font-display);
+  font-size: 14px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.league[aria-checked='true'] {
+  background: var(--c-white);
+}
+
+.league > span:last-child {
+  width: 24px;
+  height: 24px;
+}
+
+/* ───── Configuración ───── */
+.configCard {
+  padding: 27px;
+}
+
+.configTitle {
+  font-size: 30px;
+  text-align: center;
+}
+
+.configSub {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  color: #5b5b5b;
+}
+
+.group {
+  margin: 28px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.group legend {
+  padding: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  text-transform: uppercase;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.option {
+  min-height: 50px;
+  padding: 8px;
+  background: var(--c-white);
+  border: var(--border);
+  box-shadow: 6px 6px 0 0 var(--c-ink);
+  font-family: var(--font-display);
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.optionBig {
+  min-height: 58px;
+  font-size: 20px;
+}
+
+.option[aria-checked='true'] {
+  background: var(--c-yellow);
+}
+
+/* ───── Resumen ───── */
+.summaryCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px;
+  text-align: center;
+}
+
+.summaryTitle {
+  margin-top: 40px;
+  font-size: 36px;
+  letter-spacing: -0.05em;
+}
+
+.summaryText {
+  max-width: 230px;
+  margin-top: 18px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.chips {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: 36px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 42px;
+  max-width: 240px;
+  padding: 8px 18px;
+  background: var(--c-white);
+  border: var(--border);
+  box-shadow: 6px 6px 0 0 var(--c-ink);
+  font-family: var(--font-display);
+  font-size: 12px;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.chip svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.chipYellow {
+  background: var(--c-yellow);
+}
+
+.start {
+  width: 100%;
+  min-height: 104px;
+  margin-top: 40px;
+  font-size: 20px;
+  box-shadow: 8px 8px 0 0 var(--c-ink);
+}
+
+.start > span:nth-child(1) {
+  max-width: 190px;
+}
+
+/* ───── Desktop ───── */
+@media (min-width: 1024px) {
+  .formWrap,
+  .stepCol,
+  .configWrap,
+  .summaryCard {
+    width: 448px;
+    flex: none;
+  }
+
+  .brandPanel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 24px;
+    width: 656px;
+    min-height: 464px;
+    padding: 56px 51px;
+    background: var(--c-black);
+    border: var(--border);
+    box-shadow: 8px 8px 0 0 var(--c-black);
+    color: var(--c-white);
+  }
+
+  .brandTitle {
+    font-size: 48px;
+    line-height: 1;
+    color: var(--c-yellow);
+  }
+
+  .brandText {
+    max-width: 540px;
+    font-size: 18px;
+    line-height: 1.6;
+  }
+
+  .formWrap .version {
+    margin-top: -12px;
+  }
+
+  /* Competiciones: columna izquierda + rejilla de 2 columnas */
+  .leaguesLayout {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    align-items: center;
+    gap: 48px;
+    width: 100%;
+  }
+
+  .stepCol {
+    width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .leagueList {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .league {
+    min-height: 159px;
+  }
+
+  .configWrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    width: 720px;
+  }
+
+  .configWrap > section {
+    width: 448px;
+  }
+
+  .desktopOnly {
+    display: block;
+    width: 100%;
+  }
+
+  .mobileOnly {
+    display: none;
+  }
+}

@@ -14,6 +14,16 @@ export function createMockRepository(): Repository {
   const attempts: AttemptResult[] = []
 
   return {
+    async signUp({ username, email }) {
+      if (username.toLowerCase() === 'ocupado') throw new Error('Ese nombre de usuario ya existe.')
+      profile = { ...profile, username, email }
+    },
+    async signIn({ email, password }) {
+      if (password === 'incorrecta') throw new Error('Email o contraseña incorrectos.')
+      profile = { ...profile, email }
+    },
+    async requestPasswordReset() {},
+    async signOut() {},
     async getCompetitions() {
       return clone(db.competitions)
     },

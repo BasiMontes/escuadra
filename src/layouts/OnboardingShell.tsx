@@ -7,20 +7,20 @@ import { cx } from '../components/cx'
 import styles from './OnboardingShell.module.css'
 
 type Props = {
-  /** Paso actual (1 a 3) o null si no se muestra la barra de pasos */
+  /** Segmentos completados de la barra de pasos (1 a 3), o null para ocultarla */
   step: number | null
   /** Mostrar botón de volver */
   back?: boolean
-  /** En desktop, alineación del contenido */
-  align?: 'center' | 'split'
+  /** Distribución del contenido en desktop */
+  layout?: 'center' | 'split'
   children: ReactNode
 }
 
-/** Pantallas sin sesión y de primeros pasos: fondo amarillo con patrón, sin navegación. */
-export function OnboardingShell({ step, back = true, align = 'center', children }: Props) {
+/** Pantallas de acceso y primeros pasos: fondo amarillo con patrón, sin navegación principal. */
+export function OnboardingShell({ step, back = true, layout = 'center', children }: Props) {
   const navigate = useNavigate()
   return (
-    <div className={cx('bg-pattern', styles.page)}>
+    <div className={cx('bg-pattern', styles.page, !back && styles.noBack)}>
       <header className={styles.top}>
         <div className={styles.left}>
           {back && (
@@ -29,8 +29,7 @@ export function OnboardingShell({ step, back = true, align = 'center', children 
             </button>
           )}
           <span className={styles.brand}>
-            <Logo size={36} />
-            <span className={styles.divider} aria-hidden="true" />
+            <Logo size={40} shadow bordered={false} />
             <span>Escuadra</span>
           </span>
         </div>
@@ -40,7 +39,12 @@ export function OnboardingShell({ step, back = true, align = 'center', children 
           </div>
         )}
       </header>
-      <main className={cx(styles.body, styles[align])}>{children}</main>
+      <main className={cx(styles.body, styles[layout])}>{children}</main>
     </div>
   )
+}
+
+/** Botón principal que en móvil queda fijo abajo sobre una franja amarilla; en desktop va en su sitio. */
+export function StickyAction({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cx(styles.sticky, className)}>{children}</div>
 }

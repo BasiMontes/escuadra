@@ -27,3 +27,6 @@ dist-ssr
 test-results
 playwright-report
 .env.local
+
+# Capturas locales: las de referencia se generan en Docker (ver README)
+e2e/__screenshots__/linux

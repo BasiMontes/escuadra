@@ -4,6 +4,10 @@ import { AppShell, type Tab } from './layouts/AppShell'
 import { Card } from './components/Card'
 import { Componentes } from './screens/Componentes'
 import { Home } from './screens/Home'
+import { Entrar, Recuperar, Registro } from './screens/onboarding/Auth'
+import { OnboardingProvider } from './screens/onboarding/OnboardingContext'
+import { Splash } from './screens/onboarding/Splash'
+import { Competiciones, Configuracion, Resumen } from './screens/onboarding/Steps'
 
 /** Marcador para las pantallas que aún no están construidas. */
 function Pendiente({ title, tab }: { title: string; tab: Tab | null }) {
@@ -22,7 +26,16 @@ export default function App() {
     <DataProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/inicio" replace />} />
+          <Route path="/" element={<Splash />} />
+          <Route path="/registro" element={<Registro />} />
+          <Route path="/entrar" element={<Entrar />} />
+          <Route path="/recuperar" element={<Recuperar />} />
+          <Route path="/onboarding" element={<OnboardingProvider />}>
+            <Route index element={<Navigate to="competiciones" replace />} />
+            <Route path="competiciones" element={<Competiciones />} />
+            <Route path="configuracion" element={<Configuracion />} />
+            <Route path="resumen" element={<Resumen />} />
+          </Route>
           <Route path="/inicio" element={<Home />} />
           <Route path="/componentes" element={<Componentes />} />
           <Route path="/retos/*" element={<Pendiente title="Retos" tab="retos" />} />
