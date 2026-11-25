@@ -1,0 +1,799 @@
+.page {
+  background: var(--c-white);
+}
+
+.inner {
+  max-width: 1248px;
+  margin-inline: auto;
+  padding-inline: var(--s-6);
+}
+
+/* ───────── Cabecera y pie ───────── */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--c-black);
+  color: var(--c-white);
+}
+
+.header .inner {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  min-height: 72px;
+}
+
+.header nav,
+.headerCta {
+  display: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  font-family: var(--font-display);
+  font-size: 20px;
+  text-transform: uppercase;
+}
+
+.enter {
+  margin-left: auto;
+  padding: var(--s-2) var(--s-3);
+  border: var(--bw-thin) solid var(--c-yellow);
+  color: var(--c-yellow);
+  font-family: var(--font-display);
+  font-size: 12px;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.header a:focus-visible,
+.footer a:focus-visible,
+.black a:focus-visible {
+  outline-color: var(--c-yellow);
+}
+
+.footer {
+  padding-block: var(--s-8);
+  background: var(--c-black);
+  color: var(--c-white);
+}
+
+.footer .inner {
+  display: grid;
+  gap: var(--s-5);
+}
+
+.footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-5);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.footer nav a {
+  text-decoration: none;
+}
+
+.footer p {
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--c-grey-text);
+  color: var(--c-slate-400);
+  font-size: 12px;
+}
+
+/* ───────── Secciones ───────── */
+
+.page section {
+  scroll-margin-top: 72px;
+}
+
+.yellow,
+.white,
+.black {
+  padding-block: var(--s-12);
+}
+
+.yellow {
+  background: var(--c-yellow);
+}
+
+.black {
+  background: var(--c-black);
+  color: var(--c-white);
+}
+
+.kicker {
+  color: var(--c-green-text);
+  font-family: var(--font-display);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.yellow .kicker {
+  color: var(--c-green-on-yellow);
+}
+
+.black .kicker {
+  color: var(--c-yellow);
+}
+
+.page h2 {
+  margin-top: var(--s-3);
+  font-size: 30px;
+}
+
+.sub {
+  margin-top: var(--s-4);
+  color: var(--c-grey-text);
+  line-height: 1.5;
+}
+
+.black .sub {
+  color: var(--c-grey-soft);
+}
+
+.wide {
+  display: none;
+}
+
+/* ───────── Portada ───────── */
+
+.hero {
+  display: grid;
+  gap: var(--s-12);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  background: var(--c-ink);
+  color: var(--c-white);
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.badge svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pitch h1 {
+  margin-top: var(--s-6);
+  font-size: 38px;
+}
+
+.lead {
+  max-width: 560px;
+  margin-top: var(--s-5);
+  line-height: 1.55;
+}
+
+.buttons {
+  display: grid;
+  gap: var(--s-4);
+  margin-top: var(--s-8);
+}
+
+.secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60px;
+  padding: var(--s-3) var(--s-8);
+  border: var(--border);
+  background: var(--c-white);
+  font-family: var(--font-display);
+  font-size: 18px;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-5);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.check svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.demo {
+  align-self: center;
+  margin: 0;
+  padding: var(--s-5);
+  border: var(--border);
+  background: var(--c-white);
+  box-shadow: var(--shadow-lg);
+}
+
+.demoTag {
+  display: inline-block;
+  padding: var(--s-1) var(--s-3);
+  background: var(--c-ink);
+  color: var(--c-white);
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.demoTimer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--s-4);
+  font-family: var(--font-display);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.demoTimer strong {
+  font-size: 22px;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.demoBar {
+  display: block;
+  height: 22px;
+  margin-top: var(--s-2);
+  padding: 3px;
+  border: var(--border);
+}
+
+.demoBar span {
+  display: block;
+  width: 62%;
+  height: 100%;
+  background: var(--c-yellow);
+}
+
+.demoQuestion {
+  margin-top: var(--s-5);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.demo ol {
+  display: grid;
+  gap: var(--s-3);
+  margin: var(--s-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.demo li {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 52px;
+  padding: var(--s-2) var(--s-3);
+  border: var(--border);
+  font-family: var(--font-display);
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+/* En móvil el diseño enseña tres opciones */
+.demo li:nth-child(4) {
+  display: none;
+}
+
+.demo li span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: var(--c-ink);
+  color: var(--c-white);
+  font-size: 12px;
+}
+
+.demo li.demoPicked {
+  background: var(--c-yellow);
+  box-shadow: var(--shadow-sm);
+}
+
+.demo figcaption {
+  margin-top: var(--s-4);
+  color: var(--c-green-text);
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+/* ───────── Cifras ───────── */
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-block: 0;
+  text-align: center;
+}
+
+.figures div {
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.figures dd {
+  margin: 0;
+  color: var(--c-yellow);
+  font-family: var(--font-display);
+  font-size: 28px;
+}
+
+.figures dt {
+  font-family: var(--font-display);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.black[aria-label] {
+  padding-block: var(--s-5);
+}
+
+/* ───────── Pasos, funciones, ligas ───────── */
+
+.steps,
+.features,
+.leagues {
+  display: grid;
+  gap: var(--s-4);
+  margin: var(--s-8) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  display: flex;
+  gap: var(--s-4);
+  padding: var(--s-5);
+  border: var(--border);
+  background: var(--c-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.steps li > span {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: var(--c-ink);
+  color: var(--c-yellow);
+  font-family: var(--font-display);
+  font-size: 18px;
+}
+
+.steps h3,
+.features h3 {
+  font-size: 15px;
+}
+
+.steps p {
+  margin-top: var(--s-2);
+  color: var(--c-grey-text);
+  font-size: 14px;
+}
+
+.features {
+  grid-template-columns: 1fr 1fr;
+}
+
+.features li {
+  padding: var(--s-4);
+  border: var(--border);
+  background: var(--c-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.features li > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: var(--border-thin);
+  background: var(--c-yellow);
+}
+
+.features svg {
+  width: 22px;
+  height: 22px;
+}
+
+.features h3 {
+  margin-top: var(--s-4);
+  font-size: 13px;
+}
+
+.features p {
+  margin-top: var(--s-3);
+  color: var(--c-grey-text);
+  font-size: 13px;
+}
+
+.leagues {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+}
+
+.leagues li {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border: var(--border);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.leagues li::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border: var(--border-thin);
+  background: var(--c-green);
+}
+
+/* ───────── Ranking y preguntas ───────── */
+
+.split {
+  display: grid;
+  gap: var(--s-6);
+}
+
+.split > ul {
+  margin-top: 0;
+}
+
+.rankingCta {
+  display: none;
+}
+
+.board {
+  padding: var(--s-5);
+  background: var(--c-white);
+  box-shadow: 8px 8px 0 0 var(--c-yellow);
+  color: var(--c-black);
+}
+
+.board p {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-display);
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.board p span:last-child {
+  color: var(--c-grey-text);
+  font-size: 10px;
+}
+
+.board ul {
+  display: grid;
+  gap: var(--s-3);
+  margin: var(--s-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.board li {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-4);
+  border: var(--border-thin);
+  background: var(--c-cream);
+}
+
+.board li.you {
+  border-width: var(--bw);
+  background: var(--c-yellow);
+}
+
+.board li span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--c-ink);
+  color: var(--c-yellow);
+  font-family: var(--font-display);
+  font-size: 13px;
+}
+
+.board li strong {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.board li em {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-style: normal;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.faq {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.faq details {
+  padding: var(--s-5);
+  border: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.faq summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  font-weight: 700;
+  list-style: none;
+  cursor: pointer;
+}
+
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq summary svg {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
+.faq p {
+  margin-top: var(--s-3);
+  color: var(--c-grey-text);
+  font-size: 14px;
+}
+
+.cta {
+  display: grid;
+  gap: var(--s-8);
+  padding: var(--s-8) var(--s-6);
+  background: var(--c-black);
+  box-shadow: var(--shadow-lg);
+  color: var(--c-white);
+}
+
+.cta h2 {
+  margin-top: 0;
+  color: var(--c-yellow);
+}
+
+.cta p {
+  margin-top: var(--s-4);
+  line-height: 1.5;
+}
+
+/* ───────── Desktop ───────── */
+
+@media (min-width: 1024px) {
+  .header .inner {
+    gap: var(--s-8);
+    min-height: 100px;
+  }
+
+  .header nav {
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    gap: var(--s-8);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .header nav a {
+    text-decoration: none;
+  }
+
+  .enter {
+    margin-left: 0;
+  }
+
+  .headerCta {
+    display: inline-flex;
+    box-shadow: none;
+  }
+
+  .page section {
+    scroll-margin-top: 100px;
+  }
+
+  .yellow,
+  .white,
+  .black {
+    padding-block: 80px;
+  }
+
+  .page h2 {
+    font-size: 48px;
+  }
+
+  .sub {
+    max-width: 540px;
+    font-size: 18px;
+  }
+
+  .wide {
+    display: inline;
+  }
+
+  p.wide {
+    display: block;
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 640px) minmax(0, 460px);
+    justify-content: space-between;
+    padding-block: var(--s-10);
+  }
+
+  .pitch {
+    align-self: center;
+  }
+
+  .pitch h1 {
+    font-size: 66px;
+  }
+
+  .lead {
+    max-width: 640px;
+    font-size: 20px;
+  }
+
+  .buttons {
+    display: flex;
+    gap: var(--s-5);
+  }
+
+  .demo {
+    padding: var(--s-8);
+  }
+
+  .demo li:nth-child(4) {
+    display: flex;
+  }
+
+  .black[aria-label] {
+    padding-block: var(--s-10);
+  }
+
+  .figures dd {
+    font-size: 48px;
+  }
+
+  .figures dt {
+    font-size: 12px;
+  }
+
+  .steps {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--s-6);
+    margin-top: var(--s-12);
+  }
+
+  .features {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--s-6);
+    margin-top: var(--s-12);
+  }
+
+  .features li {
+    padding: var(--s-6);
+  }
+
+  .split {
+    grid-template-columns: 1fr 1fr;
+    gap: 96px;
+    align-items: center;
+  }
+
+  #faq .split {
+    align-items: start;
+  }
+
+  .rankingCta {
+    display: inline-flex;
+    margin-top: var(--s-8);
+  }
+
+  .cta {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: var(--s-12);
+    padding: var(--s-12) 64px;
+    box-shadow: var(--shadow-xl);
+  }
+
+  .cta p {
+    max-width: 700px;
+    font-size: 18px;
+  }
+
+  .footer {
+    padding-block: var(--s-12);
+  }
+
+  .footer .inner {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .footer p {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Portátiles: portada más compacta para que se vea entera */
+@media (min-width: 1024px) and (max-height: 899px) {
+  .header .inner {
+    min-height: 80px;
+  }
+
+  .page section {
+    scroll-margin-top: 80px;
+  }
+
+  .hero {
+    padding-block: 0;
+  }
+
+  .yellow:first-child {
+    padding-block: var(--s-8);
+  }
+
+  .pitch h1 {
+    margin-top: var(--s-4);
+    font-size: 52px;
+  }
+
+  .lead {
+    font-size: 18px;
+  }
+
+  .buttons {
+    margin-top: var(--s-6);
+  }
+
+  .demo {
+    padding: var(--s-5);
+  }
+
+  .demo ol {
+    gap: var(--s-2);
+  }
+
+  .demo li {
+    min-height: 42px;
+  }
+}
