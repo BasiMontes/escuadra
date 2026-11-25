@@ -3,6 +3,11 @@ import { DataProvider } from './data/DataProvider'
 import { AppShell, type Tab } from './layouts/AppShell'
 import { Card } from './components/Card'
 import { Componentes } from './screens/Componentes'
+import { CrearProvider } from './screens/crear/CrearContext'
+import { PasoInformacion } from './screens/crear/PasoInformacion'
+import { PasoNivel } from './screens/crear/PasoNivel'
+import { PasoPistas } from './screens/crear/PasoPistas'
+import { PasoPublicado } from './screens/crear/PasoPublicado'
 import { Home } from './screens/Home'
 import { EnCurso } from './screens/retos/EnCurso'
 import { RetoDetalle } from './screens/retos/RetoDetalle'
@@ -53,7 +58,14 @@ export default function App() {
           <Route path="/retos/*" element={<Pendiente title="Retos" tab="retos" />} />
           <Route path="/ranking" element={<Pendiente title="Ranking" tab="ranking" />} />
           <Route path="/perfil/*" element={<Pendiente title="Perfil" tab="perfil" />} />
-          <Route path="/crear/*" element={<Pendiente title="Crear reto" tab="retos" />} />
+          <Route path="/crear" element={<CrearProvider />}>
+            <Route index element={<Navigate to="1" replace />} />
+            <Route path="1" element={<PasoInformacion />} />
+            <Route path="2" element={<PasoNivel />} />
+            <Route path="3" element={<PasoPistas />} />
+            <Route path="4" element={<PasoPublicado />} />
+            <Route path="*" element={<Navigate to="/crear/1" replace />} />
+          </Route>
           <Route path="*" element={<Pendiente title="Página no encontrada" tab={null} />} />
         </Routes>
       </BrowserRouter>

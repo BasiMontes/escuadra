@@ -1,0 +1,45 @@
+.form {
+  display: grid;
+  gap: var(--s-6);
+}
+
+.selects {
+  display: grid;
+  gap: var(--s-6);
+}
+
+.question textarea {
+  min-height: 130px;
+}
+
+@media (min-width: 1024px) and (max-height: 899px) {
+  .form {
+    gap: var(--s-3);
+  }
+
+  .form > div,
+  .selects > div {
+    gap: var(--s-2);
+  }
+
+  .form input,
+  .form select {
+    padding-block: var(--s-3);
+    font-size: 16px;
+  }
+
+  .question textarea {
+    min-height: 64px;
+    height: 64px;
+    padding-block: var(--s-3);
+    font-size: 16px;
+  }
+
+  .selects {
+    gap: var(--s-3);
+  }
+
+  .form button[type='submit'] {
+    min-height: 54px;
+  }
+}
