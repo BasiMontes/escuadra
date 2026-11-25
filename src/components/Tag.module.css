@@ -50,7 +50,7 @@
 }
 
 .red {
-  background: var(--c-red);
+  background: var(--c-red-strong);
   color: var(--c-white);
 }
 
