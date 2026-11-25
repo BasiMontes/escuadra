@@ -26,10 +26,13 @@ export default defineConfig({
   projects: [
     {
       name: 'movil',
+      // Las pruebas de portátil solo tienen sentido a 1280×680
+      grepInvert: /@portatil/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, launchOptions },
     },
     {
       name: 'desktop',
+      grepInvert: /@portatil/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, launchOptions },
     },
     {
