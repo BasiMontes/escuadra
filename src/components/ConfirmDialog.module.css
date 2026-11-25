@@ -1,0 +1,27 @@
+.dialog {
+  width: min(100% - 48px, 420px);
+  padding: var(--s-6);
+  border: var(--bw-thick) solid var(--c-black);
+  background: var(--c-white);
+  box-shadow: var(--shadow-lg);
+  color: var(--c-black);
+}
+
+.dialog::backdrop {
+  background: var(--c-overlay);
+}
+
+.dialog h2 {
+  font-size: 22px;
+}
+
+.dialog p {
+  margin-top: var(--s-3);
+  font-weight: 700;
+}
+
+.actions {
+  display: grid;
+  gap: var(--s-4);
+  margin-top: var(--s-6);
+}

@@ -55,6 +55,7 @@ export const myStats: UserStats = {
   globalRank: 42,
   weeklyRank: 1248,
   weeklyPoints: 850,
+  notificationResponseRate: 0.75,
 }
 
 const balonDeOro: Challenge = {

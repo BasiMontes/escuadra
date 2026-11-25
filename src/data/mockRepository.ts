@@ -5,6 +5,7 @@ import type {
   AttemptResult,
   ChallengeState,
   CommunityChallenge,
+  NotificationItem,
   OpenAttempt,
   Profile,
   UserSettings,
@@ -177,6 +178,30 @@ export function createMockRepository(): Repository {
     async sendSupportTicket() {},
     async changePassword({ current }) {
       if (!current) throw new Error('Introduce tu contraseña actual.')
+      if (current === 'incorrecta') throw new Error('La contraseña actual no es correcta.')
     },
+    async getNotifications() {
+      const items: NotificationItem[] = []
+      if (settings.notifDaily) {
+        items.push({
+          id: 'reto-del-dia',
+          kind: 'reto',
+          title: 'Retos diarios',
+          text: 'El reto oficial de hoy te está esperando.',
+          to: '/retos/gol-final-2005/intro',
+        })
+      }
+      if (settings.notifAchievements) {
+        items.push({
+          id: 'logro-rey-del-gol',
+          kind: 'logro',
+          title: 'Nuevos logros',
+          text: 'Has desbloqueado «Rey del gol».',
+          to: '/perfil/logros?nuevo=rey-del-gol',
+        })
+      }
+      return items
+    },
+    async deleteAccount() {},
   }
 }

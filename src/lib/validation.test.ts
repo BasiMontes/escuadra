@@ -10,6 +10,7 @@ import {
   validateEmail,
   validateHint,
   validatePassword,
+  validateSupportMessage,
   validateUsername,
 } from './validation'
 
@@ -78,5 +79,14 @@ describe('perfil', () => {
     expect(validateAvatar({ type: 'image/png', size: AVATAR_MAX_BYTES })).toBeNull()
     expect(validateAvatar({ type: 'image/gif', size: 10 })).toBe('La foto debe ser JPG, PNG o WebP.')
     expect(validateAvatar({ type: 'image/jpeg', size: AVATAR_MAX_BYTES + 1 })).toBe('La foto no puede pesar más de 2 MB.')
+  })
+})
+
+describe('soporte', () => {
+  it('exige un mensaje de entre 10 y 1000 caracteres', () => {
+    expect(validateSupportMessage('  ')).toBe('Escribe tu mensaje.')
+    expect(validateSupportMessage('Ayuda')).toBe('Mínimo 10 caracteres.')
+    expect(validateSupportMessage('a'.repeat(1001))).toBe('Máximo 1000 caracteres.')
+    expect(validateSupportMessage('No carga el reto de hoy.')).toBeNull()
   })
 })
