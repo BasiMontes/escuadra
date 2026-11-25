@@ -82,7 +82,14 @@ export function TextArea({
   return (
     <FieldWrap id={id} label={label} error={error} hint={hint} className={className}>
       <div className={cx(styles.control, styles[look], error && styles.invalid)}>
-        <textarea id={id} rows={4} aria-invalid={error ? true : undefined} {...input} className={styles.input} />
+        <textarea
+          id={id}
+          rows={4}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${id}-error` : undefined}
+          {...input}
+          className={styles.input}
+        />
       </div>
     </FieldWrap>
   )
@@ -101,7 +108,13 @@ export function SelectField({
   return (
     <FieldWrap id={id} label={label} error={error} hint={hint} className={className}>
       <div className={cx(styles.control, styles[look], styles.select, error && styles.invalid)}>
-        <select id={id} {...select} className={styles.input}>
+        <select
+          id={id}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${id}-error` : undefined}
+          {...select}
+          className={styles.input}
+        >
           {options.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
