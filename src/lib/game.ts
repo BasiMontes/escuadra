@@ -99,3 +99,23 @@ const nf = new Intl.NumberFormat('es-ES', { useGrouping: 'always' } as Intl.Numb
 export function formatNumber(n: number): string {
   return nf.format(n)
 }
+
+/** Segundos con un decimal como mucho, en formato español: 5, 10,4. */
+export function formatSeconds(seconds: number): string {
+  return new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 }).format(seconds)
+}
+
+/** Fecha de un reto (YYYY-MM-DD) como en el diseño: "03 Marzo". */
+export function formatChallengeDate(isoDate: string): string {
+  const date = new Date(`${isoDate}T12:00:00Z`)
+  const month = new Intl.DateTimeFormat('es-ES', { month: 'long', timeZone: 'UTC' }).format(date)
+  return `${isoDate.slice(8, 10)} ${month.charAt(0).toUpperCase()}${month.slice(1)}`
+}
+
+/**
+ * Huecos de pista que se muestran en un reto: las ya reveladas más las que
+ * permite el saldo del día, sin pasar de las que tiene el reto.
+ */
+export function hintSlots(totalHints: number, revealed: number, hintsLeft: number): number {
+  return Math.min(totalHints, revealed + Math.max(0, hintsLeft))
+}

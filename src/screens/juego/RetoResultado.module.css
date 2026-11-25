@@ -1,0 +1,360 @@
+.correct,
+.wrong {
+  display: grid;
+  gap: var(--s-6);
+}
+
+.wrong {
+  gap: var(--s-5);
+}
+
+.side {
+  display: grid;
+  align-content: start;
+  gap: var(--s-6);
+  min-width: 0;
+}
+
+.actions {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.heading {
+  font-size: 36px;
+  text-align: center;
+}
+
+/* El título recibe el foco por código, no por teclado */
+.heading:focus {
+  outline: none;
+}
+
+.retryNote {
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* ───────── Correcto ───────── */
+
+.winCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-8) var(--s-6);
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  margin-bottom: var(--s-4);
+  border: var(--bw-thick) solid var(--c-black);
+  border-radius: 50%;
+  background: var(--c-white);
+}
+
+.check svg {
+  width: 60px;
+  height: 60px;
+  stroke-width: 2.5;
+}
+
+.winCard .heading {
+  font-size: 40px;
+}
+
+.answer {
+  min-width: 200px;
+  padding: var(--s-1) var(--s-6);
+  border: var(--border-thin);
+  background: var(--c-white);
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.scores {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-3);
+  width: 100%;
+  margin: var(--s-4) 0 0;
+}
+
+.scores div {
+  padding: var(--s-2);
+  border: var(--border-thin);
+  background: var(--c-white);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+}
+
+.scores dt,
+.tiles dt {
+  color: var(--c-grey-muted);
+  font-family: var(--font-display);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.scores dd,
+.tiles dd {
+  margin: var(--s-1) 0 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.next {
+  min-height: 118px;
+  font-size: 24px;
+  box-shadow: var(--shadow-lg);
+}
+
+.others {
+  min-height: 70px;
+  font-size: 18px;
+}
+
+/* ───────── Incorrecto y tiempo agotado ───────── */
+
+.loseCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.image {
+  width: 100%;
+  height: 163px;
+  border: var(--border-thin);
+  object-fit: cover;
+}
+
+.missed {
+  display: flex;
+  flex-direction: column;
+}
+
+.missed span {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.missed strong {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.summary span {
+  color: var(--c-grey-text);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.summary p {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.summary strong {
+  color: var(--c-orange-text);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-4);
+  margin: 0;
+}
+
+.tiles div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--s-4);
+  border: var(--border);
+  background: var(--c-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.tiles .pointsTile {
+  background: var(--c-orange-soft);
+}
+
+.tiles svg {
+  width: 24px;
+  height: 24px;
+  margin-bottom: var(--s-1);
+}
+
+.pointsTile svg {
+  color: var(--c-orange-text);
+}
+
+/* Sobre el fondo melocotón el gris de las etiquetas no contrasta lo suficiente */
+.tiles dt {
+  color: var(--c-ink);
+}
+
+.tiles dd {
+  font-size: 24px;
+  text-transform: uppercase;
+}
+
+.tiles div:last-child dd {
+  text-transform: none;
+}
+
+.wrong .actions {
+  margin-top: var(--s-6);
+}
+
+/* ───────── Desktop ───────── */
+
+@media (min-width: 1024px) {
+  .correct,
+  .wrong {
+    align-items: start;
+    max-width: 1080px;
+    column-gap: var(--s-10);
+  }
+
+  .correct,
+  .wrong {
+    grid-template-columns: minmax(0, 600fr) minmax(0, 440fr);
+  }
+
+  .winCard {
+    justify-self: center;
+    width: 100%;
+    max-width: 480px;
+    padding: var(--s-12);
+  }
+
+  .check {
+    width: 140px;
+    height: 140px;
+  }
+
+  .check svg {
+    width: 84px;
+    height: 84px;
+  }
+
+  .winCard .heading {
+    font-size: 52px;
+  }
+
+  .answer {
+    min-width: 280px;
+    padding-block: var(--s-2);
+    font-size: 28px;
+  }
+
+  .scores dt {
+    font-size: 12px;
+  }
+
+  .scores dd {
+    font-size: 28px;
+  }
+
+  .scores div {
+    padding-block: var(--s-3);
+  }
+
+  .correct .side {
+    gap: var(--s-10);
+  }
+
+  .summary {
+    min-height: 116px;
+  }
+
+  .image {
+    height: 308px;
+  }
+
+  .wrong .actions {
+    margin-top: var(--s-6);
+  }
+}
+
+@media (min-width: 1024px) and (max-height: 899px) {
+  .winCard {
+    gap: var(--s-3);
+    padding-block: var(--s-6);
+  }
+
+  .winCard .heading {
+    font-size: 40px;
+  }
+
+  .answer {
+    font-size: 22px;
+  }
+
+  .scores div {
+    padding-block: var(--s-2);
+  }
+
+  .scores dd {
+    font-size: 22px;
+  }
+
+  .correct .side {
+    gap: var(--s-4);
+  }
+
+  .summary {
+    min-height: 0;
+  }
+
+  .check {
+    width: 76px;
+    height: 76px;
+    margin-bottom: 0;
+  }
+
+  .check svg {
+    width: 44px;
+    height: 44px;
+  }
+
+  .scores {
+    margin-top: var(--s-2);
+  }
+
+  .side {
+    gap: var(--s-4);
+  }
+
+  .next {
+    min-height: 66px;
+    font-size: 20px;
+  }
+
+  .others {
+    min-height: 50px;
+    font-size: 15px;
+  }
+
+  .image {
+    height: 220px;
+  }
+
+  .wrong .actions {
+    gap: var(--s-3);
+    margin-top: 0;
+  }
+}

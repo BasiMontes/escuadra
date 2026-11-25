@@ -22,11 +22,15 @@ type Props = {
   title: string
   /** Fondo de la zona de contenido en móvil; en desktop siempre es amarillo con patrón */
   mobileBg?: 'yellow' | 'game' | 'white'
+  /** Margen lateral de 16 px en móvil (Reto del día y Reto) en lugar de 24 */
+  narrow?: boolean
+  /** Saldo de pistas al día cuando la pantalla lo cambia */
+  hintsLeft?: number
   children: ReactNode
 }
 
 /** Estructura común de las pantallas con sesión iniciada. */
-export function AppShell({ tab, title, mobileBg = 'yellow', children }: Props) {
+export function AppShell({ tab, title, mobileBg = 'yellow', narrow = false, hintsLeft, children }: Props) {
   const { data: stats } = useLoad((r) => r.getStats())
   return (
     <div className={styles.shell}>
@@ -75,7 +79,7 @@ export function AppShell({ tab, title, mobileBg = 'yellow', children }: Props) {
               <Flame aria-hidden="true" /> Racha {stats?.streak ?? 0}
             </span>
             <span className={styles.pill} data-testid="topbar-pistas">
-              <Lightbulb aria-hidden="true" /> Pistas {stats?.hintsLeft ?? 0}
+              <Lightbulb aria-hidden="true" /> Pistas {hintsLeft ?? stats?.hintsLeft ?? 0}
             </span>
             <Link to="/avisos" className={styles.topBell} aria-label="Avisos" data-testid="topbar-avisos">
               <Bell />
@@ -83,7 +87,7 @@ export function AppShell({ tab, title, mobileBg = 'yellow', children }: Props) {
           </div>
         </header>
 
-        <main className={cx(styles.content, styles[`bg-${mobileBg}`])} id="contenido">
+        <main className={cx(styles.content, styles[`bg-${mobileBg}`], narrow && styles.narrow)} id="contenido">
           <h1 className="visually-hidden" data-mobile-title>
             {title}
           </h1>
