@@ -2,8 +2,8 @@
 .toggle {
   position: relative;
   flex: none;
-  width: 72px;
-  height: 40px;
+  width: 56px;
+  height: 32px;
   padding: 0;
   border: var(--border);
   background: var(--c-ink);
@@ -11,10 +11,10 @@
 
 .knob {
   position: absolute;
-  top: 3px;
-  right: 3px;
-  width: 28px;
-  height: 28px;
+  top: 0;
+  right: 0;
+  width: 24px;
+  height: 26px;
   background: var(--c-grey-soft);
   border: 1px solid var(--c-ink);
   transition: left 120ms ease, right 120ms ease;
@@ -22,7 +22,7 @@
 
 .on .knob {
   right: auto;
-  left: 3px;
+  left: 0;
   background: var(--c-yellow);
 }
 

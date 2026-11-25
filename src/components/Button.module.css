@@ -69,7 +69,7 @@
 }
 
 .danger {
-  background: var(--c-red);
+  background: var(--c-red-strong);
   color: var(--c-white);
   letter-spacing: 0.12em;
 }
