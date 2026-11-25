@@ -198,6 +198,9 @@ export const correctAnswers: Record<string, string> = {
   'champions-2005': 'Liverpool',
   'goleador-laliga': 'Lionel Messi',
   'gol-final-2005': 'Vladimír Šmicer',
+  'mundiales-90s': 'Francia',
+  'leyendas-madrid': 'Cristiano Ronaldo',
+  'estrellas-italianas': 'Roberto Baggio',
 }
 
 /** Retos "En curso" y "Descubrir" (creados por la comunidad) */

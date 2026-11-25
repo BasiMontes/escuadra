@@ -102,3 +102,51 @@ describe('lista de retos', () => {
     }
   })
 })
+
+describe('retos de usuario', () => {
+  const draft = {
+    title: 'Mi reto',
+    description: '¿Qué equipo juega en el Emirates Stadium?',
+    type: 'libre' as const,
+    competitionId: 'premier',
+    difficulty: 'medio' as const,
+    basePoints: 100,
+    hints: ['El equipo juega en Londres.'],
+    answer: 'Arsenal FC',
+  }
+
+  it('nacen pendientes y no aparecen en los retos del día', async () => {
+    const repo = createMockRepository()
+    const { id, status } = await repo.createChallenge(draft)
+
+    expect(status).toBe('pendiente')
+    expect(await repo.getChallenge(id)).toMatchObject({ kind: 'usuario', status: 'pendiente', question: draft.description })
+    expect((await repo.getTodayChallenges()).map((c) => c.id)).not.toContain(id)
+    expect((await repo.getStats()).challengesCreated).toBe(16)
+  })
+
+  it('quien los crea no puede jugarlos', async () => {
+    const repo = createMockRepository()
+    const { id } = await repo.createChallenge(draft)
+    await expect(repo.startAttempt(id)).rejects.toThrow('No puedes jugar tu propio reto.')
+  })
+
+  it('cada repositorio guarda sus propios retos', async () => {
+    const { id } = await createMockRepository().createChallenge(draft)
+    expect(await createMockRepository().getChallenge(id)).toBeNull()
+  })
+
+  it('la respuesta libre ignora mayúsculas, tildes y espacios', async () => {
+    const repo = createMockRepository()
+    const result = await repo.submitAttempt({ challengeId: 'mundiales-90s', answer: '  FRÁNCIA ', timeSeconds: 5, hintsUsed: 0 })
+    expect(result).toMatchObject({ isCorrect: true, points: 60 })
+  })
+
+  it('no cuentan para la racha, que es solo de retos oficiales', async () => {
+    const repo = createMockRepository()
+    await repo.submitAttempt({ challengeId: 'mundiales-90s', answer: 'Francia', timeSeconds: 5, hintsUsed: 0 })
+    expect((await repo.getStats()).streak).toBe(0)
+    await repo.submitAttempt({ challengeId: RETO, answer: null, timeSeconds: 20, hintsUsed: 0 })
+    expect((await repo.getStats()).streak).toBe(1)
+  })
+})

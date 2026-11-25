@@ -1,6 +1,9 @@
+import { useState, type FormEvent } from 'react'
 import { useParams } from 'react-router'
+import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { ProgressBar } from '../../components/Controls'
+import { TextField } from '../../components/Field'
 import { EmptyCard, ErrorNotice, Skeleton } from '../../components/States'
 import { Tag } from '../../components/Tag'
 import { cx } from '../../components/cx'
@@ -8,6 +11,7 @@ import { useLoad } from '../../data/hooks'
 import type { Challenge, OpenAttempt } from '../../data/types'
 import { AppShell } from '../../layouts/AppShell'
 import { CHALLENGE_SECONDS, formatChallengeDate, hintSlots } from '../../lib/game'
+import { CHALLENGE_LIMITS, validateAnswer } from '../../lib/validation'
 import { HintsPanel } from './HintsPanel'
 import { usePartida } from './usePartida'
 import styles from './RetoJugar.module.css'
@@ -16,9 +20,9 @@ export function RetoJugar() {
   const { id = '' } = useParams()
   const { data, error, loading, reload } = useLoad(
     async (r) => {
-      const challenge = await r.getChallenge(id)
-      // Los retos de respuesta libre aún no se juegan: no se abre intento ni corre el reloj
-      if (!challenge || challenge.answerType !== 'opciones') return null
+      const [challenge, me] = await Promise.all([r.getChallenge(id), r.getMe()])
+      // El reto propio no se juega: no se abre intento ni corre el reloj
+      if (!challenge || challenge.createdBy === me.id) return null
       const attempt = await r.startAttempt(id)
       const { hintsLeft } = await r.getStats()
       return { challenge, attempt, hintsLeft }
@@ -78,23 +82,27 @@ function Partida({ challenge, attempt, hintsLeft }: { challenge: Challenge; atte
             </h2>
           </Card>
 
-          <ul className={styles.options}>
-            {challenge.options.map((option) => (
-              <li key={option.label}>
-                <button
-                  type="button"
-                  className={cx(styles.option, game.selected === option.text && styles.selected)}
-                  aria-pressed={game.selected === option.text}
-                  disabled={game.answered}
-                  onClick={() => game.answer(option.text)}
-                  data-testid={`reto-opcion-${option.label.toLowerCase()}`}
-                >
-                  <span className={styles.letter}>{option.label}</span>
-                  <span>{option.text}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          {challenge.answerType === 'libre' ? (
+            <FreeAnswer disabled={game.answered} onAnswer={game.answer} />
+          ) : (
+            <ul className={styles.options}>
+              {challenge.options.map((option) => (
+                <li key={option.label}>
+                  <button
+                    type="button"
+                    className={cx(styles.option, game.selected === option.text && styles.selected)}
+                    aria-pressed={game.selected === option.text}
+                    disabled={game.answered}
+                    onClick={() => game.answer(option.text)}
+                    data-testid={`reto-opcion-${option.label.toLowerCase()}`}
+                  >
+                    <span className={styles.letter}>{option.label}</span>
+                    <span>{option.text}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className={styles.hints}>
@@ -107,5 +115,39 @@ function Partida({ challenge, attempt, hintsLeft }: { challenge: Challenge; atte
         </div>
       </div>
     </AppShell>
+  )
+}
+
+/** Respuesta escrita de los retos creados por usuarios. */
+function FreeAnswer({ disabled, onAnswer }: { disabled: boolean; onAnswer: (answer: string) => void }) {
+  const [value, setValue] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  function onSubmit(e: FormEvent) {
+    e.preventDefault()
+    const problem = validateAnswer(value)
+    setError(problem)
+    if (!problem) onAnswer(value.trim())
+  }
+
+  return (
+    <form className={styles.free} onSubmit={onSubmit} noValidate>
+      <TextField
+        label="Tu respuesta"
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value)
+          setError(null)
+        }}
+        error={error ?? undefined}
+        maxLength={CHALLENGE_LIMITS.answerMax}
+        autoComplete="off"
+        disabled={disabled}
+        data-testid="reto-respuesta"
+      />
+      <Button type="submit" block disabled={disabled} data-testid="reto-responder">
+        Responder
+      </Button>
+    </form>
   )
 }

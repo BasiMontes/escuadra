@@ -113,12 +113,6 @@ test.describe('Detalle del reto', () => {
     await irARetos(page, info.project.name)
   })
 
-  test('un reto de respuesta libre todavía no se puede jugar', async ({ page }) => {
-    await page.goto('/retos/mundiales-90s')
-    await expect(page.getByTestId('detalle-comenzar')).toBeDisabled()
-    await expect(page.getByTestId('detalle-aviso')).toContainText('disponibles pronto')
-  })
-
   test('avisa si el reto no existe', async ({ page }) => {
     await page.goto('/retos/no-existe')
     await expect(page.getByTestId('vacio-tarjeta')).toContainText('No encontramos este reto.')
