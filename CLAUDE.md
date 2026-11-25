@@ -78,8 +78,9 @@ npm run test:e2e       # Playwright: móvil 390, desktop 1440×900 y portátil 1
   es la pregunta del reto; el borrador vive mientras se está en `/crear`.
 - Hecho: Perfil (`src/screens/perfil/`): Perfil, Editar perfil y Mis logros. El aviso de logro se
   abre con `/perfil/logros?nuevo=<código>`; nada lo lanza solo todavía (irá con Supabase).
-- Siguiente: Ranking, Ajustes
-  (Notificaciones, Privacidad, Soporte, Cambiar contraseña), landing pública y conexión con Supabase.
+- Hecho: Ranking (`src/screens/ranking/`), Ajustes y sus cuatro pantallas
+  (`src/screens/ajustes/`), panel de avisos de la campana, landing (`/bienvenida`) y página 404.
+- Con esto están todas las pantallas del diseño. Siguiente: conexión con Supabase.
 - Las capturas de referencia visuales aún no están en el repo: se generan con Docker (ver README).
 
 ## Producto
