@@ -101,13 +101,13 @@ textarea.input {
 .error {
   font-size: 12px;
   font-weight: 700;
-  color: var(--c-red);
+  color: var(--c-red-text);
 }
 
 .hint {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--c-grey-muted);
+  color: var(--c-grey-text-soft);
   letter-spacing: 0.02em;
 }
