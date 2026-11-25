@@ -1,0 +1,214 @@
+.screen {
+  display: grid;
+  gap: var(--s-6);
+  margin-top: calc(var(--s-2) * -1);
+}
+
+.intro {
+  border-width: var(--bw-thick);
+}
+
+.intro h2 {
+  max-width: 260px;
+  font-size: 36px;
+  line-height: 1;
+}
+
+.lead {
+  max-width: 300px;
+  margin-top: var(--s-4);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.note {
+  max-width: 250px;
+  margin-top: var(--s-5);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 40px;
+  padding: var(--s-2) var(--s-3);
+  border: var(--border-thin);
+  background: var(--c-white);
+  box-shadow: var(--shadow-xs);
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+/* Cuadrado verde de los chips de la landing */
+.chip::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--c-black);
+  background: var(--c-green);
+}
+
+/* Oscuro: un chip amarillo se perdería sobre el fondo */
+.chipOn {
+  background: var(--c-ink);
+  color: var(--c-white);
+  box-shadow: none;
+  transform: translate(3px, 3px);
+}
+
+.list {
+  display: grid;
+  gap: var(--s-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list li {
+  display: grid;
+  min-width: 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-4);
+  border-width: var(--bw-thick);
+}
+
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.cardHead h3 {
+  align-self: center;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 20px;
+}
+
+.difficulty {
+  justify-content: center;
+  min-width: 76px;
+  min-height: 32px;
+  border-width: var(--bw-thick);
+  font-size: 12px;
+}
+
+.question {
+  max-width: 180px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.cardFoot {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+}
+
+.fact {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  color: var(--c-grey-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.fact svg {
+  width: 18px;
+  height: 18px;
+}
+
+.action {
+  min-width: 119px;
+  min-height: 56px;
+  margin-left: auto;
+  border-width: var(--bw-thick);
+  box-shadow: var(--shadow-md);
+  font-size: 16px;
+}
+
+@media (min-width: 1024px) {
+  .screen {
+    gap: var(--s-8);
+    max-width: 1080px;
+    margin-top: 0;
+  }
+
+  .list {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  .question {
+    max-width: 200px;
+  }
+
+  .cardFoot {
+    gap: var(--s-4);
+  }
+
+  .action {
+    min-width: 116px;
+  }
+}
+
+/* Tarjetas estrechas: el nombre de la liga y la dificultad deben caber en una línea */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .cardHead {
+    gap: var(--s-2);
+  }
+
+  .cardHead h3 {
+    font-size: 17px;
+  }
+
+  .difficulty {
+    min-width: 64px;
+  }
+}
+
+@media (min-width: 1024px) and (max-height: 899px) {
+  .screen {
+    gap: var(--s-5);
+  }
+
+  .intro {
+    padding-block: var(--s-4);
+  }
+
+  .intro h2,
+  .lead,
+  .note {
+    max-width: none;
+  }
+
+  .intro h2 {
+    font-size: 28px;
+  }
+
+  .lead,
+  .note {
+    margin-top: var(--s-2);
+  }
+
+  .card {
+    gap: var(--s-3);
+  }
+}

@@ -67,3 +67,38 @@ describe('siguiente reto', () => {
     expect(played.size).toBe(4)
   })
 })
+
+describe('lista de retos', () => {
+  it('solo incluye retos oficiales', async () => {
+    const repo = createMockRepository()
+    const list = await repo.getTodayChallenges()
+    expect(list.map((c) => c.id)).toEqual(['balon-oro-2018', 'champions-2005', 'goleador-laliga'])
+  })
+
+  it('un reto abierto está en curso y al responderlo queda hecho', async () => {
+    const repo = createMockRepository()
+    expect(await repo.getChallengeStates()).toEqual({})
+
+    await repo.startAttempt(RETO)
+    await repo.revealHint(RETO, 0)
+    expect((await repo.getChallengeStates())[RETO]).toEqual({ progress: 'en-curso', hintsUsed: 1 })
+
+    await repo.submitAttempt({ challengeId: RETO, answer: null, timeSeconds: 20, hintsUsed: 1 })
+    expect((await repo.getChallengeStates())[RETO]).toEqual({ progress: 'hecho', hintsUsed: 1 })
+  })
+
+  it('reintentar un reto hecho no lo devuelve a en curso', async () => {
+    const repo = createMockRepository()
+    await repo.submitAttempt({ challengeId: RETO, answer: null, timeSeconds: 20, hintsUsed: 0 })
+    await repo.startAttempt(RETO)
+    expect((await repo.getChallengeStates())[RETO]).toEqual({ progress: 'hecho', hintsUsed: 0 })
+  })
+
+  it('cada tarjeta de la comunidad apunta a un reto que existe', async () => {
+    const repo = createMockRepository()
+    const { inProgress, discover } = await repo.getCommunityChallenges()
+    for (const card of [...inProgress, ...discover]) {
+      expect(await repo.getChallenge(card.id)).toMatchObject({ kind: 'usuario', title: card.title })
+    }
+  })
+})

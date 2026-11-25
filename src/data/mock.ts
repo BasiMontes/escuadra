@@ -2,7 +2,16 @@
  * Datos de ejemplo. Reproducen el contenido del diseño (con las erratas corregidas)
  * y se usan hasta conectar Supabase, y siempre en los tests visuales.
  */
-import type { Achievement, Challenge, Competition, Profile, RankingRow, UserSettings, UserStats } from './types'
+import type {
+  Achievement,
+  Challenge,
+  CommunityChallenge,
+  Competition,
+  Profile,
+  RankingRow,
+  UserSettings,
+  UserStats,
+} from './types'
 
 export const TODAY = '2026-03-03'
 
@@ -71,8 +80,50 @@ const balonDeOro: Challenge = {
   createdBy: null,
 }
 
+/** Reto creado por un usuario: respuesta libre y sin opciones */
+function communityChallenge(
+  data: Pick<Challenge, 'id' | 'competitionId' | 'difficulty' | 'title' | 'question' | 'hints'>,
+): Challenge {
+  return {
+    ...data,
+    kind: 'usuario',
+    answerType: 'libre',
+    basePoints: 80,
+    imageUrl: '/img/estadio.jpg',
+    unlockDate: TODAY,
+    options: [],
+    completedBy: 0,
+    status: 'aprobado',
+    createdBy: 'u2',
+  }
+}
+
 export const challenges: Challenge[] = [
   balonDeOro,
+  communityChallenge({
+    id: 'mundiales-90s',
+    competitionId: 'premier',
+    difficulty: 'facil',
+    title: 'Mundiales 90s',
+    question: '¿Qué selección ganó el Mundial de 1998?',
+    hints: ['Jugaba en casa.'],
+  }),
+  communityChallenge({
+    id: 'leyendas-madrid',
+    competitionId: 'laliga',
+    difficulty: 'dificil',
+    title: 'Leyendas Real Madrid',
+    question: '¿Quién es el máximo goleador histórico del Real Madrid?',
+    hints: ['Llevó el dorsal 7.'],
+  }),
+  communityChallenge({
+    id: 'estrellas-italianas',
+    competitionId: 'seriea',
+    difficulty: 'medio',
+    title: 'Estrellas italianas',
+    question: '¿Qué delantero italiano ganó el Balón de Oro en 1993?',
+    hints: ['Le apodaban "Il Divin Codino".'],
+  }),
   {
     id: 'champions-2005',
     kind: 'oficial',
@@ -150,13 +201,11 @@ export const correctAnswers: Record<string, string> = {
 }
 
 /** Retos "En curso" y "Descubrir" (creados por la comunidad) */
-export const inProgress = [
-  { id: 'mundiales-90s', competition: 'Premier League', title: 'Mundiales 90s', difficulty: 'facil' as const, icon: 'trophy' as const, action: 'jugar' as const },
-  { id: 'leyendas-madrid', competition: 'LaLiga', title: 'Leyendas Real Madrid', difficulty: 'dificil' as const, icon: 'shield' as const, action: 'seguir' as const },
+export const inProgress: Array<Pick<CommunityChallenge, 'id' | 'icon' | 'action'>> = [
+  { id: 'mundiales-90s', icon: 'trophy', action: 'jugar' },
+  { id: 'leyendas-madrid', icon: 'shield', action: 'seguir' },
 ]
-export const discover = [
-  { id: 'estrellas-italianas', competition: 'Serie A', title: 'Estrellas italianas', difficulty: 'medio' as const, icon: 'ball' as const, action: 'empezar' as const },
-]
+export const discover: typeof inProgress = [{ id: 'estrellas-italianas', icon: 'ball', action: 'empezar' }]
 
 export const weeklyRanking: RankingRow[] = [
   { rank: 1, userId: 'u1', username: 'GOLAZO_MASTER', avatarUrl: null, titles: 12, points: 4920 },

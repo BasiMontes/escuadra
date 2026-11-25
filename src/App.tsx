@@ -4,6 +4,9 @@ import { AppShell, type Tab } from './layouts/AppShell'
 import { Card } from './components/Card'
 import { Componentes } from './screens/Componentes'
 import { Home } from './screens/Home'
+import { EnCurso } from './screens/retos/EnCurso'
+import { RetoDetalle } from './screens/retos/RetoDetalle'
+import { RetosDelDia } from './screens/retos/RetosDelDia'
 import { RetoIntro } from './screens/juego/RetoIntro'
 import { RetoJugar } from './screens/juego/RetoJugar'
 import { RetoResultado } from './screens/juego/RetoResultado'
@@ -41,6 +44,9 @@ export default function App() {
           </Route>
           <Route path="/inicio" element={<Home />} />
           <Route path="/componentes" element={<Componentes />} />
+          <Route path="/retos" element={<RetosDelDia />} />
+          <Route path="/retos/en-curso" element={<EnCurso />} />
+          <Route path="/retos/:id" element={<RetoDetalle />} />
           <Route path="/retos/:id/intro" element={<RetoIntro />} />
           <Route path="/retos/:id/jugar" element={<RetoJugar />} />
           <Route path="/retos/:id/resultado" element={<RetoResultado />} />

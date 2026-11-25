@@ -69,6 +69,22 @@ export type Challenge = {
 /** Estado del usuario frente a un reto en la lista de Retos */
 export type ChallengeProgress = 'nuevo' | 'en-curso' | 'hecho'
 
+export type ChallengeState = {
+  progress: ChallengeProgress
+  /** Pistas usadas en el intento que cuenta (el primero) o en el que está en marcha */
+  hintsUsed: number
+}
+
+/** Tarjeta de un reto de la comunidad en la pantalla En curso */
+export type CommunityChallenge = {
+  id: string
+  competitionId: string
+  title: string
+  difficulty: Difficulty
+  icon: 'trophy' | 'shield' | 'ball'
+  action: 'jugar' | 'seguir' | 'empezar'
+}
+
 /** Intento en marcha: el reloj y las pistas reveladas sobreviven a salir de la pantalla */
 export type OpenAttempt = {
   challengeId: string

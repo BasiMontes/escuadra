@@ -61,7 +61,7 @@ export function Home() {
             Crear reto personalizado
           </Button>
           <Button
-            to="/retos"
+            to="/retos?liga=todas"
             variant="secondary"
             size="md"
             block

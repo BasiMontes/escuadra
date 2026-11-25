@@ -6,6 +6,8 @@ import type {
   Achievement,
   AttemptResult,
   Challenge,
+  ChallengeState,
+  CommunityChallenge,
   Competition,
   NewChallengeDraft,
   OpenAttempt,
@@ -33,6 +35,9 @@ export interface Repository {
   getTodayChallenges(): Promise<Challenge[]>
   getDailyChallenge(): Promise<Challenge>
   getChallenge(id: string): Promise<Challenge | null>
+  /** Estado del usuario en cada reto que ha abierto; los que no aparecen están sin empezar */
+  getChallengeStates(): Promise<Record<string, ChallengeState>>
+  getCommunityChallenges(): Promise<{ inProgress: CommunityChallenge[]; discover: CommunityChallenge[] }>
   /** Siguiente reto oficial de hoy sin jugar; null si no queda ninguno */
   getNextChallengeId(currentId: string): Promise<string | null>
   /** Abre el intento de un reto o devuelve el que ya está en marcha */
