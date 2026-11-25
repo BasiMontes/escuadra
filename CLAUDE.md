@@ -82,20 +82,10 @@ npm run test:e2e       # Playwright: móvil 390, desktop 1440×900 y portátil 1
   (Notificaciones, Privacidad, Soporte, Cambiar contraseña), landing pública y conexión con Supabase.
 - Las capturas de referencia visuales aún no están en el repo: se generan con Docker (ver README).
 
-## Decisiones de producto pendientes
+## Producto
 
-No las resuelvas por tu cuenta: la columna "Hoy" es el comportamiento provisional.
-
-| Pregunta | Hoy |
-|---|---|
-| ¿Los retos de la comunidad suman puntos al ranking? El creador elige puntos y dificultad, así que se podría inflar | Sí suman (no cuentan para la racha) |
-| ¿Qué puntos base puede poner un usuario? | De 10 a 200 |
-| ¿Puede alguien jugar su propio reto? | No |
-| ¿La pregunta del reto necesita campo propio? | Se usa la "Descripción" del paso 1 |
-| ¿Un reintento vuelve a gastar pistas? | Sí |
-| ¿Dónde ve el creador sus retos y su estado? | Solo abriendo el enlace: "Mis retos" lleva a En curso, con tarjetas de ejemplo |
-| ¿Origen y licencia de las imágenes de estadio? | Sin confirmar |
-| ¿Avatares por defecto con ilustraciones propias? | Sin decidir |
+`docs/producto.md` reúne las decisiones pendientes y las limitaciones conocidas. No resuelvas esas
+decisiones por tu cuenta y actualiza el archivo cuando un cambio abra o cierre alguna.
 
 ## Git
 
