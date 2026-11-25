@@ -30,7 +30,7 @@ Rutas útiles en desarrollo:
 | `npm run build` | Comprobación de tipos y build de producción |
 | `npm run lint` | Lint con oxlint |
 | `npm test` | Tests unitarios (Vitest) |
-| `npm run test:e2e` | Flujos y accesibilidad con Playwright (móvil 390 px y desktop 1440 px) |
+| `npm run test:e2e` | Flujos y accesibilidad con Playwright (móvil 390 px, desktop 1440×900 y portátil 1280×680) |
 | `npm run test:visual` | Comparación visual con las capturas de referencia |
 | `npm run test:visual:update` | Regenera las capturas de referencia |
 | `npm run check` | Lint + build + unitarios |

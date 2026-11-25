@@ -406,3 +406,156 @@
     display: none;
   }
 }
+
+/* Portátiles: el panel de marca se adapta al ancho disponible */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .brandPanel {
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 656px;
+    padding: 40px;
+  }
+
+  .brandTitle {
+    font-size: clamp(34px, 3.4vw, 48px);
+  }
+
+  .leaguesLayout {
+    grid-template-columns: minmax(300px, 400px) 1fr;
+  }
+
+  .stepCol {
+    width: auto;
+  }
+}
+
+/* Pantallas de poca altura: todo el contenido cabe sin scroll */
+@media (min-width: 1024px) and (max-height: 899px) {
+  .brandPanel {
+    min-height: 0;
+    gap: 18px;
+  }
+
+  .brandPanel > span:first-child {
+    width: 72px !important;
+    height: 72px !important;
+  }
+
+  .brandPanel > span:first-child svg {
+    width: 72px;
+    height: 72px;
+  }
+
+  .brandTitle {
+    font-size: clamp(30px, 3vw, 40px);
+  }
+
+  .brandText {
+    font-size: 16px;
+  }
+
+  .formWrap {
+    gap: 12px;
+  }
+
+  .formCard {
+    padding: 22px 28px 20px;
+  }
+
+  .formTitle {
+    font-size: 30px;
+  }
+
+  .formSub {
+    margin-top: 6px;
+    font-size: 12px;
+  }
+
+  .form {
+    gap: 16px;
+    margin-top: 18px;
+  }
+
+  .form > div {
+    gap: 6px;
+  }
+
+  .form input {
+    padding: 11px 14px;
+    font-size: 15px;
+  }
+
+  .form [class*='hint'] {
+    font-size: 10px;
+  }
+
+  .submit {
+    min-height: 52px;
+    font-size: 18px;
+  }
+
+  .links {
+    gap: 6px;
+    margin-top: 16px;
+    font-size: 11px;
+  }
+
+  .formWrap .version {
+    margin-top: 0;
+  }
+
+  .stepCol {
+    gap: 20px;
+  }
+
+  .leagueList {
+    gap: 12px;
+  }
+
+  .league {
+    min-height: 96px;
+  }
+
+  .configWrap {
+    gap: 24px;
+  }
+
+  .summaryCard {
+    padding: 24px 32px;
+  }
+
+  .summaryCard > span:first-child {
+    width: 60px !important;
+    height: 60px !important;
+  }
+
+  .summaryCard > span:first-child svg {
+    width: 60px;
+    height: 60px;
+  }
+
+  .summaryTitle {
+    margin-top: 18px;
+    font-size: 30px;
+  }
+
+  .summaryText {
+    margin-top: 10px;
+    font-size: 16px;
+  }
+
+  .chips {
+    gap: 8px;
+    margin-top: 18px;
+  }
+
+  .chip {
+    min-height: 36px;
+    padding: 6px 14px;
+  }
+
+  .start {
+    min-height: 72px;
+    margin-top: 22px;
+  }
+}

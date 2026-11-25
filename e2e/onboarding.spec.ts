@@ -142,3 +142,22 @@ test.describe('Onboarding · visual @visual', () => {
     await expectFullScreen(page, 'resumen.png')
   })
 })
+
+test.describe('Onboarding en portátil @portatil', () => {
+  const pantallas: Array<[string, string]> = [
+    ['/registro', 'registro-continuar'],
+    ['/entrar', 'entrar-continuar'],
+    ['/onboarding/competiciones', 'competiciones-continuar'],
+    ['/onboarding/configuracion', 'configuracion-ver-resumen'],
+    ['/onboarding/resumen', 'resumen-empezar'],
+  ]
+  for (const [ruta, boton] of pantallas) {
+    test(`${ruta}: todo cabe sin scroll y el botón principal se ve`, async ({ page }) => {
+      await page.goto(ruta)
+      const btn = page.locator(`[data-testid="${boton}"]:visible`)
+      await expect(btn).toBeInViewport({ ratio: 1 })
+      const overflow = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)
+      expect(overflow).toBeLessThanOrEqual(0)
+    })
+  }
+})

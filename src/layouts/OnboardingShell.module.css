@@ -123,3 +123,27 @@
     background: none;
   }
 }
+
+/* Portátiles: márgenes laterales que se adaptan al ancho */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .page {
+    padding-inline: clamp(40px, 8.33vw, 120px);
+  }
+}
+
+/* Pantallas de poca altura (portátiles de 13-14"): versión compacta */
+@media (min-width: 1024px) and (max-height: 899px) {
+  .page {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+
+  .body {
+    padding-top: 20px;
+    gap: 20px;
+  }
+
+  .steps {
+    width: 360px;
+  }
+}

@@ -32,6 +32,12 @@ export default defineConfig({
       name: 'desktop',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, launchOptions },
     },
+    {
+      // Portátil típico (13-14"): comprueba que el contenido cabe sin scroll
+      name: 'portatil',
+      grep: /@portatil/,
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 680 }, launchOptions },
+    },
   ],
   webServer: {
     command: 'npm run build && npm run preview -- --port 4173 --strictPort',
