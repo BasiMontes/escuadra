@@ -28,7 +28,10 @@ export interface Repository {
   signOut(): Promise<void>
   getCompetitions(): Promise<Competition[]>
   getMe(): Promise<Profile>
-  updateMe(patch: Partial<Pick<Profile, 'username' | 'email' | 'bio' | 'isPublic' | 'showInRanking'>>): Promise<Profile>
+  /** Lanza un Error con mensaje para el usuario si no se puede guardar */
+  updateMe(
+    patch: Partial<Pick<Profile, 'username' | 'email' | 'bio' | 'avatarUrl' | 'isPublic' | 'showInRanking'>>,
+  ): Promise<Profile>
   getSettings(): Promise<UserSettings>
   updateSettings(patch: Partial<UserSettings>): Promise<UserSettings>
   getStats(): Promise<UserStats>

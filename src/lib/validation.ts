@@ -80,3 +80,17 @@ export function validateAnswer(v: string): string | null {
   if (v.trim().length > CHALLENGE_LIMITS.answerMax) return `Máximo ${CHALLENGE_LIMITS.answerMax} caracteres.`
   return null
 }
+
+export const BIO_MAX = 160
+export const AVATAR_MAX_BYTES = 2 * 1024 * 1024
+const AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
+export function validateBio(v: string): string | null {
+  return v.trim().length > BIO_MAX ? `Máximo ${BIO_MAX} caracteres.` : null
+}
+
+export function validateAvatar(file: { type: string; size: number }): string | null {
+  if (!AVATAR_TYPES.includes(file.type)) return 'La foto debe ser JPG, PNG o WebP.'
+  if (file.size > AVATAR_MAX_BYTES) return 'La foto no puede pesar más de 2 MB.'
+  return null
+}

@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  AVATAR_MAX_BYTES,
   validateAnswer,
+  validateAvatar,
   validateBasePoints,
+  validateBio,
   validateChallengeQuestion,
   validateChallengeTitle,
   validateEmail,
@@ -62,5 +65,18 @@ describe('retos creados por usuarios', () => {
     expect(validateHint('Juega en Londres.')).toBeNull()
     expect(validateAnswer(' ¡!? ')).toBe('Escribe una respuesta con letras o números.')
     expect(validateAnswer('Arsenal F.C.')).toBeNull()
+  })
+})
+
+describe('perfil', () => {
+  it('limita la biografía a 160 caracteres', () => {
+    expect(validateBio('a'.repeat(160))).toBeNull()
+    expect(validateBio('a'.repeat(161))).toBe('Máximo 160 caracteres.')
+  })
+
+  it('solo acepta fotos JPG, PNG o WebP de hasta 2 MB', () => {
+    expect(validateAvatar({ type: 'image/png', size: AVATAR_MAX_BYTES })).toBeNull()
+    expect(validateAvatar({ type: 'image/gif', size: 10 })).toBe('La foto debe ser JPG, PNG o WebP.')
+    expect(validateAvatar({ type: 'image/jpeg', size: AVATAR_MAX_BYTES + 1 })).toBe('La foto no puede pesar más de 2 MB.')
   })
 })

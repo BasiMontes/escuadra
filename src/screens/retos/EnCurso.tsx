@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { History, Play, Shield, Trophy } from 'lucide-react'
+import { BallIcon } from '../../components/BallIcon'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { IconBox } from '../../components/Controls'
@@ -8,7 +9,6 @@ import { DifficultyTag, Tag } from '../../components/Tag'
 import { useLoad } from '../../data/hooks'
 import type { CommunityChallenge, Competition } from '../../data/types'
 import { AppShell } from '../../layouts/AppShell'
-import { BallIcon } from './BallIcon'
 import styles from './EnCurso.module.css'
 
 const ICONS: Record<CommunityChallenge['icon'], ReactNode> = {
