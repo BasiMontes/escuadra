@@ -8,6 +8,7 @@ import type {
   Challenge,
   Competition,
   NewChallengeDraft,
+  OpenAttempt,
   Profile,
   RankingRow,
   UserSettings,
@@ -32,6 +33,10 @@ export interface Repository {
   getTodayChallenges(): Promise<Challenge[]>
   getDailyChallenge(): Promise<Challenge>
   getChallenge(id: string): Promise<Challenge | null>
+  /** Siguiente reto oficial de hoy sin jugar; null si no queda ninguno */
+  getNextChallengeId(currentId: string): Promise<string | null>
+  /** Abre el intento de un reto o devuelve el que ya está en marcha */
+  startAttempt(challengeId: string): Promise<OpenAttempt>
   /** Revela la siguiente pista de un reto y descuenta una del saldo diario */
   revealHint(challengeId: string, alreadyRevealed: number): Promise<{ hint: string; hintsLeft: number } | null>
   submitAttempt(input: { challengeId: string; answer: string | null; timeSeconds: number; hintsUsed: number }): Promise<AttemptResult>

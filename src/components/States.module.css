@@ -1,0 +1,29 @@
+.skeleton {
+  border: var(--border);
+  box-shadow: var(--shadow-lg);
+  background: var(--c-grey-soft);
+}
+
+.notice {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  background: var(--c-ink);
+  color: var(--c-yellow);
+  font-weight: 700;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  max-width: 480px;
+  font-weight: 700;
+}

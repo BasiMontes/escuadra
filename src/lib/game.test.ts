@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { answersMatch, computeStreak, formatNumber, normalizeAnswer, scoreAttempt, untilWeeklyReset } from './game'
+import {
+  answersMatch,
+  computeStreak,
+  formatChallengeDate,
+  formatNumber,
+  formatSeconds,
+  hintSlots,
+  normalizeAnswer,
+  scoreAttempt,
+  untilWeeklyReset,
+} from './game'
 
 describe('scoreAttempt', () => {
   it('reproduce el ejemplo del diseño: base 80, fácil, 5 s, 1 pista = +30', () => {
@@ -72,5 +82,32 @@ describe('formatNumber', () => {
   it('usa punto como separador de miles', () => {
     expect(formatNumber(1248)).toBe('1.248')
     expect(formatNumber(14250)).toBe('14.250')
+  })
+})
+
+describe('formatos del juego', () => {
+  it('escribe los segundos en formato español con un decimal como mucho', () => {
+    expect(formatSeconds(5)).toBe('5')
+    expect(formatSeconds(10.4)).toBe('10,4')
+  })
+
+  it('escribe la fecha del reto como en el diseño', () => {
+    expect(formatChallengeDate('2026-03-03')).toBe('03 Marzo')
+  })
+})
+
+describe('hintSlots', () => {
+  it('muestra las reveladas más las que permite el saldo', () => {
+    expect(hintSlots(3, 0, 2)).toBe(2)
+    expect(hintSlots(3, 1, 1)).toBe(2)
+  })
+
+  it('no pasa de las pistas que tiene el reto', () => {
+    expect(hintSlots(1, 0, 3)).toBe(1)
+  })
+
+  it('sin saldo solo quedan las ya reveladas', () => {
+    expect(hintSlots(3, 1, 0)).toBe(1)
+    expect(hintSlots(3, 0, 0)).toBe(0)
   })
 })

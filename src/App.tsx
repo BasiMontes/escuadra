@@ -4,6 +4,9 @@ import { AppShell, type Tab } from './layouts/AppShell'
 import { Card } from './components/Card'
 import { Componentes } from './screens/Componentes'
 import { Home } from './screens/Home'
+import { RetoIntro } from './screens/juego/RetoIntro'
+import { RetoJugar } from './screens/juego/RetoJugar'
+import { RetoResultado } from './screens/juego/RetoResultado'
 import { Entrar, Recuperar, Registro } from './screens/onboarding/Auth'
 import { OnboardingProvider } from './screens/onboarding/OnboardingContext'
 import { Splash } from './screens/onboarding/Splash'
@@ -38,6 +41,9 @@ export default function App() {
           </Route>
           <Route path="/inicio" element={<Home />} />
           <Route path="/componentes" element={<Componentes />} />
+          <Route path="/retos/:id/intro" element={<RetoIntro />} />
+          <Route path="/retos/:id/jugar" element={<RetoJugar />} />
+          <Route path="/retos/:id/resultado" element={<RetoResultado />} />
           <Route path="/retos/*" element={<Pendiente title="Retos" tab="retos" />} />
           <Route path="/ranking" element={<Pendiente title="Ranking" tab="ranking" />} />
           <Route path="/perfil/*" element={<Pendiente title="Perfil" tab="perfil" />} />
