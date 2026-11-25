@@ -1,0 +1,9 @@
+.logo {
+  display: inline-block;
+  flex: none;
+  line-height: 0;
+}
+
+.shadow svg {
+  filter: drop-shadow(var(--logo-shadow) var(--logo-shadow) 0 var(--c-black));
+}

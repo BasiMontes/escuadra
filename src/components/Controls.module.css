@@ -1,0 +1,183 @@
+/* Toggle */
+.toggle {
+  position: relative;
+  flex: none;
+  width: 72px;
+  height: 40px;
+  padding: 0;
+  border: var(--border);
+  background: var(--c-ink);
+}
+
+.knob {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 28px;
+  height: 28px;
+  background: var(--c-grey-soft);
+  border: 1px solid var(--c-ink);
+  transition: left 120ms ease, right 120ms ease;
+}
+
+.on .knob {
+  right: auto;
+  left: 3px;
+  background: var(--c-yellow);
+}
+
+/* Radio */
+.radio {
+  flex: none;
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  border: 4px solid var(--c-black);
+  border-radius: 50%;
+  background: var(--c-white);
+}
+
+.radioOn {
+  background: radial-gradient(circle, var(--c-white) 0 4px, var(--c-black) 5px);
+}
+
+.radioInverted {
+  border-color: var(--c-black);
+}
+
+/* Casilla */
+.check {
+  flex: none;
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  border: var(--border);
+  background: var(--c-white);
+}
+
+.checkOn {
+  background: var(--c-ink);
+}
+
+/* Barra de progreso */
+.bar {
+  position: relative;
+  width: 100%;
+  border: var(--border);
+  background: var(--c-white);
+  overflow: hidden;
+}
+
+.h-sm {
+  height: 14px;
+}
+
+.h-md {
+  height: 26px;
+}
+
+.h-lg {
+  height: 34px;
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  transition: width 1s linear;
+}
+
+.divider {
+  border-right: var(--border);
+}
+
+.fill-yellow {
+  background: var(--c-yellow);
+}
+
+.fill-blue {
+  background: var(--c-blue);
+}
+
+.fill-orange {
+  background: #fb923c;
+}
+
+.fill-grey {
+  background: #a3a99c;
+}
+
+/* Pasos del onboarding */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  height: 32px;
+  border: 4px solid var(--c-ink);
+  background: var(--c-white);
+  box-shadow: 8px 8px 0 0 var(--c-ink);
+}
+
+.stepDone {
+  background: var(--c-ink);
+}
+
+/* Caja de icono */
+.iconBox {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border);
+}
+
+.iconBox svg {
+  width: 55%;
+  height: 55%;
+  stroke-width: 2.25;
+}
+
+.ibShadow {
+  box-shadow: var(--shadow-sm);
+}
+
+.ib-yellow {
+  background: var(--c-yellow);
+  color: var(--c-black);
+}
+
+.ib-black {
+  background: var(--c-black);
+  color: var(--c-yellow);
+}
+
+.ib-orange {
+  background: var(--c-orange);
+  color: var(--c-white);
+}
+
+.ib-blue {
+  background: var(--c-blue);
+  color: var(--c-black);
+}
+
+.ib-white {
+  background: var(--c-white);
+  color: var(--c-black);
+}
+
+.ib-peach {
+  background: #fb923c;
+  color: var(--c-black);
+}
+
+.ib-locked {
+  background: #e5e5cf;
+  color: #4b4b33;
+  border-color: #4b4b33;
+}

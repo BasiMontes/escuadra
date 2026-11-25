@@ -1,0 +1,70 @@
+/*
+ * Tokens de diseño de Escuadra.
+ * Valores tomados del archivo de Figma "FrescoApp" y del PDF exportado.
+ * No uses colores, sombras ni bordes sueltos en los componentes: usa estas variables.
+ */
+:root {
+  /* Color */
+  --c-yellow: #f5f37d;
+  --c-yellow-20: rgb(245 243 125 / 0.2);
+  --c-ink: #100e0e;
+  --c-black: #000000;
+  --c-white: #ffffff;
+  --c-cream: #fdfce5;
+  --c-game-bg: #f7f6f6;
+  --c-grey-text: #4a4a4a;
+  --c-grey-muted: #64748b;
+  --c-grey-soft: #e2e8f0;
+  --c-grey-disabled: #d1d5db;
+  --c-slate-50: #f1f5f9;
+  --c-green: #16a34a;
+  /* Verde para texto sobre blanco: #16a34a no llega a 4.5:1 de contraste */
+  --c-green-text: #15803d;
+  --c-green-success: #4ade80;
+  --c-mint: #00d68f;
+  --c-coral: #f87171;
+  --c-red: #ef4444;
+  --c-orange: #ea580c;
+  --c-orange-soft: #f4d6c6;
+  --c-blue: #60a5fa;
+  --c-blue-soft: #bfdbfe;
+  --c-amber: #ca8a04;
+
+  /* Tipografía */
+  --font-display: 'Archivo Black', 'Arial Black', system-ui, sans-serif;
+  --font-body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Bordes y sombras (estilo neobrutalista: sin radios) */
+  --bw: 3px;
+  --bw-thin: 2px;
+  --border: var(--bw) solid var(--c-black);
+  --border-thin: var(--bw-thin) solid var(--c-black);
+  --shadow-xs: 3px 3px 0 0 var(--c-black);
+  --shadow-sm: 4px 4px 0 0 var(--c-black);
+  --shadow-md: 6px 6px 0 0 var(--c-black);
+  --shadow-lg: 8px 8px 0 0 var(--c-black);
+  --shadow-xl: 12px 12px 0 0 var(--c-black);
+
+  /* Espaciado (múltiplos de 4) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+
+  /* Layout */
+  --mobile-gutter: 24px;
+  --header-h: 99px;
+  --bottom-nav-h: 80px;
+  --sidebar-w: 264px;
+  --topbar-h: 80px;
+  --desktop-pad: 48px;
+  --desktop-bp: 1024px;
+
+  /* Fondo con patrón de triángulos (tile de 100 px medido en el PDF) */
+  --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill='%23000' fill-opacity='0.061'%3E%3Cpath d='M12 12h37.5L12 49.5z'/%3E%3Cpath d='M50 12h37.5L50 49.5z'/%3E%3Cpath d='M12 50h37.5L12 87.5z'/%3E%3Cpath d='M50 50h37.5L50 87.5z'/%3E%3C/g%3E%3C/svg%3E");
+}
