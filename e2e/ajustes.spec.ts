@@ -17,7 +17,7 @@ const abrir = (page: Page, ruta: string) =>
   }, ruta)
 
 test.describe('Ajustes', () => {
-  for (const seccion of ['notificaciones', 'privacidad', 'soporte', 'contrasena']) {
+  for (const seccion of ['juego', 'notificaciones', 'privacidad', 'soporte', 'contrasena']) {
     test(`lleva a ${seccion}`, async ({ page }) => {
       await page.goto('/ajustes')
       await page.getByTestId(`ajustes-${seccion}`).click()
@@ -27,16 +27,23 @@ test.describe('Ajustes', () => {
 
   test('cada opción cabe en una línea', async ({ page }) => {
     await page.goto('/ajustes')
-    const opcion = page.getByTestId('ajustes-contrasena')
-    await opcion.waitFor()
-    const lineas = await opcion.evaluate(async (el) => {
-      await document.fonts.ready
-      const texto = [...el.childNodes].find((n) => n.nodeType === Node.TEXT_NODE)!
-      const rango = document.createRange()
-      rango.selectNodeContents(texto)
-      return rango.getClientRects().length
-    })
-    expect(lineas).toBe(1)
+    for (const seccion of ['juego', 'notificaciones', 'privacidad', 'soporte', 'contrasena']) {
+      const lineas = await page.getByTestId(`ajustes-${seccion}`).evaluate(async (el) => {
+        await document.fonts.ready
+        const texto = [...el.childNodes].find((n) => n.nodeType === Node.TEXT_NODE)!
+        const rango = document.createRange()
+        rango.selectNodeContents(texto)
+        return rango.getClientRects().length
+      })
+      expect(lineas, seccion).toBe(1)
+    }
+  })
+
+  test('en desktop todo cabe sin scroll', async ({ page }, info) => {
+    test.skip(info.project.name === 'movil', 'En móvil la lista se recorre con scroll')
+    await page.goto('/ajustes')
+    await expect(page.getByTestId('ajustes-eliminar-cuenta')).toBeInViewport({ ratio: 1 })
+    expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(0)
   })
 
   test('cerrar sesión lleva a Entrar', async ({ page }) => {
@@ -253,6 +260,7 @@ test.describe('Cambiar contraseña', () => {
 
 const PANTALLAS: Array<[nombre: string, ruta: string, listo: string]> = [
   ['ajustes', '/ajustes', 'ajustes-eliminar-cuenta'],
+  ['preferencias', '/ajustes/juego', 'preferencias-guardar'],
   ['notificaciones', '/ajustes/notificaciones', 'notificaciones-amigos'],
   ['privacidad', '/ajustes/privacidad', 'privacidad-eliminar'],
   ['soporte', '/ajustes/soporte', 'soporte-enviar'],
@@ -281,7 +289,8 @@ test.describe('Ajustes · accesibilidad', () => {
 
 test.describe('Ajustes en portátil @portatil', () => {
   const botones: Array<[ruta: string, ids: string[], sinScroll: boolean]> = [
-    ['/ajustes', ['ajustes-notificaciones', 'ajustes-cerrar-sesion', 'ajustes-eliminar-cuenta'], true],
+    ['/ajustes', ['ajustes-juego', 'ajustes-cerrar-sesion', 'ajustes-eliminar-cuenta'], true],
+    ['/ajustes/juego', ['preferencias-competicion-premier', 'preferencias-pistas-3', 'preferencias-guardar'], true],
     ['/ajustes/notificaciones', ['notificaciones-diarios', 'notificaciones-amigos'], true],
     ['/ajustes/privacidad', ['privacidad-publico', 'privacidad-aparecer', 'privacidad-eliminar'], true],
     // La respuesta desplegada puede alargar la página, pero el formulario debe verse

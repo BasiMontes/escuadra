@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Bell, ChevronRight, CircleHelp, KeyRound, Lock } from 'lucide-react'
+import { Bell, ChevronRight, CircleHelp, KeyRound, Lock, Target } from 'lucide-react'
 import { Link } from 'react-router'
 import { Button } from '../../components/Button'
 import { ErrorNotice } from '../../components/States'
@@ -10,6 +10,8 @@ import { DeleteAccountDialog } from './DeleteAccountDialog'
 import styles from './Ajustes.module.css'
 
 const SECTIONS: Array<{ id: string; label: string; icon: ReactNode }> = [
+  // "Preferencias de juego" no cabe en una línea a 390 px
+  { id: 'juego', label: 'Preferencias', icon: <Target /> },
   { id: 'notificaciones', label: 'Notificaciones', icon: <Bell /> },
   { id: 'privacidad', label: 'Privacidad', icon: <Lock /> },
   { id: 'soporte', label: 'Soporte', icon: <CircleHelp /> },

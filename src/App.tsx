@@ -5,6 +5,7 @@ import { Componentes } from './screens/Componentes'
 import { Ajustes } from './screens/ajustes/Ajustes'
 import { Contrasena } from './screens/ajustes/Contrasena'
 import { Notificaciones } from './screens/ajustes/Notificaciones'
+import { Preferencias } from './screens/ajustes/Preferencias'
 import { Privacidad } from './screens/ajustes/Privacidad'
 import { Soporte } from './screens/ajustes/Soporte'
 import { NoEncontrada } from './screens/NoEncontrada'
@@ -60,6 +61,7 @@ export default function App() {
           <Route path="/perfil/editar" element={<EditarPerfil />} />
           <Route path="/perfil/logros" element={<Logros />} />
           <Route path="/ajustes" element={<Ajustes />} />
+          <Route path="/ajustes/juego" element={<Preferencias />} />
           <Route path="/ajustes/notificaciones" element={<Notificaciones />} />
           <Route path="/ajustes/privacidad" element={<Privacidad />} />
           <Route path="/ajustes/soporte" element={<Soporte />} />
