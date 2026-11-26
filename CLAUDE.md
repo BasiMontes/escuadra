@@ -37,7 +37,7 @@ npm run test:e2e       # Playwright: móvil 390, desktop 1440×900 y portátil 1
 
 - `src/styles/tokens.css`: colores, bordes, sombras, patrón. **Nunca** valores sueltos en los componentes.
 - `src/components/`: Button, Card, Tag/DifficultyTag, TextField/TextArea/SelectField, Controls
-  (Toggle, RadioDot, CheckSquare, ProgressBar, StepBar, IconBox), Logo (`bordered`, `shadow`).
+  (Toggle, RadioDot, CheckSquare, ProgressBar, StepBar, IconBox), Logo (`border`, `shadow`).
 - `src/layouts/AppShell.tsx`: pantallas con sesión (cabecera + barra inferior en móvil; barra lateral +
   cabecera con racha/pistas en desktop desde 1024 px). Props `tab`, `title`, `mobileBg` ('yellow' | 'game' | 'white').
 - `src/layouts/OnboardingShell.tsx`: pantallas sin navegación (patrón de fondo, botón volver, barra de pasos)

@@ -29,7 +29,7 @@ export function OnboardingShell({ step, back = true, layout = 'center', children
             </button>
           )}
           <span className={styles.brand}>
-            <Logo size={40} shadow bordered={false} />
+            <Logo size={40} shadow border="none" />
             <span>Escuadra</span>
           </span>
         </div>

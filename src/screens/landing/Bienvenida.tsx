@@ -14,7 +14,7 @@ export function Bienvenida() {
       <header className={styles.header}>
         <div className={styles.inner}>
           <span className={styles.brand}>
-            <Logo size={40} bordered={false} />
+            <Logo size={40} border="none" />
             Escuadra
           </span>
           <nav aria-label="Secciones">
@@ -215,7 +215,7 @@ export function Bienvenida() {
       <footer className={styles.footer}>
         <div className={styles.inner}>
           <span className={styles.brand}>
-            <Logo size={32} bordered={false} />
+            <Logo size={32} border="none" />
             Escuadra
           </span>
           <nav aria-label="Legal y contacto">
