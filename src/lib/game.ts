@@ -8,6 +8,11 @@ export const CHALLENGE_SECONDS = 20
 export const HINT_PENALTY = 30
 export const DIFFICULTY_MULTIPLIER: Record<Difficulty, number> = { facil: 1, medio: 1.5, dificil: 2 }
 
+/** Pistas que quedan hoy: cambiar el límite diario no devuelve las ya usadas. */
+export function hintsBalance(perDay: number, usedToday: number): number {
+  return Math.max(0, perDay - usedToday)
+}
+
 /** Solo los retos oficiales cuentan para el ranking y la racha; los de la comunidad son entretenimiento. */
 export function countsForRanking(kind: Challenge['kind']): boolean {
   return kind === 'oficial'
