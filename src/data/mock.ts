@@ -49,7 +49,8 @@ export const myStats: UserStats = {
   streak: 0,
   hintsLeft: 2,
   matchesPlayed: 128,
-  challengesCreated: 15,
+  // El repositorio la calcula con los retos del usuario
+  challengesCreated: 0,
   topPercent: 5,
   totalPoints: 14250,
   globalRank: 42,
@@ -99,7 +100,49 @@ function communityChallenge(
   }
 }
 
+/** Reto creado por el usuario de ejemplo, en un estado de revisión concreto */
+function ownChallenge(
+  data: Pick<
+    Challenge,
+    'id' | 'competitionId' | 'difficulty' | 'basePoints' | 'title' | 'question' | 'hints' | 'status' | 'rejectionReason'
+  >,
+): Challenge {
+  return { ...data, kind: 'usuario', answerType: 'libre', imageUrl: '/img/estadio.jpg', unlockDate: TODAY, options: [], completedBy: 0, createdBy: me.id }
+}
+
 export const challenges: Challenge[] = [
+  // Del más antiguo al más reciente
+  ownChallenge({
+    id: 'propio-clasicos',
+    competitionId: 'laliga',
+    difficulty: 'dificil',
+    basePoints: 120,
+    title: 'Clásicos de LaLiga',
+    question: '¿Quién es el mejor jugador de la historia de LaLiga?',
+    hints: ['Piensa en los grandes goleadores.'],
+    status: 'rechazado',
+    rejectionReason: 'La pregunta admite más de una respuesta correcta.',
+  }),
+  ownChallenge({
+    id: 'propio-finales',
+    competitionId: 'uefa',
+    difficulty: 'medio',
+    basePoints: 100,
+    title: 'Finales de Champions',
+    question: '¿Qué club ha ganado más veces la Champions League?',
+    hints: ['Juega de blanco.'],
+    status: 'aprobado',
+  }),
+  ownChallenge({
+    id: 'propio-porteros',
+    competitionId: 'internacional',
+    difficulty: 'facil',
+    basePoints: 80,
+    title: 'Porteros de leyenda',
+    question: '¿Qué portero ha ganado el Balón de Oro?',
+    hints: ['Le llamaban "La Araña Negra".'],
+    status: 'pendiente',
+  }),
   balonDeOro,
   communityChallenge({
     id: 'mundiales-90s',
@@ -195,6 +238,9 @@ export const challenges: Challenge[] = [
 
 /** Respuestas correctas (en Supabase nunca se envían al navegador). */
 export const correctAnswers: Record<string, string> = {
+  'propio-clasicos': 'Lionel Messi',
+  'propio-finales': 'Real Madrid',
+  'propio-porteros': 'Lev Yashin',
   'balon-oro-2018': 'Luka Modrić',
   'champions-2005': 'Liverpool',
   'goleador-laliga': 'Lionel Messi',

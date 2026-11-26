@@ -33,6 +33,8 @@ export function createMockRepository(): Repository {
   const challenges = clone(db.challenges)
   const answers: Record<string, string> = { ...db.correctAnswers }
   const find = (id: string) => challenges.find((c) => c.id === id)
+  // En la lista, los creados después van detrás
+  const mine = () => challenges.filter((c) => c.createdBy === profile.id).reverse()
 
   return {
     async signUp({ username, email }) {
@@ -65,7 +67,10 @@ export function createMockRepository(): Repository {
       return clone(settings)
     },
     async getStats() {
-      return clone(stats)
+      return clone({ ...stats, challengesCreated: mine().length })
+    },
+    async getMyChallenges() {
+      return clone(mine())
     },
     async getTodayChallenges() {
       return clone(challenges.filter((c) => c.kind === 'oficial' && c.id !== 'gol-final-2005'))
@@ -177,7 +182,6 @@ export function createMockRepository(): Repository {
         createdBy: profile.id,
       })
       answers[id] = draft.answer
-      stats.challengesCreated += 1
       return { id, status: 'pendiente' as const }
     },
     async sendSupportTicket() {},

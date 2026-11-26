@@ -13,7 +13,7 @@ import styles from './Perfil.module.css'
 const MENU: Array<{ id: string; label: string; to: string; icon: ReactNode }> = [
   { id: 'editar', label: 'Editar perfil', to: '/perfil/editar', icon: <SquarePen /> },
   { id: 'logros', label: 'Mis logros', to: '/perfil/logros', icon: <Trophy /> },
-  { id: 'retos', label: 'Mis retos', to: '/retos/en-curso', icon: <BallIcon /> },
+  { id: 'retos', label: 'Mis retos', to: '/perfil/retos', icon: <BallIcon /> },
   { id: 'ajustes', label: 'Ajustes', to: '/ajustes', icon: <SlidersHorizontal /> },
 ]
 

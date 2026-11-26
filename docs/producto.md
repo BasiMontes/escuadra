@@ -14,7 +14,6 @@ datos de ejemplo (revisado el 25 de noviembre de 2026). Cuando algo se resuelva,
 | ¿Qué texto lleva un fallo cuando la respuesta no es un jugador? | Siempre "Crack fallado" |
 | ¿Un reintento vuelve a gastar pistas? | Sí |
 | ¿El reto oficial del día debe salir también en "Retos del día"? | No: solo está en Inicio y en "Siguiente reto" |
-| ¿Dónde ve el creador sus retos y su estado? | Solo abriendo el enlace del reto |
 | ¿Origen y licencia de las imágenes de estadio? | Sin confirmar |
 | ¿Avatares por defecto con ilustraciones propias? | Iniciales sobre color |
 | ¿Quién llega a la landing? | Solo quien abre `/bienvenida`; `/` lleva al registro |
@@ -40,8 +39,9 @@ El documento de análisis las define, pero la app todavía no las cumple.
 
 ## Funciones incompletas
 
-- **En curso** (y "Mis retos" en Perfil) muestra tarjetas de ejemplo, no el progreso real.
-- **Retos creados:** no aparecen en ninguna lista y la moderación se hace fuera de la app.
+- **En curso** muestra tarjetas de ejemplo, no el progreso real.
+- **Retos creados:** se listan en Mis retos, pero la moderación se hace fuera de la app y no se pueden
+  editar, reenviar ni borrar.
 - **Logros:** son fijos; el aviso solo se abre con `/perfil/logros?nuevo=<código>`.
 - **Cifras del perfil:** el rango global y el "Top 5 %" son fijos.
 - **Crear reto:** el borrador se pierde al salir de `/crear` o al recargar.

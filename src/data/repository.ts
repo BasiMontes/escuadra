@@ -42,6 +42,8 @@ export interface Repository {
   /** Estado del usuario en cada reto que ha abierto; los que no aparecen están sin empezar */
   getChallengeStates(): Promise<Record<string, ChallengeState>>
   getCommunityChallenges(): Promise<{ inProgress: CommunityChallenge[]; discover: CommunityChallenge[] }>
+  /** Retos creados por el usuario, los más recientes primero */
+  getMyChallenges(): Promise<Challenge[]>
   /** Siguiente reto oficial de hoy sin jugar; null si no queda ninguno */
   getNextChallengeId(currentId: string): Promise<string | null>
   /** Abre el intento de un reto o devuelve el que ya está en marcha */

@@ -122,7 +122,7 @@ describe('retos de usuario', () => {
     expect(status).toBe('pendiente')
     expect(await repo.getChallenge(id)).toMatchObject({ kind: 'usuario', status: 'pendiente', question: draft.description })
     expect((await repo.getTodayChallenges()).map((c) => c.id)).not.toContain(id)
-    expect((await repo.getStats()).challengesCreated).toBe(16)
+    expect((await repo.getStats()).challengesCreated).toBe(4)
   })
 
   it('quien los crea no puede jugarlos', async () => {
@@ -194,6 +194,32 @@ describe('límite diario de pistas', () => {
     const repo = createMockRepository()
     await repo.updateSettings({ hintsPerDay: 1 })
     expect((await repo.getStats()).hintsLeft).toBe(1)
+  })
+})
+
+describe('mis retos', () => {
+  it('lista los propios en los tres estados, los más recientes primero', async () => {
+    const mine = await createMockRepository().getMyChallenges()
+    expect(mine.map((c) => c.status)).toEqual(['pendiente', 'aprobado', 'rechazado'])
+    expect(mine.map((c) => Boolean(c.rejectionReason))).toEqual([false, false, true])
+  })
+
+  it('incluye primero el recién creado y la cifra del perfil cuenta la lista', async () => {
+    const repo = createMockRepository()
+    expect((await repo.getStats()).challengesCreated).toBe(3)
+    const { id } = await repo.createChallenge({
+      title: 'Otro reto',
+      description: '¿Qué equipo juega en Anfield?',
+      type: 'libre',
+      competitionId: 'premier',
+      difficulty: 'facil',
+      basePoints: 50,
+      hints: ['Viste de rojo.'],
+      answer: 'Liverpool',
+    })
+    const mine = await repo.getMyChallenges()
+    expect(mine[0].id).toBe(id)
+    expect(mine).toHaveLength((await repo.getStats()).challengesCreated)
   })
 })
 
