@@ -1,4 +1,4 @@
-import { answersMatch, countsForRanking, scoreAttempt } from '../lib/game'
+import { answersMatch, countsForRanking, hintsBalance, scoreAttempt } from '../lib/game'
 import * as db from './mock'
 import type { RankingScope, Repository } from './repository'
 import type {
@@ -26,6 +26,7 @@ export function createMockRepository(): Repository {
   let profile: Profile = clone(db.me)
   let settings: UserSettings = clone(db.mySettings)
   const stats: UserStats = clone(db.myStats)
+  let hintsUsedToday = settings.hintsPerDay - stats.hintsLeft
   const attempts: AttemptResult[] = []
   const openAttempts = new Map<string, OpenAttempt>()
   // Copias propias: los retos creados no deben tocar los datos de ejemplo compartidos
@@ -60,7 +61,7 @@ export function createMockRepository(): Repository {
     },
     async updateSettings(patch) {
       settings = { ...settings, ...patch }
-      if (patch.hintsPerDay) stats.hintsLeft = patch.hintsPerDay
+      if (patch.hintsPerDay) stats.hintsLeft = hintsBalance(patch.hintsPerDay, hintsUsedToday)
       return clone(settings)
     },
     async getStats() {
@@ -116,6 +117,7 @@ export function createMockRepository(): Repository {
       if (paid) return { hint: paid, hintsLeft: stats.hintsLeft }
       if (stats.hintsLeft <= 0) return null
       stats.hintsLeft -= 1
+      hintsUsedToday += 1
       open?.revealedHints.push(c.hints[alreadyRevealed])
       return { hint: c.hints[alreadyRevealed], hintsLeft: stats.hintsLeft }
     },

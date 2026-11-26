@@ -173,6 +173,30 @@ describe('retos de usuario', () => {
   })
 })
 
+describe('límite diario de pistas', () => {
+  it('al cambiarlo descuenta las ya usadas y no las devuelve', async () => {
+    const repo = createMockRepository()
+    await repo.startAttempt(RETO)
+    await repo.revealHint(RETO, 0)
+
+    await repo.updateSettings({ hintsPerDay: 3 })
+    expect((await repo.getStats()).hintsLeft).toBe(2)
+    await repo.updateSettings({ hintsPerDay: 3 })
+    expect((await repo.getStats()).hintsLeft).toBe(2)
+    await repo.revealHint(RETO, 1)
+    await repo.updateSettings({ hintsPerDay: 1 })
+    expect((await repo.getStats()).hintsLeft).toBe(0)
+    await repo.updateSettings({ hintsPerDay: 3 })
+    expect((await repo.getStats()).hintsLeft).toBe(1)
+  })
+
+  it('sin pistas usadas, el saldo es el límite elegido', async () => {
+    const repo = createMockRepository()
+    await repo.updateSettings({ hintsPerDay: 1 })
+    expect((await repo.getStats()).hintsLeft).toBe(1)
+  })
+})
+
 describe('perfil', () => {
   it('guarda los cambios', async () => {
     const repo = createMockRepository()
