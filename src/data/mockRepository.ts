@@ -1,4 +1,4 @@
-import { answersMatch, scoreAttempt } from '../lib/game'
+import { answersMatch, countsForRanking, scoreAttempt } from '../lib/game'
 import * as db from './mock'
 import type { RankingScope, Repository } from './repository'
 import type {
@@ -134,11 +134,14 @@ export function createMockRepository(): Repository {
       openAttempts.delete(challengeId)
       if (isFirst) {
         stats.matchesPlayed += 1
-        stats.totalPoints += points
-        stats.weeklyPoints += points
-        // La racha solo cuenta retos oficiales, una vez al día
-        const officialDone = attempts.filter((a) => a.isFirst && find(a.challengeId)?.kind === 'oficial')
-        if (c.kind === 'oficial' && officialDone.length === 1) stats.streak += 1
+        // En los retos de la comunidad los puntos son solo un marcador: no suman ni dan racha
+        if (countsForRanking(c.kind)) {
+          stats.totalPoints += points
+          stats.weeklyPoints += points
+          // La racha sube una vez al día
+          const officialDone = attempts.filter((a) => a.isFirst && find(a.challengeId)?.kind === 'oficial')
+          if (officialDone.length === 1) stats.streak += 1
+        }
       }
       return clone(result)
     },

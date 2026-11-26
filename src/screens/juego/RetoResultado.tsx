@@ -7,7 +7,7 @@ import { ErrorNotice, Skeleton } from '../../components/States'
 import { useLoad } from '../../data/hooks'
 import type { AttemptResult, Challenge } from '../../data/types'
 import { AppShell } from '../../layouts/AppShell'
-import { formatNumber, formatSeconds, hintSlots } from '../../lib/game'
+import { countsForRanking, formatNumber, formatSeconds, hintSlots } from '../../lib/game'
 import { HintsPanel } from './HintsPanel'
 import type { ResultState } from './resultState'
 import styles from './RetoResultado.module.css'
@@ -58,10 +58,18 @@ function Heading({ children }: { children: ReactNode }) {
   )
 }
 
-function RetryNote({ result }: { result: AttemptResult }) {
+/** Explica por qué los puntos del marcador no suman. */
+function ScoreNote({ result, challenge }: { result: AttemptResult; challenge: Challenge }) {
+  if (!countsForRanking(challenge.kind)) {
+    return (
+      <p className={styles.scoreNote} data-testid="resultado-sin-ranking">
+        Reto de la comunidad: no suma al ranking.
+      </p>
+    )
+  }
   if (result.isFirst) return null
   return (
-    <p className={styles.retryNote} data-testid="resultado-reintento">
+    <p className={styles.scoreNote} data-testid="resultado-reintento">
       Reintento: solo el primer intento suma puntos.
     </p>
   )
@@ -98,7 +106,7 @@ function Correcto({
             <dd data-testid="resultado-tiempo">{formatSeconds(result.timeSeconds)}s</dd>
           </div>
         </dl>
-        <RetryNote result={result} />
+        <ScoreNote result={result} challenge={challenge} />
       </Card>
 
       <div className={styles.side}>
@@ -157,7 +165,7 @@ function Incorrecto({ result, challenge }: { result: AttemptResult; challenge: C
             <dd data-testid="resultado-tiempo">{formatSeconds(result.timeSeconds)}s</dd>
           </div>
         </dl>
-        <RetryNote result={result} />
+        <ScoreNote result={result} challenge={challenge} />
         <div className={styles.actions}>
           <Button to="/retos" block data-testid="resultado-otros-retos">
             Ver otros retos

@@ -71,7 +71,8 @@ npm run test:e2e       # Playwright: móvil 390, desktop 1440×900 y portátil 1
   temporizador y pistas (`/retos/:id/jugar`), Correcto / Incorrecto / Tiempo agotado
   (`/retos/:id/resultado`). El intento en marcha (`startAttempt`) conserva reloj y pistas.
 - El juego admite opciones y respuesta libre. El reto propio no se puede jugar y solo los retos
-  oficiales cuentan para la racha.
+  oficiales cuentan para el ranking y la racha (`countsForRanking`): los de la comunidad son
+  entretenimiento, muestran sus puntos como marcador y avisan de que no suman.
 - Hecho: bloque de Retos (`src/screens/retos/`): Retos del día (`/retos`, filtro por liga con
   `?liga=`), Detalle (`/retos/:id`) y En curso (`/retos/en-curso`).
 - Hecho: Crear reto (`src/screens/crear/`, `/crear/1` a `/crear/4`). La "Descripción" del paso 1

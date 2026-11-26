@@ -13,7 +13,7 @@ export const SUPPORT_FAQ = [
     id: 'ranking',
     question: 'Error en el ranking',
     answer:
-      'El ranking semanal suma los puntos de lunes a domingo y se reinicia los lunes a las 00:00. Solo puntúa tu primer intento de cada reto. Si ves algo raro, escríbenos con este formulario.',
+      'El ranking semanal suma los puntos de los retos oficiales de lunes a domingo y se reinicia los lunes a las 00:00. Solo puntúa tu primer intento de cada reto; los retos de la comunidad son para divertirse y no suman. Si ves algo raro, escríbenos con este formulario.',
   },
   {
     id: 'reglas',
