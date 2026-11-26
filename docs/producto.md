@@ -22,6 +22,8 @@ datos de ejemplo (revisado el 25 de noviembre de 2026). Cuando algo se resuelva,
 
 - **No hay autenticación.** Todas las pantallas se abren sin sesión y "Cerrar sesión" solo lleva a
   Entrar. Cambiar contraseña, recuperarla y eliminar la cuenta no hacen nada real.
+- **Safari solo se ha probado con WebKit.** No se ha usado un iPhone real ni el simulador, así que
+  faltan por ver el teclado y las barras de iOS.
 - **Faltan los textos legales.** `/privacidad` y `/terminos` dicen que están en preparación.
 - **Los datos viven en memoria.** Al recargar se pierden intentos, pistas, retos creados, cambios de
   perfil y foto; los enlaces compartidos dejan de funcionar.

@@ -3,8 +3,13 @@ import { defineConfig, devices } from '@playwright/test'
 /**
  * Dos proyectos: móvil (390 de ancho, como el diseño) y desktop (1440×900).
  * CHROME_PATH permite usar un Chrome ya instalado en lugar del que descarga Playwright.
+ * NAVEGADOR=webkit pasa la misma batería en el motor de Safari (sin las capturas visuales). Los
+ * nombres de los proyectos no cambian porque los tests dependen de ellos.
  */
-const launchOptions = process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}
+const safari = process.env.NAVEGADOR === 'webkit'
+const movil = safari ? devices['iPhone 14'] : { ...devices['Desktop Chrome'], deviceScaleFactor: 2, hasTouch: true }
+const escritorio = safari ? devices['Desktop Safari'] : devices['Desktop Chrome']
+const launchOptions = !safari && process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}
 
 export default defineConfig({
   testDir: './e2e',
@@ -30,18 +35,18 @@ export default defineConfig({
       name: 'movil',
       // Las pruebas de portátil solo tienen sentido a 1280×680
       grepInvert: /@portatil/,
-      use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, launchOptions },
+      use: { ...movil, viewport: { width: 390, height: 844 }, launchOptions },
     },
     {
       name: 'desktop',
       grepInvert: /@portatil/,
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, launchOptions },
+      use: { ...escritorio, viewport: { width: 1440, height: 900 }, launchOptions },
     },
     {
       // Portátil típico (13-14"): comprueba que el contenido cabe sin scroll
       name: 'portatil',
       grep: /@portatil/,
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 680 }, launchOptions },
+      use: { ...escritorio, viewport: { width: 1280, height: 680 }, launchOptions },
     },
   ],
   webServer: {
