@@ -123,6 +123,11 @@ function Detalle({
             {note}
           </p>
         )}
+        {own && challenge.status === 'rechazado' && challenge.rejectionReason && (
+          <p className={styles.note} data-testid="detalle-motivo">
+            Motivo: {challenge.rejectionReason}
+          </p>
+        )}
       </div>
     </div>
   )

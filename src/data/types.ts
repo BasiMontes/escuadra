@@ -65,6 +65,8 @@ export type Challenge = {
   hints: string[]
   completedBy: number
   status: ChallengeStatus
+  /** Por qué se rechazó, si quien modera lo ha escrito */
+  rejectionReason?: string
   createdBy: string | null
 }
 

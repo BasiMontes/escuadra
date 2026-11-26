@@ -16,6 +16,7 @@ const PARTIDA = [
   '/perfil',
   '/perfil/editar',
   '/perfil/logros',
+  '/perfil/retos',
   '/ajustes',
   '/ajustes/notificaciones',
   '/ajustes/privacidad',

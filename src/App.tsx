@@ -30,6 +30,7 @@ import { Splash } from './screens/onboarding/Splash'
 import { Competiciones, Configuracion, Resumen } from './screens/onboarding/Steps'
 import { EditarPerfil } from './screens/perfil/EditarPerfil'
 import { Logros } from './screens/perfil/Logros'
+import { MisRetos } from './screens/perfil/MisRetos'
 import { Perfil } from './screens/perfil/Perfil'
 
 export default function App() {
@@ -60,6 +61,7 @@ export default function App() {
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/perfil/editar" element={<EditarPerfil />} />
           <Route path="/perfil/logros" element={<Logros />} />
+          <Route path="/perfil/retos" element={<MisRetos />} />
           <Route path="/ajustes" element={<Ajustes />} />
           <Route path="/ajustes/juego" element={<Preferencias />} />
           <Route path="/ajustes/notificaciones" element={<Notificaciones />} />

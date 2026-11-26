@@ -21,7 +21,7 @@ test.describe('Perfil', () => {
     await expect(page.getByTestId('perfil-usuario')).toHaveText('BasiMontes')
     await expect(page.getByTestId('perfil-identidad')).toContainText('Goleador estrella')
     await expect(page.getByTestId('perfil-partidos')).toHaveText('128')
-    await expect(page.getByTestId('perfil-retos-creados')).toHaveText('15')
+    await expect(page.getByTestId('perfil-retos-creados')).toHaveText('3')
     await expect(page.getByTestId('perfil-top')).toHaveText('Top 5 %')
     const pestana = page.getByTestId(info.project.name === 'movil' ? 'nav-perfil' : 'sidebar-perfil')
     await expect(pestana).toHaveAttribute('aria-current', 'page')
@@ -30,7 +30,7 @@ test.describe('Perfil', () => {
   for (const [opcion, url] of [
     ['editar', /\/perfil\/editar$/],
     ['logros', /\/perfil\/logros$/],
-    ['retos', /\/retos\/en-curso$/],
+    ['retos', /\/perfil\/retos$/],
     ['ajustes', /\/ajustes$/],
   ] as const) {
     test(`el menú lleva a ${opcion}`, async ({ page }) => {
