@@ -25,6 +25,20 @@ test.describe('Ajustes', () => {
     })
   }
 
+  test('cada opción cabe en una línea', async ({ page }) => {
+    await page.goto('/ajustes')
+    const opcion = page.getByTestId('ajustes-contrasena')
+    await opcion.waitFor()
+    const lineas = await opcion.evaluate(async (el) => {
+      await document.fonts.ready
+      const texto = [...el.childNodes].find((n) => n.nodeType === Node.TEXT_NODE)!
+      const rango = document.createRange()
+      rango.selectNodeContents(texto)
+      return rango.getClientRects().length
+    })
+    expect(lineas).toBe(1)
+  })
+
   test('cerrar sesión lleva a Entrar', async ({ page }) => {
     await page.goto('/ajustes')
     await page.getByTestId('ajustes-cerrar-sesion').click()
