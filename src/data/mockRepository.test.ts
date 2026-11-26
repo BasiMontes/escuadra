@@ -223,6 +223,20 @@ describe('mis retos', () => {
   })
 })
 
+describe('contraseña nueva desde el correo', () => {
+  it('acepta un enlace válido', async () => {
+    const repo = createMockRepository()
+    expect(await repo.checkResetLink(null)).toBe(true)
+    await expect(repo.resetPassword({ link: null, password: 'Valida123!' })).resolves.toBeUndefined()
+  })
+
+  it('rechaza un enlace caducado', async () => {
+    const repo = createMockRepository()
+    expect(await repo.checkResetLink('caducado')).toBe(false)
+    await expect(repo.resetPassword({ link: 'caducado', password: 'Valida123!' })).rejects.toThrow('El enlace ha caducado.')
+  })
+})
+
 describe('perfil', () => {
   it('guarda los cambios', async () => {
     const repo = createMockRepository()

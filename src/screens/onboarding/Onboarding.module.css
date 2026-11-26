@@ -88,6 +88,12 @@
   color: #b5b5b5;
 }
 
+/* Separación suficiente para que la sombra del campo no toque los requisitos, también en portátil */
+.form .passwordBlock {
+  display: grid;
+  gap: var(--s-4);
+}
+
 .formError {
   margin-top: -12px;
   padding: 12px 14px;

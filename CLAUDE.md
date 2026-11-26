@@ -88,6 +88,7 @@ npm run test:e2e       # Playwright: móvil 390, desktop 1440×900 y portátil 1
   (`hintsBalance`).
 - Fuera del diseño: Mis retos (`/perfil/retos`), con el estado de revisión y el motivo del rechazo.
   Desde ella se llega a En curso.
+- Fuera del diseño: Contraseña nueva (`/nueva-contrasena`), destino del enlace del correo.
 - Las capturas de referencia visuales están en `e2e/__screenshots__/linux/`: se regeneran con Docker (ver README).
 
 ## Producto
