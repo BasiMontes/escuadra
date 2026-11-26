@@ -18,7 +18,6 @@ datos de ejemplo (revisado el 25 de noviembre de 2026). Cuando algo se resuelva,
 | ¿Origen y licencia de las imágenes de estadio? | Sin confirmar |
 | ¿Avatares por defecto con ilustraciones propias? | Iniciales sobre color |
 | ¿Quién llega a la landing? | Solo quien abre `/bienvenida`; `/` lleva al registro |
-| ¿Dónde se cambian liga, dificultad y pistas? La landing dice "desde tu perfil" | En ningún sitio: solo en el registro |
 
 ## Limitaciones antes de tener usuarios reales
 

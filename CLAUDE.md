@@ -81,7 +81,11 @@ npm run test:e2e       # Playwright: móvil 390, desktop 1440×900 y portátil 1
   abre con `/perfil/logros?nuevo=<código>`; nada lo lanza solo todavía (irá con Supabase).
 - Hecho: Ranking (`src/screens/ranking/`), Ajustes y sus cuatro pantallas
   (`src/screens/ajustes/`), panel de avisos de la campana, landing (`/bienvenida`) y página 404.
-- Con esto están todas las pantallas del diseño. Siguiente: conexión con Supabase.
+- Con esto están todas las pantallas del diseño. Siguiente: conexión con Supabase (el usuario aún no
+  lo tiene).
+- Fuera del diseño: Preferencias de juego (`/ajustes/juego`), con los selectores compartidos con el
+  registro (`src/components/GamePickers.tsx`). Cambiar el límite de pistas no devuelve las usadas hoy
+  (`hintsBalance`).
 - Las capturas de referencia visuales están en `e2e/__screenshots__/linux/`: se regeneran con Docker (ver README).
 
 ## Producto

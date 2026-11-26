@@ -62,10 +62,20 @@
   letter-spacing: 0.1em;
 }
 
+/* Cinco opciones: algo más juntas que en móvil para que quepan a 900 px de alto */
 @media (min-width: 1024px) {
   .screen {
+    gap: var(--s-5);
     max-width: 448px;
     margin-inline: auto;
+  }
+
+  .list {
+    gap: var(--s-5);
+  }
+
+  .item {
+    min-height: 68px;
   }
 }
 
