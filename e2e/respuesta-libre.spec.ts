@@ -38,6 +38,23 @@ test.describe('Respuesta libre', () => {
     await expect(page.getByTestId('resultado-puntos')).toHaveText('+60')
   })
 
+  test('avisa de que un reto de la comunidad no suma al ranking', async ({ page }) => {
+    await empezar(page)
+    await responder(page, 'Francia')
+    await expect(page.getByTestId('resultado-sin-ranking')).toHaveText('Reto de la comunidad: no suma al ranking.')
+  })
+
+  test('el aviso también sale al fallar y sustituye al de reintento', async ({ page }) => {
+    await empezar(page)
+    await responder(page, 'Brasil')
+    await expect(page.getByTestId('resultado-sin-ranking')).toBeVisible()
+
+    await page.getByTestId('resultado-reintentar').click()
+    await responder(page, 'Francia')
+    await expect(page.getByTestId('resultado-sin-ranking')).toBeVisible()
+    await expect(page.getByTestId('resultado-reintento')).toHaveCount(0)
+  })
+
   test('un reto de la comunidad no suma racha', async ({ page }, info) => {
     test.skip(info.project.name === 'movil', 'La racha de la cabecera solo está en desktop')
     await empezar(page)
@@ -85,11 +102,30 @@ test.describe('Respuesta libre en portátil @portatil', () => {
     }
     expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(0)
   })
+
+  for (const respuesta of ['Francia', 'Brasil']) {
+    test(`el resultado con el aviso se ve sin scroll al responder ${respuesta}`, async ({ page }) => {
+      await empezar(page)
+      await responder(page, respuesta)
+      for (const id of ['resultado-sin-ranking', 'resultado-otros-retos']) {
+        await expect(page.getByTestId(id)).toBeInViewport({ ratio: 1 })
+      }
+    })
+  }
 })
 
 test.describe('Respuesta libre · visual @visual', () => {
   test('reto en juego', async ({ page }) => {
     await empezar(page)
     await expectFullScreen(page, 'reto-libre.png')
+  })
+
+  test('resultado de la comunidad', async ({ page }) => {
+    await empezar(page)
+    await page.clock.runFor(5000)
+    await responder(page, 'Francia')
+    await page.getByTestId('resultado-sin-ranking').waitFor()
+    await page.mouse.move(0, 0)
+    await expectFullScreen(page, 'resultado-comunidad.png')
   })
 })

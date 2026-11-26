@@ -7,8 +7,7 @@ datos de ejemplo (revisado el 25 de noviembre de 2026). Cuando algo se resuelva,
 
 | Pregunta | Hoy |
 |---|---|
-| ¿Los retos de la comunidad suman puntos al ranking? El creador elige puntos y dificultad, así que se podría inflar | Sí suman (no cuentan para la racha) |
-| ¿Qué puntos base puede poner un usuario? | De 10 a 200 |
+| ¿Qué puntos base puede poner un usuario? Solo sirven de marcador | De 10 a 200 |
 | ¿Puede alguien jugar su propio reto? | No |
 | ¿La pregunta del reto necesita campo propio? | Se usa la "Descripción" del paso 1 |
 | ¿La respuesta libre debe aceptar variantes ("Francia" y "Selección francesa")? | Solo la respuesta escrita por el creador, sin distinguir mayúsculas, tildes, signos ni espacios sobrantes |

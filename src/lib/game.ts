@@ -2,11 +2,16 @@
  * Reglas de juego de Escuadra (ver el documento de análisis, sección "Reglas de juego").
  * La versión de servidor (función `submit_attempt` en Supabase) debe dar los mismos resultados.
  */
-import type { Difficulty } from '../data/types'
+import type { Challenge, Difficulty } from '../data/types'
 
 export const CHALLENGE_SECONDS = 20
 export const HINT_PENALTY = 30
 export const DIFFICULTY_MULTIPLIER: Record<Difficulty, number> = { facil: 1, medio: 1.5, dificil: 2 }
+
+/** Solo los retos oficiales cuentan para el ranking y la racha; los de la comunidad son entretenimiento. */
+export function countsForRanking(kind: Challenge['kind']): boolean {
+  return kind === 'oficial'
+}
 
 /**
  * Puntos de un intento.

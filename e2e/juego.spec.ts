@@ -91,6 +91,8 @@ test.describe('Reto en juego', () => {
     await expect(page.getByTestId('resultado-respuesta')).toContainText('Luka Modrić')
     await expect(page.getByTestId('resultado-puntos')).toHaveText('0 pts')
     await expect(page.getByTestId('resultado-tiempo')).toHaveText('10,4s')
+    // El aviso de "no suma al ranking" es solo de los retos de la comunidad
+    await expect(page.getByTestId('resultado-sin-ranking')).toHaveCount(0)
 
     await page.getByTestId('resultado-reintentar').click()
     await expect(page.getByTestId('reto-tiempo')).toHaveText('20s')

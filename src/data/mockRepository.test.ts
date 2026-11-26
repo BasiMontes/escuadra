@@ -142,6 +142,28 @@ describe('retos de usuario', () => {
     expect(result).toMatchObject({ isCorrect: true, points: 60 })
   })
 
+  it('muestran sus puntos como marcador, sin sumarlos al ranking ni al total', async () => {
+    const repo = createMockRepository()
+    const before = await repo.getStats()
+    const result = await repo.submitAttempt({ challengeId: 'mundiales-90s', answer: 'Francia', timeSeconds: 5, hintsUsed: 0 })
+    const after = await repo.getStats()
+
+    expect(result.points).toBe(60)
+    expect(after.weeklyPoints).toBe(before.weeklyPoints)
+    expect(after.totalPoints).toBe(before.totalPoints)
+    expect(after.matchesPlayed).toBe(before.matchesPlayed + 1)
+  })
+
+  it('un reto oficial sí suma al ranking y al total', async () => {
+    const repo = createMockRepository()
+    const before = await repo.getStats()
+    await repo.submitAttempt({ challengeId: RETO, answer: 'Luka Modrić', timeSeconds: 5, hintsUsed: 0 })
+    const after = await repo.getStats()
+
+    expect(after.weeklyPoints).toBe(before.weeklyPoints + 60)
+    expect(after.totalPoints).toBe(before.totalPoints + 60)
+  })
+
   it('no cuentan para la racha, que es solo de retos oficiales', async () => {
     const repo = createMockRepository()
     await repo.submitAttempt({ challengeId: 'mundiales-90s', answer: 'Francia', timeSeconds: 5, hintsUsed: 0 })
