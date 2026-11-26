@@ -1,12 +1,12 @@
 import { useState, type ReactNode } from 'react'
 import { CalendarClock, ChartColumn, Trophy, Users } from 'lucide-react'
+import { BlockTitle } from '../../components/BlockTitle'
 import { Card } from '../../components/Card'
 import { IconBox, ProgressBar, Toggle } from '../../components/Controls'
 import { ErrorNotice, Skeleton } from '../../components/States'
 import { useLoad, useRepository } from '../../data/hooks'
 import type { UserSettings } from '../../data/types'
 import { AppShell } from '../../layouts/AppShell'
-import { BlockTitle } from './BlockTitle'
 import styles from './Notificaciones.module.css'
 
 type Key = 'notifDaily' | 'notifAchievements' | 'notifFriends'
