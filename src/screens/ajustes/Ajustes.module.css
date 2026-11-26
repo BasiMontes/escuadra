@@ -16,7 +16,8 @@
   align-items: center;
   gap: var(--s-4);
   min-height: 80px;
-  padding: var(--s-3) var(--s-4);
+  /* Menos margen tras la flecha: "Cambiar contraseña" cabe en una línea a 390 px */
+  padding: var(--s-3) var(--s-2) var(--s-3) var(--s-4);
   border: var(--bw-thick) solid var(--c-black);
   background: var(--c-white);
   box-shadow: var(--shadow-lg);
