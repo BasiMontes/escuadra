@@ -18,12 +18,15 @@ async function hastaPaso2(page: Page) {
   await page.getByTestId('crear-descripcion').fill(PREGUNTA)
   await siguiente(page)
   await expect(page).toHaveURL(/\/crear\/2$/)
+  // La URL cambia antes de que se pinte el paso: sin esto se mide la pantalla anterior
+  await expect(page.getByTestId('crear-paso')).toHaveText('Paso 2 de 4')
 }
 
 async function hastaPaso3(page: Page) {
   await hastaPaso2(page)
   await siguiente(page)
   await expect(page).toHaveURL(/\/crear\/3$/)
+  await expect(page.getByTestId('crear-paso')).toHaveText('Paso 3 de 4')
 }
 
 async function rellenarPaso3(page: Page) {
