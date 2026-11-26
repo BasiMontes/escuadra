@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
+import { ScrollToTop } from './components/ScrollToTop'
 import { DataProvider } from './data/DataProvider'
 import { Componentes } from './screens/Componentes'
 import { Ajustes } from './screens/ajustes/Ajustes'
@@ -34,6 +35,7 @@ export default function App() {
   return (
     <DataProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<Splash />} />
           <Route path="/registro" element={<Registro />} />
