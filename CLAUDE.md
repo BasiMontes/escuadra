@@ -31,6 +31,7 @@ Idioma: todo el texto de la interfaz, los commits y la comunicación con el usua
 npm run dev            # http://localhost:5173 (empieza en el splash; /componentes = catálogo)
 npm run check          # lint + build + unitarios: ejecútalo antes de cada commit
 npm run test:e2e       # Playwright: móvil 390, desktop 1440×900 y portátil 1280×680
+npm run test:e2e:safari  # los mismos flujos en WebKit (Safari)
 ```
 
 ## Cómo está organizado
@@ -99,4 +100,5 @@ decisiones por tu cuenta y actualiza el archivo cuando un cambio abra o cierre a
 ## Git
 
 Commits pequeños por bloque, mensaje en español (título corto + lista de cambios). `npm run check` y
-`npm run test:e2e` en verde antes de subir. El CI de GitHub Actions repite lint, build, unitarios y Playwright.
+`npm run test:e2e` en verde antes de subir. El CI de GitHub Actions repite lint, build, unitarios y
+Playwright, también en WebKit.
