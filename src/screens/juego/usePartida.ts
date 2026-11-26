@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useRepository } from '../../data/hooks'
 import type { OpenAttempt } from '../../data/types'
@@ -76,7 +76,8 @@ export function usePartida(attempt: OpenAttempt, initialHintsLeft: number) {
     if (instant - startedAt >= CHALLENGE_SECONDS * 1000) finish(null)
   })
 
-  useEffect(() => {
+  // En un layout effect: el intervalo ya está en marcha cuando la pantalla se ve
+  useLayoutEffect(() => {
     if (answered) return
     const id = setInterval(() => tick(), TICK_MS)
     return () => clearInterval(id)

@@ -51,6 +51,28 @@ test.describe('Reto del día', () => {
 })
 
 test.describe('Reto en juego', () => {
+  test('muestra el tiempo real aunque el temporizador arranque tarde', async ({ page, browserName }) => {
+    test.skip(browserName === 'webkit', 'Retrasar MessageChannel bloquea el control de Playwright en WebKit')
+    // React ejecuta sus efectos en una tarea de MessageChannel: se retrasa para provocar la carrera
+    await page.addInitScript(() => {
+      const later = window.setTimeout.bind(window)
+      const original = MessagePort.prototype.postMessage as (this: MessagePort, ...args: unknown[]) => void
+      MessagePort.prototype.postMessage = function (this: MessagePort, ...args: unknown[]) {
+        later(() => original.apply(this, args), 400)
+      } as MessagePort['postMessage']
+    })
+    await page.clock.install({ time: new Date('2026-03-03T10:00:00Z') })
+    await page.goto(`${RETO}/intro`)
+    await page.getByTestId('reto-intro-comenzar').waitFor()
+    await page.clock.pauseAt(new Date('2026-03-03T10:01:00Z'))
+    await page.getByTestId('reto-intro-comenzar').click()
+    await page.clock.runFor(500)
+    await page.getByTestId('reto-tiempo').waitFor()
+    await page.clock.runFor(8000)
+    // El intento empezó en uno de los dos primeros segundos del reloj simulado
+    await expect(page.getByTestId('reto-tiempo')).toHaveText(/^(11|12)s$/)
+  })
+
   test('cuenta atrás desde 20 segundos', async ({ page }) => {
     await empezar(page)
     await page.clock.runFor(8000)
