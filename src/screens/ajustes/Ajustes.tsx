@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from 'react'
 import { Bell, ChevronRight, CircleHelp, KeyRound, Lock, Target } from 'lucide-react'
 import { Link } from 'react-router'
+import { BlockTitle } from '../../components/BlockTitle'
 import { Button } from '../../components/Button'
 import { ErrorNotice } from '../../components/States'
 import { useSignOut } from '../../data/useSignOut'
 import { AppShell } from '../../layouts/AppShell'
-import { BlockTitle } from './BlockTitle'
 import { DeleteAccountDialog } from './DeleteAccountDialog'
 import styles from './Ajustes.module.css'
 

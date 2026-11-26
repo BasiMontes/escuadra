@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { BlockTitle } from '../../components/BlockTitle'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { CompetitionPicker, DifficultyPicker, HintsPicker } from '../../components/GamePickers'
@@ -6,7 +7,6 @@ import { ErrorNotice, Skeleton } from '../../components/States'
 import { useLoad, useRepository } from '../../data/hooks'
 import type { Competition, UserSettings } from '../../data/types'
 import { AppShell } from '../../layouts/AppShell'
-import { BlockTitle } from './BlockTitle'
 import styles from './Preferencias.module.css'
 
 export function Preferencias() {
