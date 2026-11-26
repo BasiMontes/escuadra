@@ -102,6 +102,14 @@ test.describe('Crear reto', () => {
     await expect(page).toHaveURL(/\/crear\/1$/)
   })
 
+  test('el campo de puntos no enseña flechas y responde a las del teclado', async ({ page }) => {
+    await hastaPaso2(page)
+    const puntos = page.getByTestId('crear-puntos')
+    await expect(puntos).toHaveCSS('appearance', 'textfield')
+    await puntos.press('ArrowUp')
+    await expect(puntos).toHaveValue('110')
+  })
+
   test('el paso 2 valida los puntos base', async ({ page }) => {
     await hastaPaso2(page)
     for (const valor of ['', '5', '500']) {

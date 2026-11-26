@@ -125,6 +125,14 @@
   font-family: var(--font-display);
   font-size: 36px;
   text-align: center;
+  /* El diseño no lleva flechas y Safari las enseña siempre; las del teclado siguen funcionando */
+  appearance: textfield;
+}
+
+.pointsBox input::-webkit-inner-spin-button,
+.pointsBox input::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
 }
 
 .pointsBox input:focus {
