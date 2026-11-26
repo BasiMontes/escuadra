@@ -5,7 +5,7 @@ Escuadra pasa de Vite + React Router + npm a la base de
 para que todos los proyectos compartan la misma base. La migración es **solo de paridad**: mismas
 pantallas, mismos flujos y mismos datos simulados.
 
-Fecha: 2026-11-26. Estado: diseño aprobado, pendiente de plan de implementación.
+Fecha: 2026-11-26. Estado: diseño y [plan de implementación](../../../tasks/plan.md) aprobados.
 
 ## Resumen
 
@@ -75,7 +75,8 @@ La plantilla se trae desde el commit `a377e29` (`git archive`), y después se no
 ## Verificación
 
 **Regla:** durante la migración no se regeneran capturas ni se tocan aserciones. Si algo difiere, se
-corrige el código.
+corrige el código. Excepción aprobada, sin cambiar ningún valor esperado: el localizador de alertas y
+la espera de carga antes de capturar, descritos en el plan.
 
 Cada PR pasa:
 
