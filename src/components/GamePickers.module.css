@@ -1,0 +1,78 @@
+/* Medidas del PDF (pasos 2 y 3 del registro). Cada pantalla las cambia con las variables. */
+
+/* ───── Lista de competiciones ───── */
+.leagueList {
+  display: grid;
+  grid-template-columns: var(--league-columns, 1fr);
+  gap: var(--league-gap, 16px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.league {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--league-height, 62px);
+  padding: var(--league-padding, 16px) 19px;
+  background: var(--c-white);
+  border: var(--border);
+  box-shadow: 6px 6px 0 0 var(--c-ink);
+  font-family: var(--font-display);
+  font-size: 14px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.league[aria-checked='true'] {
+  background: var(--c-white);
+}
+
+.league > span:last-child {
+  width: 24px;
+  height: 24px;
+}
+
+/* ───── Dificultad y pistas ───── */
+.group {
+  margin: var(--group-gap, 28px) 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.group legend {
+  padding: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  text-transform: uppercase;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.option {
+  min-height: 50px;
+  padding: 8px;
+  background: var(--c-white);
+  border: var(--border);
+  box-shadow: 6px 6px 0 0 var(--c-ink);
+  font-family: var(--font-display);
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.optionBig {
+  min-height: 58px;
+  font-size: 20px;
+}
+
+.option[aria-checked='true'] {
+  background: var(--c-yellow);
+}
