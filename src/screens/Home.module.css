@@ -9,6 +9,7 @@
 }
 
 .helloTitle {
+  overflow-wrap: anywhere;
   font-size: 30px;
   line-height: 1;
 }
@@ -120,5 +121,12 @@
 
   .action {
     min-height: 112px;
+  }
+}
+
+/* Móvil pequeño (320 px): letras y márgenes del diseño reducidos para que nada desborde */
+@media (max-width: 359px) {
+  .helloTitle {
+    font-size: 26px;
   }
 }

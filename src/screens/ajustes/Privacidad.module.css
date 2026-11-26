@@ -169,3 +169,10 @@ label.row:has(input:focus-visible) {
     padding-block: var(--s-2);
   }
 }
+
+/* Tablet apaisada: las columnas de desktop quedan estrechas */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .intro h2 {
+    font-size: 23px;
+  }
+}

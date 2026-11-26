@@ -106,3 +106,18 @@
     font-size: 24px;
   }
 }
+
+/* Móvil pequeño (320 px): letras y márgenes del diseño reducidos para que nada desborde */
+@media (max-width: 359px) {
+  .overlay {
+    padding: var(--s-4);
+  }
+
+  .box {
+    padding-inline: var(--s-5);
+  }
+
+  .box h2 {
+    font-size: 22px;
+  }
+}

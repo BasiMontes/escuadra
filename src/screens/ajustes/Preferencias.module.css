@@ -90,3 +90,15 @@
     padding: var(--s-4);
   }
 }
+
+/* Tablet apaisada: las columnas de desktop quedan estrechas */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .screen {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: var(--s-6);
+  }
+
+  .leagues {
+    --league-columns: 1fr;
+  }
+}

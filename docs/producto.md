@@ -16,6 +16,7 @@ datos de ejemplo (revisado el 25 de noviembre de 2026). Cuando algo se resuelva,
 | ¿El reto oficial del día debe salir también en "Retos del día"? | No: solo está en Inicio y en "Siguiente reto" |
 | ¿Origen y licencia de las imágenes de estadio? | Sin confirmar |
 | ¿Avatares por defecto con ilustraciones propias? | Iniciales sobre color |
+| ¿Cómo debe verse en tablet vertical? No está en el diseño | La disposición de móvil estirada a todo el ancho |
 | ¿Quién llega a la landing? | Solo quien abre `/bienvenida`; `/` lleva al registro |
 
 ## Limitaciones antes de tener usuarios reales
