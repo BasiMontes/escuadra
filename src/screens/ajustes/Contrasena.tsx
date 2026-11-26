@@ -1,13 +1,12 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { Circle, CircleCheck } from 'lucide-react'
 import { Link } from 'react-router'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { TextField } from '../../components/Field'
-import { cx } from '../../components/cx'
+import { PasswordRules } from '../../components/PasswordRules'
 import { useRepository } from '../../data/hooks'
 import { AppShell } from '../../layouts/AppShell'
-import { PASSWORD_RULES, validatePassword } from '../../lib/validation'
+import { validatePassword } from '../../lib/validation'
 import styles from './Contrasena.module.css'
 
 const EMPTY = { current: '', next: '', confirm: '' }
@@ -75,7 +74,7 @@ export function Contrasena() {
               error={repeated ? 'La nueva contraseña debe ser distinta de la actual.' : undefined}
               data-testid="contrasena-nueva"
             />
-            <Rules value={values.next} testId="contrasena-reglas-nueva" />
+            <PasswordRules value={values.next} testId="contrasena-reglas-nueva" />
           </div>
           <div className={styles.block}>
             <TextField
@@ -89,7 +88,7 @@ export function Contrasena() {
               error={mismatch ? 'Las contraseñas no coinciden.' : undefined}
               data-testid="contrasena-confirmar"
             />
-            <Rules value={values.confirm} testId="contrasena-reglas-confirmar" />
+            <PasswordRules value={values.confirm} testId="contrasena-reglas-confirmar" />
           </div>
           <div className={styles.submit}>
             {formError && (
@@ -110,23 +109,5 @@ export function Contrasena() {
         </form>
       </Card>
     </AppShell>
-  )
-}
-
-/** Requisitos de la contraseña, marcados según se cumplen. */
-function Rules({ value, testId }: { value: string; testId: string }) {
-  return (
-    <ul className={styles.rules} data-testid={testId}>
-      {PASSWORD_RULES.map((rule) => {
-        const ok = rule.test(value)
-        return (
-          <li key={rule.id} className={cx(ok && styles.ok)} data-cumple={ok}>
-            {ok ? <CircleCheck aria-hidden="true" /> : <Circle aria-hidden="true" />}
-            {rule.label}
-            <span className="visually-hidden">{ok ? ': cumplido' : ': pendiente'}</span>
-          </li>
-        )
-      })}
-    </ul>
   )
 }
