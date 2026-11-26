@@ -30,7 +30,7 @@ function AuthLayout({
   return (
     <OnboardingShell step={step} back={false} layout="split">
       <section className={styles.brandPanel} aria-hidden="true">
-        <Logo size={96} shadow />
+        <Logo size={96} shadow border="none" />
         <p className={styles.brandTitle}>
           Tu reto diario de fútbol empieza aquí
         </p>

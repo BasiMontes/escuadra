@@ -19,7 +19,7 @@ export function Splash({ next = '/registro', delay = 1500 }: { next?: string; de
       aria-label="Escuadra. Toca para empezar"
       data-testid="splash"
     >
-      <Logo size={320} shadow />
+      <Logo size={300} shadow border="inner" className={styles.splashLogo} />
       <span className={styles.splashWord} aria-hidden="true">
         Escuadra
       </span>

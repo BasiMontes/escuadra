@@ -1,7 +1,22 @@
+/* `--logo-box` permite que una pantalla cambie el tamaño desde CSS (splash en desktop) */
 .logo {
+  --logo-box: var(--logo-size);
+  --logo-shadow: calc(var(--logo-box) / 15);
+
   display: inline-block;
   flex: none;
+  width: var(--logo-box);
+  height: var(--logo-box);
   line-height: 0;
+}
+
+.logo svg {
+  width: 100%;
+  height: 100%;
+}
+
+.outer {
+  --logo-shadow: calc(var(--logo-box) / 12);
 }
 
 .shadow svg {

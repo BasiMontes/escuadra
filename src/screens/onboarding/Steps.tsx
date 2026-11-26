@@ -157,7 +157,7 @@ export function Resumen() {
   return (
     <OnboardingShell step={null}>
       <Card className={styles.summaryCard} pad="none">
-        <Logo size={84} shadow bordered={false} />
+        <Logo size={84} shadow border="none" />
         <h1 className={styles.summaryTitle}>¡Bienvenido!</h1>
         <p className={styles.summaryText}>Todo listo para demostrar cuánto sabes de fútbol.</p>
         <ul className={styles.chips} data-testid="resumen-elecciones">

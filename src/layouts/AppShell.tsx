@@ -37,7 +37,7 @@ export function AppShell({ tab, title, mobileBg = 'yellow', narrow = false, hint
     <div className={styles.shell}>
       <aside className={styles.sidebar} aria-label="Navegación principal">
         <Link to="/inicio" className={styles.sideBrand} data-testid="sidebar-logo">
-          <Logo size={40} />
+          <Logo size={40} border="none" />
           <span>Escuadra</span>
         </Link>
         <nav className={styles.sideNav}>

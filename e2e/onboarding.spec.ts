@@ -15,6 +15,14 @@ test.describe('Onboarding', () => {
     await expect(page).toHaveURL(/\/registro$/, { timeout: 4000 })
   })
 
+  test('el logo del splash tiene el tamaño del diseño', async ({ page }, info) => {
+    await page.clock.install()
+    await page.goto('/')
+    const logo = page.getByTestId('splash').locator('[role="img"]')
+    const lado = info.project.name === 'desktop' ? 405 : 300
+    await expect.poll(async () => (await logo.boundingBox())?.width).toBe(lado)
+  })
+
   test('registro valida los campos', async ({ page }) => {
     await page.goto('/registro')
     await page.getByTestId('registro-continuar').click()
