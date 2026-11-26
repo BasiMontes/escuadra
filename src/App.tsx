@@ -24,7 +24,7 @@ import { RetosDelDia } from './screens/retos/RetosDelDia'
 import { RetoIntro } from './screens/juego/RetoIntro'
 import { RetoJugar } from './screens/juego/RetoJugar'
 import { RetoResultado } from './screens/juego/RetoResultado'
-import { Entrar, Recuperar, Registro } from './screens/onboarding/Auth'
+import { Entrar, NuevaContrasena, Recuperar, Registro } from './screens/onboarding/Auth'
 import { OnboardingProvider } from './screens/onboarding/OnboardingContext'
 import { Splash } from './screens/onboarding/Splash'
 import { Competiciones, Configuracion, Resumen } from './screens/onboarding/Steps'
@@ -43,6 +43,7 @@ export default function App() {
           <Route path="/registro" element={<Registro />} />
           <Route path="/entrar" element={<Entrar />} />
           <Route path="/recuperar" element={<Recuperar />} />
+          <Route path="/nueva-contrasena" element={<NuevaContrasena />} />
           <Route path="/onboarding" element={<OnboardingProvider />}>
             <Route index element={<Navigate to="competiciones" replace />} />
             <Route path="competiciones" element={<Competiciones />} />

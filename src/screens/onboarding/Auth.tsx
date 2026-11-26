@@ -1,10 +1,12 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { TextField } from '../../components/Field'
 import { Logo } from '../../components/Logo'
-import { useRepository } from '../../data/hooks'
+import { PasswordRules } from '../../components/PasswordRules'
+import { ErrorNotice, Skeleton } from '../../components/States'
+import { useLoad, useRepository } from '../../data/hooks'
 import { OnboardingShell } from '../../layouts/OnboardingShell'
 import { validateEmail, validatePassword, validateUsername } from '../../lib/validation'
 import styles from './Onboarding.module.css'
@@ -282,5 +284,131 @@ export function Recuperar() {
         </Button>
       </form>
     </AuthLayout>
+  )
+}
+
+/** Destino del enlace del correo de "Recupera tu cuenta". */
+export function NuevaContrasena() {
+  const [params] = useSearchParams()
+  const link = params.get('enlace')
+  const { data: valid, error, loading, reload } = useLoad((r) => r.checkResetLink(link), [link])
+  const expired = valid === false
+
+  return (
+    <AuthLayout
+      step={null}
+      title={expired ? 'Enlace caducado' : 'Nueva contraseña'}
+      subtitle={expired ? 'Este enlace ya no sirve' : 'Elige la que usarás a partir de ahora'}
+      links={
+        <p>
+          <Link to="/entrar" data-testid="nueva-volver">
+            Volver a iniciar sesión
+          </Link>
+        </p>
+      }
+    >
+      {error && <ErrorNotice message="No se ha podido comprobar el enlace." onRetry={reload} />}
+      {loading && <Skeleton height={260} />}
+      {valid === true && <FormularioNueva link={link} />}
+      {expired && (
+        <div className={styles.form}>
+          <p>Pide uno nuevo para cambiar tu contraseña.</p>
+          <Button to="/recuperar" block className={styles.submit} data-testid="nueva-pedir-otro">
+            Pedir otro enlace
+          </Button>
+        </div>
+      )}
+    </AuthLayout>
+  )
+}
+
+function FormularioNueva({ link }: { link: string | null }) {
+  const repo = useRepository()
+  const sending = useRef(false)
+  const [values, setValues] = useState({ next: '', confirm: '' })
+  const [confirmTouched, setConfirmTouched] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [done, setDone] = useState(false)
+
+  const mismatch =
+    values.confirm !== values.next && values.confirm !== '' && (confirmTouched || values.confirm.length >= values.next.length)
+  const ready = !validatePassword(values.next) && values.next === values.confirm
+
+  const set = (key: keyof typeof values) => (e: { target: { value: string } }) => {
+    setValues((v) => ({ ...v, [key]: e.target.value }))
+    setFormError(null)
+  }
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!ready || sending.current) return
+    sending.current = true
+    setBusy(true)
+    try {
+      await repo.resetPassword({ link, password: values.next })
+      setDone(true)
+    } catch (err) {
+      setFormError((err as Error).message)
+    } finally {
+      sending.current = false
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form className={styles.form} onSubmit={onSubmit} noValidate>
+      {/* Siempre presente para que el lector de pantalla anuncie el cambio */}
+      <p role="status" className={done ? styles.formNote : 'visually-hidden'} data-testid="nueva-aviso">
+        {done ? 'Contraseña actualizada.' : ''}
+      </p>
+      {done ? (
+        <Button to="/entrar" block className={styles.submit} data-testid="nueva-entrar">
+          Iniciar sesión
+        </Button>
+      ) : (
+        <>
+          <div className={styles.passwordBlock}>
+            <TextField
+              label="Nueva contraseña"
+              look="flat"
+              type="password"
+              autoComplete="new-password"
+              placeholder="********"
+              value={values.next}
+              onChange={set('next')}
+              data-testid="nueva-contrasena"
+            />
+            <PasswordRules value={values.next} testId="nueva-reglas" />
+          </div>
+          <TextField
+            label="Confirmar contraseña"
+            look="flat"
+            type="password"
+            autoComplete="new-password"
+            placeholder="********"
+            value={values.confirm}
+            onChange={set('confirm')}
+            onBlur={() => setConfirmTouched(true)}
+            error={mismatch ? 'Las contraseñas no coinciden.' : undefined}
+            data-testid="nueva-confirmar"
+          />
+          {formError && (
+            <p role="alert" className={styles.formError} data-testid="nueva-error">
+              {formError}
+            </p>
+          )}
+          <Button
+            type="submit"
+            block
+            variant={ready && !busy ? 'primary' : 'disabled'}
+            className={styles.submit}
+            data-testid="nueva-guardar"
+          >
+            Guardar contraseña
+          </Button>
+        </>
+      )}
+    </form>
   )
 }

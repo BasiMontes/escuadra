@@ -46,6 +46,13 @@ export function createMockRepository(): Repository {
       profile = { ...profile, email }
     },
     async requestPasswordReset() {},
+    // Sin correo real: el enlace caducado se simula con ?enlace=caducado
+    async checkResetLink(link) {
+      return link !== 'caducado'
+    },
+    async resetPassword({ link }) {
+      if (link === 'caducado') throw new Error('El enlace ha caducado.')
+    },
     async signOut() {},
     async getCompetitions() {
       return clone(db.competitions)

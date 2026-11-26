@@ -52,5 +52,6 @@ El documento de análisis las define, pero la app todavía no las cumple.
   de las estadísticas es fijo.
 - **Soporte:** el mensaje no se envía a ningún sitio, aunque la app lo confirme.
 - **Descargar mis datos:** el PDF resume perfil y cifras; no incluye el historial de intentos.
-- **Recuperar contraseña:** no hay pantalla para poner la nueva desde el enlace del correo.
+- **Recuperar contraseña:** las pantallas existen, pero no se envía ningún correo ni hay enlace real. El
+  enlace caducado se simula con `/nueva-contrasena?enlace=caducado`.
 - **Amigos:** no existe en la primera versión.

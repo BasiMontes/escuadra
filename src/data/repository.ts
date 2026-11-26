@@ -26,6 +26,10 @@ export interface Repository {
   signIn(input: { email: string; password: string }): Promise<void>
   /** Envía el enlace para restablecer la contraseña */
   requestPasswordReset(email: string): Promise<void>
+  /** Indica si sirve el enlace del correo para poner una contraseña nueva */
+  checkResetLink(link: string | null): Promise<boolean>
+  /** Guarda la contraseña nueva. Lanza un Error con mensaje para el usuario si no se puede */
+  resetPassword(input: { link: string | null; password: string }): Promise<void>
   signOut(): Promise<void>
   getCompetitions(): Promise<Competition[]>
   getMe(): Promise<Profile>

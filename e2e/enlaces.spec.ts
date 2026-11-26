@@ -5,6 +5,8 @@ const PARTIDA = [
   '/registro',
   '/entrar',
   '/recuperar',
+  '/nueva-contrasena',
+  '/nueva-contrasena?enlace=caducado',
   '/inicio',
   '/retos',
   '/retos/balon-oro-2018',
