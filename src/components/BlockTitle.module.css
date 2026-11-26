@@ -16,3 +16,10 @@
   padding: var(--s-2);
   font-size: 20px;
 }
+
+/* Móvil pequeño (320 px): letras y márgenes del diseño reducidos para que nada desborde */
+@media (max-width: 359px) {
+  .lg {
+    font-size: 21px;
+  }
+}

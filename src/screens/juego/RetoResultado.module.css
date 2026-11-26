@@ -358,3 +358,14 @@
     margin-top: 0;
   }
 }
+
+/* Móvil pequeño (320 px): letras y márgenes del diseño reducidos para que nada desborde */
+@media (max-width: 359px) {
+  .heading {
+    font-size: 27px;
+  }
+
+  .winCard .heading {
+    font-size: 30px;
+  }
+}

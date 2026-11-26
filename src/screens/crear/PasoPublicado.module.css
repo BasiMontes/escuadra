@@ -145,3 +145,21 @@
     margin-top: 0;
   }
 }
+
+/* Móvil pequeño (320 px): letras y márgenes del diseño reducidos para que nada desborde */
+@media (max-width: 359px) {
+  .head {
+    gap: var(--s-3);
+  }
+
+  .head h3 {
+    font-size: 18px;
+  }
+}
+
+/* Tablet apaisada: las columnas de desktop quedan estrechas */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .actions {
+    grid-template-columns: 1fr;
+  }
+}

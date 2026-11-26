@@ -63,6 +63,9 @@ npm run test:e2e:safari  # los mismos flujos en WebKit (Safari)
 6. Compara tu captura con la del PDF antes de dar la pantalla por terminada.
 7. Los textos con poco contraste (verde #16A34A o grises claros sobre blanco) usan la variante oscura
    (`--c-green-text`, #6B6B6B).
+8. Añade su ruta a `e2e/anchos.spec.ts`, que comprueba que nada desborda a 320, 768 y 1024 px. Para
+   corregirlo usa `@media (max-width: 359px)` o `(min-width: 1024px) and (max-width: 1279px)`, que no
+   cambian los tamaños del diseño.
 
 ## Estado
 

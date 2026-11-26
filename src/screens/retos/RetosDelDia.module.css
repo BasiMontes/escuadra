@@ -212,3 +212,14 @@
     gap: var(--s-3);
   }
 }
+
+/* Móvil pequeño (320 px): letras y márgenes del diseño reducidos para que nada desborde */
+@media (max-width: 359px) {
+  .cardHead h3 {
+    font-size: 16px;
+  }
+
+  .difficulty {
+    min-width: 64px;
+  }
+}

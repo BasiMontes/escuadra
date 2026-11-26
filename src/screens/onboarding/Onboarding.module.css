@@ -502,3 +502,23 @@
     margin-top: 22px;
   }
 }
+
+/* Móvil pequeño (320 px): letras y márgenes del diseño reducidos para que nada desborde */
+@media (max-width: 359px) {
+  .formCard {
+    padding-inline: var(--s-5);
+  }
+
+  .formTitle {
+    font-size: 27px;
+  }
+
+  .submit {
+    font-size: 17px;
+  }
+
+  .stepTitle,
+  .configTitle {
+    font-size: 23px;
+  }
+}
