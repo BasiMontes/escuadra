@@ -43,9 +43,19 @@ Las capturas cambian ligeramente entre sistemas operativos, así que se generan 
 imagen Docker oficial de Playwright, la misma que usa el CI:
 
 ```bash
-docker run --rm -v "$PWD":/work -w /work mcr.microsoft.com/playwright:v1.65.1-noble \
+docker run --rm --platform linux/amd64 --ipc=host \
+  -v "$PWD":/work -v /work/node_modules -w /work \
+  mcr.microsoft.com/playwright:v1.65.1-noble \
   bash -c "npm ci && npm run test:visual:update"
 ```
+
+- `--platform linux/amd64`: la arquitectura del CI. Sin él, un Mac con Apple Silicon genera en arm64.
+- `-v /work/node_modules`: instala las dependencias de Linux en un volumen aparte y no pisa las tuyas.
+- La versión de la imagen debe coincidir con la de `@playwright/test` (aquí y en el CI).
+
+La comparación no admite ninguna diferencia, así que cualquier cambio visual obliga a regenerar las
+capturas afectadas. El comando solo reescribe las que cambian: si quitas o renombras un test, borra
+antes `e2e/__screenshots__` para no dejar capturas huérfanas.
 
 Antes de aprobar una captura nueva, compárala con la pantalla correspondiente del PDF del diseño.
 
