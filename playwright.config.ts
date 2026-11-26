@@ -15,7 +15,9 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   expect: {
-    toHaveScreenshot: { maxDiffPixelRatio: 0.01, animations: 'disabled' },
+    // Tolerancia cero: con un margen del 1 % pasaban sin avisar cambios en el logo o en una línea de
+    // texto. `threshold` es la diferencia de color admitida en cada píxel (0,2 por defecto)
+    toHaveScreenshot: { maxDiffPixels: 0, threshold: 0, animations: 'disabled' },
   },
   use: {
     baseURL: 'http://localhost:4173',

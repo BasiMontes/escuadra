@@ -81,7 +81,7 @@ npm run test:e2e       # Playwright: móvil 390, desktop 1440×900 y portátil 1
 - Hecho: Ranking (`src/screens/ranking/`), Ajustes y sus cuatro pantallas
   (`src/screens/ajustes/`), panel de avisos de la campana, landing (`/bienvenida`) y página 404.
 - Con esto están todas las pantallas del diseño. Siguiente: conexión con Supabase.
-- Las capturas de referencia visuales aún no están en el repo: se generan con Docker (ver README).
+- Las capturas de referencia visuales están en `e2e/__screenshots__/linux/`: se regeneran con Docker (ver README).
 
 ## Producto
 
