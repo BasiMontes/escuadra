@@ -30,7 +30,7 @@ export function EnCurso() {
   })
 
   return (
-    <AppShell tab="retos" title="En curso" mobileBg="game">
+    <AppShell tab="retos" title="En curso" parent="/retos" mobileBg="game">
       {error && <ErrorNotice message="No se han podido cargar tus retos." onRetry={reload} />}
       {loading && <Skeleton height={360} />}
       {data && (

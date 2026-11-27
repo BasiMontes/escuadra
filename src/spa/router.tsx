@@ -8,21 +8,23 @@ const KEY = 'escuadraKey'
 const newKey = () => Math.random().toString(36).slice(2, 10)
 
 /** `key` identifica la entrada del historial; vale `default` en la primera que abre la app. */
-const NavigationContext = createContext({ key: 'default', revisit: (_to: string) => {} })
+const NavigationContext = createContext({ key: 'default', revisit: (_to: string) => {}, keepFirst: () => {} })
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const search = useNextSearchParams().toString()
   const [key, setKey] = useState('default')
   const started = useRef(false)
+  const replacingFirst = useRef(false)
 
   useLayoutEffect(() => {
     let current = history.state?.[KEY] as string | undefined
     if (!current) {
-      current = started.current ? newKey() : 'default'
+      current = started.current && !replacingFirst.current ? newKey() : 'default'
       history.replaceState({ ...history.state, [KEY]: current }, '')
     }
     started.current = true
+    replacingFirst.current = false
     setKey(current)
   }, [pathname, search])
 
@@ -34,7 +36,12 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     setKey(next)
   }, [])
 
-  return <NavigationContext.Provider value={{ key, revisit }}>{children}</NavigationContext.Provider>
+  // Sustituir la primera entrada deja otra primera entrada: detrás sigue sin haber nada de la app
+  const keepFirst = useCallback(() => {
+    replacingFirst.current = history.state?.[KEY] === 'default'
+  }, [])
+
+  return <NavigationContext.Provider value={{ key, revisit, keepFirst }}>{children}</NavigationContext.Provider>
 }
 
 export function Link({ to, onClick, ...props }: Omit<ComponentProps<typeof NextLink>, 'href'> & { to: string }) {
@@ -60,22 +67,24 @@ export function NavLink(props: ComponentProps<typeof Link>) {
 }
 
 export function Navigate({ to }: { to: string; replace: true }) {
-  const router = useRouter()
-  useEffect(() => router.replace(to), [router, to])
+  const navigate = useNavigate()
+  useEffect(() => navigate(to, { replace: true }), [navigate, to])
   return null
 }
 
 export function useNavigate() {
   const router = useRouter()
-  const { revisit } = useContext(NavigationContext)
+  const { revisit, keepFirst } = useContext(NavigationContext)
   return useCallback(
     (to: string | -1, options?: { replace?: boolean }) => {
       if (to === -1) return router.back()
       revisit(to)
-      if (options?.replace) router.replace(to)
-      else router.push(to)
+      if (options?.replace) {
+        keepFirst()
+        router.replace(to)
+      } else router.push(to)
     },
-    [router, revisit],
+    [router, revisit, keepFirst],
   )
 }
 
@@ -90,13 +99,15 @@ export function useLocation() {
 export function useSearchParams() {
   const params = useNextSearchParams()
   const pathname = usePathname()
+  const { keepFirst } = useContext(NavigationContext)
   // Con la API del historial Next actualiza los parámetros sin pedir la página al servidor
   const setParams = useCallback(
     (next: Record<string, string>, options: { replace: true }) => {
       const query = new URLSearchParams(next).toString()
+      if (options.replace) keepFirst()
       history[options.replace ? 'replaceState' : 'pushState'](null, '', query ? `${pathname}?${query}` : pathname)
     },
-    [pathname],
+    [pathname, keepFirst],
   )
   return [params, setParams] as const
 }

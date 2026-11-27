@@ -18,7 +18,7 @@ const SUBJECTS = ['Problema técnico', 'Error en una pregunta', 'Mi cuenta', 'Su
 
 export function Soporte() {
   return (
-    <AppShell tab="perfil" title="Soporte" narrow>
+    <AppShell tab="perfil" title="Soporte" parent="/ajustes" narrow>
       <div className={styles.screen}>
         <Card className={styles.intro}>
           <h2>¿Problemas en el campo?</h2>

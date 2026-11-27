@@ -24,7 +24,7 @@ export function Notificaciones() {
   })
 
   return (
-    <AppShell tab="perfil" title="Notificaciones">
+    <AppShell tab="perfil" title="Notificaciones" parent="/ajustes">
       {error && <ErrorNotice message="No se han podido cargar tus notificaciones." onRetry={reload} />}
       {loading && <Skeleton height={420} />}
       {data && <Preferencias {...data} />}

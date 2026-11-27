@@ -17,7 +17,7 @@ export function RetoIntro() {
   const { data, error, loading, reload } = useLoad(async (r) => ({ challenge: await r.getChallenge(id) }), [id])
 
   return (
-    <AppShell tab="inicio" title="Reto del día" mobileBg="game" narrow>
+    <AppShell tab="inicio" title="Reto del día" parent={`/retos/${id}`} mobileBg="game" narrow>
       {error && <ErrorNotice message="No se ha podido cargar el reto." onRetry={reload} />}
       {loading && <Skeleton height={520} />}
       {data &&

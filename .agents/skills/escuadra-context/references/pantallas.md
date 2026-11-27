@@ -16,7 +16,9 @@ La app vive en `src/spa/` hasta que se reparta en capas (ver `tasks/plan.md`).
   Controls (Toggle, RadioDot, CheckSquare, ProgressBar, StepBar, IconBox), Logo (`border`, `shadow`).
 - `src/spa/layouts/AppShell.tsx`: pantallas con sesión (cabecera y barra inferior en móvil; barra
   lateral y cabecera con racha y pistas desde 1024 px). Props `tab`, `title`, `mobileBg`
-  (`yellow`, `game`, `white`).
+  (`yellow`, `game`, `white`). Con `parent` muestra la flecha de volver
+  (`components/BackButton.tsx`): vuelve a la pantalla anterior y, si se entró directamente, sube a
+  `parent`. La llevan las pantallas que no son pestaña, salvo la de juego.
 - `src/spa/layouts/OnboardingShell.tsx`: pantallas sin navegación (patrón de fondo, botón volver, barra
   de pasos) y `StickyAction` para el botón principal fijo abajo en móvil.
 - `src/spa/data/`: `types.ts`, contrato `repository.ts`, `mockRepository.ts` y `mock.ts` (datos de

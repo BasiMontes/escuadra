@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { BackButton } from '../../components/BackButton'
 import { Card } from '../../components/Card'
 import { ProgressBar } from '../../components/Controls'
 import { cx } from '../../components/cx'
@@ -26,9 +26,7 @@ export function CrearLayout({ step, title, subtitle, onBack, children }: Props) 
         <div className={styles.aside}>
           <header className={cx(styles.head, !subtitle && styles.inline)}>
             {onBack && (
-              <button type="button" className={styles.back} onClick={onBack} aria-label="Volver" data-testid="crear-volver">
-                <ArrowLeft aria-hidden="true" />
-              </button>
+              <BackButton onClick={onBack} data-testid="crear-volver" />
             )}
             <div>
               <h2 className={styles.title}>{title}</h2>
