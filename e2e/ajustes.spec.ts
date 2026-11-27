@@ -93,6 +93,24 @@ test.describe('Notificaciones', () => {
   })
 })
 
+test.describe('Interruptores', () => {
+  /** Distancia del centro del botón al centro de su marca: positiva si la marca está a la derecha. */
+  const lado = (page: Page, nombre: string) =>
+    page.getByRole('switch', { name: nombre }).evaluate((boton) => {
+      const centro = (e: Element) => e.getBoundingClientRect().x + e.getBoundingClientRect().width / 2
+      return centro(boton.firstElementChild!) - centro(boton)
+    })
+
+  test('encendido a la derecha y apagado a la izquierda', async ({ page }) => {
+    await page.goto('/ajustes/notificaciones')
+    await expect(page.getByRole('switch', { name: 'Retos diarios' })).toBeChecked()
+    expect(await lado(page, 'Retos diarios')).toBeGreaterThan(0)
+    expect(await lado(page, 'Nuevos logros')).toBeLessThan(0)
+    await page.getByRole('switch', { name: 'Nuevos logros' }).click()
+    await expect.poll(() => lado(page, 'Nuevos logros')).toBeGreaterThan(0)
+  })
+})
+
 test.describe('Panel de avisos', () => {
   const campana = (page: Page, proyecto: string) =>
     page.getByTestId(proyecto === 'movil' ? 'header-avisos' : 'topbar-avisos')
