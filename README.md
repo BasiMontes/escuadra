@@ -69,7 +69,7 @@ Antes de aprobar una captura nueva, compárala con la pantalla correspondiente d
 
 ```
 src/
-  app/          Rutas de Next (la app se monta en `app/[[...slug]]`)
+  app/          Rutas de Next: una carpeta por pantalla; la app se pinta solo en el navegador
   spa/          Escuadra: components, layouts, screens, data, lib y styles
   features/     Base de la plantilla: cuentas, consentimiento y salud (sin usar todavía)
   adapters/     Llamadas a servicios externos
