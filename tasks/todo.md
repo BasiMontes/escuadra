@@ -4,8 +4,7 @@ Detalle y criterios de aceptación en [`plan.md`](plan.md).
 
 ## Estado a 2026-11-27
 
-Rama `migracion/salto-1`, con commits locales. Sin commit queda solo `.github/`, que va con la tarea 6.
-Nada subido: `main` sigue como estaba.
+Rama `migracion/salto-1`, con el PR del salto 1 contra `main`, que sigue sin fusionar.
 
 Los dos commits con código pasan tipos, tests unitarios y build cada uno por separado.
 
@@ -16,8 +15,11 @@ Los dos commits con código pasan tipos, tests unitarios y build cada uno por se
 | Flujos en Chromium | 514 pasan, 124 omitidos |
 | Flujos en WebKit | 512 pasan, 126 omitidos |
 | Capturas en Linux (Docker) | 74 pasan, sin regenerar |
-| Comprobaciones del repositorio | `repo:check` en verde (2026-11-27) |
-| Tests de herramientas | 244 pasan, **1 falla**: `ci.yml` usa acciones sin fijar a un commit (se resuelve en la tarea 6) |
+| `check:all` | Verde (2026-11-27) |
+| Tests de herramientas | 245 pasan |
+
+Los flujos se pasaron en Linux nativo (arm64) y las capturas en la arquitectura de la CI (amd64
+emulado). Los flujos emulados en un Mac agotan los tiempos de espera: no sirven como señal.
 
 ### Para retomar
 
@@ -31,7 +33,9 @@ Los dos commits con código pasan tipos, tests unitarios y build cada uno por se
 3. ~~Hacer los commits~~ **Hecho el 2026-11-27**, con los hooks `pre-commit` y `commit-msg` activos.
    `pre-commit` rechazaba commits cuyos scripts estaban todos ignorados por `oxlint`; corregido en
    `lint-staged` con `--no-error-on-unmatched-pattern`.
-4. Punto de control A (revisión manual) y tarea 6 (CI).
+4. ~~Punto de control A~~ **Revisado el 2026-11-27**: las observaciones son de diseño y ya existían antes
+   de migrar. Quedan en "Diseño pendiente de revisar" de [`docs/producto.md`](../docs/producto.md).
+5. Tarea 6 (CI): `pr-check.yml` escrito y probado en local; falta verlo en verde en GitHub.
 
 Los hooks de git de la plantilla ya están activos en esta copia (`core.hooksPath=.husky/_`).
 
@@ -41,13 +45,13 @@ Los hooks de git de la plantilla ya están activos en esta copia (`core.hooksPat
 
 ## Salto 1: Bun y Next
 - [x] 1. Traer la base de la plantilla (sin la configuración de agentes)
-- [x] 2. Montar la app en Next (falta el recorrido manual)
+- [x] 2. Montar la app en Next
 - [x] 3. Tipos y tests unitarios
 - [x] 4. Tests de navegador
-- [ ] Punto de control A: la app funciona igual
-- [ ] 5. Comprobaciones del repositorio: hooks probados; `check:all` no estará en verde hasta la tarea 6
-- [ ] 6. CI
-- [ ] 7. Documentación y contexto: escritos; falta `check:all` en verde
+- [x] Punto de control A: la app funciona igual
+- [x] 5. Comprobaciones del repositorio
+- [ ] 6. CI: faltan los cuatro trabajos en verde en el PR
+- [x] 7. Documentación y contexto
 - [ ] Punto de control B: PR del salto 1
 
 ## Salto 2a: rutas
@@ -63,3 +67,6 @@ Los hooks de git de la plantilla ya están activos en esta copia (`core.hooksPat
 - [ ] 14. Mover las pantallas
 - [ ] 15. Formato y comprobaciones completas
 - [ ] Punto de control D: migración terminada
+
+## Después del salto 1
+- [ ] PR de diseño: lista en "Diseño pendiente de revisar" de `docs/producto.md`

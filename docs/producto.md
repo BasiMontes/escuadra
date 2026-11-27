@@ -19,6 +19,24 @@ datos de ejemplo (revisado el 25 de noviembre de 2026). Cuando algo se resuelva,
 | ¿Cómo debe verse en tablet vertical? No está en el diseño | La disposición de móvil estirada a todo el ancho |
 | ¿Quién llega a la landing? | Solo quien abre `/bienvenida`; `/` lleva al registro |
 
+## Diseño pendiente de revisar
+
+Va en un PR propio, después de la migración a Next y Bun, que no cambia nada a la vista. Detectado en la
+revisión del 27 de noviembre de 2026; los colores hay que contrastarlos con el diseño antes de tocarlos.
+
+| Prioridad | Problema | Propuesta |
+|---|---|---|
+| Alta | Los desplegables abren la lista del navegador (`SelectField`: crear reto y soporte) | `Select` de `@base-ui/react` con los bordes y sombras propios; ajustar `crear.spec.ts` y `ajustes.spec.ts` |
+| Alta | Los interruptores muestran el encendido a la izquierda | Encendido a la derecha, en amarillo |
+| Alta | El texto de ejemplo de los campos no llega a 4,5:1: acceso (2,05:1) y formularios (2,56:1) | `--c-grey-text-soft` (5,33:1) |
+| Media | Botones amarillos sobre fondo amarillo ("Ver resumen", "Guardar cambios" en preferencias) | Meterlos en una tarjeta blanca sin cambiar su color |
+| Media | En crear reto, el título lleva borde fino gris y los demás campos borde negro grueso | Un solo estilo de campo |
+| Media | Textos de 10 y 11 px en mayúsculas | Mínimo 12 px |
+| Media | "Tipo de reto" es un desplegable con una sola opción | Texto fijo |
+| Por decidir | En escritorio todas las pantallas tienen fondo amarillo; en móvil alterna con gris | Gris claro en las pantallas de datos |
+
+Sin revisar: juego, resultado, detalle de reto, diálogos y estados al pasar el ratón o con foco.
+
 ## Limitaciones antes de tener usuarios reales
 
 - **No hay autenticación.** Todas las pantallas se abren sin sesión y "Cerrar sesión" solo lleva a
