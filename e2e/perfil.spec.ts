@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { expectFullScreen } from './helpers'
+import { alerta, expectFullScreen } from './helpers'
 
 /** PNG de 1×1 píxel */
 const FOTO = Buffer.from(
@@ -110,9 +110,9 @@ test.describe('Editar perfil', () => {
     await abrir(page)
     const archivo = page.getByTestId('editar-archivo')
     await archivo.setInputFiles({ name: 'nota.txt', mimeType: 'text/plain', buffer: Buffer.from('hola') })
-    await expect(page.getByRole('alert')).toHaveText('La foto debe ser JPG, PNG o WebP.')
+    await expect(alerta(page)).toHaveText('La foto debe ser JPG, PNG o WebP.')
     await archivo.setInputFiles({ name: 'grande.png', mimeType: 'image/png', buffer: Buffer.alloc(2 * 1024 * 1024 + 1) })
-    await expect(page.getByRole('alert')).toHaveText('La foto no puede pesar más de 2 MB.')
+    await expect(alerta(page)).toHaveText('La foto no puede pesar más de 2 MB.')
     await expect(page.getByTestId('editar-foto')).toHaveAttribute('src', '/img/avatar-basimontes.jpg')
   })
 })
@@ -187,7 +187,7 @@ test.describe('Perfil · accesibilidad', () => {
     await page.goto('/perfil/editar')
     await page.getByTestId('editar-usuario').fill('')
     await page.getByTestId('editar-guardar').click()
-    await page.getByRole('alert').waitFor()
+    await alerta(page).waitFor()
     await expectNoSeriousA11y(page)
   })
 })

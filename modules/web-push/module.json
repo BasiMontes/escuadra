@@ -1,0 +1,14 @@
+{
+  "summary": "Web Push notifications with a service worker, sent from the server",
+  "dependencies": {
+    "web-push": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/web-push": "^3.6.4"
+  },
+  "nextSteps": [
+    "Read docs/modules/web-push.md",
+    "Set the three VAPID variables and SUPABASE_SECRET_KEY",
+    "Run bun run repo:check and bun run test, then commit"
+  ]
+}

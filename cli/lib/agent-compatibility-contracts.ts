@@ -1,0 +1,1789 @@
+/**
+ * @fileoverview Hook and MCP contracts shared by every harness (`HARNESSES`).
+ *
+ * The prompt hook (output contract plus the `AGENT IDENTITY:` line) has ONE
+ * emitter (`.agents/hooks/personality-reinject.mjs`) and one adapter per harness
+ * (`.claude/settings.json`, `.codex/hooks.json`,
+ * `.opencode/plugins/personality-reinject.js`, `.pi/extensions/agentic-dev.js`).
+ * The MCP inventory has ONE meaning and one spelling per host (`.mcp.json`,
+ * `opencode.jsonc`, `.codex/config.toml`, `.pi/mcp.json`). This module pins both
+ * contracts so a drift in any of these files fails `bun run agents:compat:check` instead of surfacing as a
+ * harness that silently lost a server or a hook.
+ *
+ * The MCP server SET is project-declared: whatever `.mcp.json` lists is what
+ * the other hosts must list (see PARITY RULE). Only the per-host SHAPE of
+ * the servers this boilerplate ships is pinned here (`KNOWN_MCP_IDS`), so a
+ * downstream project that drops `n8n` or adds `playwright` still passes. A
+ * remote server whose only project-side content is an API key (web search) is
+ * not committed at all: it runs at harness level (`harness-level-mcps.ts`).
+ *
+ * Every contract binds only the harnesses the project uses
+ * (`declaredHarnesses`, ADR-0013): a project on one harness deletes the others'
+ * files, and the boilerplate itself always checks every harness.
+ *
+ * Import-closed: only Node builtins and `cli/lib` siblings (see the header of
+ * `agent-compatibility.ts` for why `cli/` must never import a sibling
+ * top-level directory).
+ */
+
+import type { Harness } from './harness-selection.ts';
+import { existsSync, lstatSync, readFileSync } from 'node:fs';
+import { isAbsolute, join, relative, resolve } from 'node:path';
+import { isSchemaOwner } from './agents-schema.ts';
+import { readChecks } from './check-scope.ts';
+
+import { canonicalMcpHarness, declaredHarnesses, HARNESSES } from './harness-selection.ts';
+import { isSecretKey, looksLikeSecret, readSecretValues, redactAll, REDACTED, redactParseError, redactSecretText, redactValue } from './ui/redaction.ts';
+
+/**
+ * Servers whose per-host shape this boilerplate pins (`EXPECTED_MCP`). The
+ * strict shape check applies to one of these ONLY when the project's
+ * `.mcp.json` declares it; the project may declare any other server, which
+ * then gets the generic cross-host check alone.
+ */
+export const KNOWN_MCP_IDS = [
+  'context7',
+  'supabase',
+  'n8n',
+] as const;
+
+/**
+ * The emitter carries more than the output contract per prompt (forensic
+ * identity line, conditional Orca line, one setup warning), so the contract
+ * pins the exports the adapters rely on plus the markers a consumer
+ * greps for. A drift here is a harness that silently lost its identity line:
+ * `git-flow-master` would then write `Session: unknown` into every commit
+ * trailer instead of failing.
+ */
+export const HOOK_IDENTITY_EXPORTS = [
+  'resolveAgentIdentity',
+  'agentContextLines',
+  'orcaAvailable',
+] as const;
+
+export const HOOK_IDENTITY_MARKER = 'AGENT IDENTITY:';
+export const HOOK_ORCA_MARKER = 'ORCA: available.';
+
+export const CLAUDE_HOOK_COMMAND = 'node "$CLAUDE_PROJECT_DIR/.agents/hooks/personality-reinject.mjs"';
+export const CODEX_HOOK_COMMAND = 'root="$(git rev-parse --show-toplevel)" && node "$root/.agents/hooks/personality-reinject.mjs"';
+export const CODEX_HOOK_COMMAND_WINDOWS = 'powershell.exe -NoProfile -Command "$root = git rev-parse --show-toplevel; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; node (Join-Path $root \'.agents/hooks/personality-reinject.mjs\')"';
+
+/**
+ * The repository-relative script a hook command executes, or null when the
+ * command names none. Every adapter reaches its script through a root
+ * placeholder (`$CLAUDE_PROJECT_DIR` for Claude, `$root` for both Codex
+ * forms), so whatever follows it IS the repository-relative path. The hook
+ * merge of `bun sync` reads it to skip a command whose script the project
+ * lacks (`mergeHookGroups`, `cli/lib/updater-settings.ts`).
+ */
+export function hookScriptPath(command: string): string | null {
+  const match = /(?:\$CLAUDE_PROJECT_DIR\/|\$root\/|\$root\s+')([^"')]+\.m?js)/.exec(command);
+  return match === null ? null : match[1];
+}
+
+/**
+ * The `.env` loader every MCP stdio server that needs `.env` values launches
+ * through, on every host:
+ *
+ *   bunx -p varlock@<pin> varlock run --no-redact-stdout --inject vars --filter A,B -- <server>
+ *
+ * WHY A LOADER. A harness spawns its MCP servers from a config file, before any
+ * hook runs, with whatever environment the harness process has, and no launch
+ * gives it the `.env` values: a terminal launch is the bare binary (the launch
+ * scripts that exported `.env` into the harness are retired, ADR-0016), a GUI
+ * launch (Claude Desktop, Codex Desktop, OpenCode desktop) or a natively
+ * launched supervised worker has nothing to wrap. The loader reads the varlock schema plus
+ * `.env` / `.env.local` (or the secret manager the schema names) from the
+ * launch directory, which every host sets to the project root, so the values
+ * arrive however the harness was opened, and no plaintext copy of a credential
+ * is written for a harness to read (the retired `harness:env` surfaces,
+ * ADR-0012).
+ *
+ * WHAT EACH FLAG DOES (measured on varlock 1.20.0 in the sibling QA
+ * boilerplate, ADR-0012):
+ *   --filter A,B          injects only these schema items; an INHERITED schema
+ *                         key outside the list is stripped from the child, so a
+ *                         server never sees another server's credential, and
+ *                         validation is scoped to the list (a missing variable
+ *                         another server needs does not stop this one).
+ *   --inject vars         individual variables only, no `__VARLOCK_ENV` blob.
+ *   --no-redact-stdout    the server speaks JSON-RPC on stdio, and varlock
+ *                         redacts piped output by default, which rewrites any
+ *                         message that carries a sensitive value.
+ *   -p varlock@<pin>      names the package and tracks the exact `varlock`
+ *                         devDependency, so the cache already holds it after
+ *                         `bun install` and no standalone binary is needed.
+ *
+ * The filter lists exact variable NAMES (no globs, negations or selectors), so
+ * it is also the server's declared `.env` dependency set: parity compares it
+ * across hosts like any `${VAR}`. A server that launches through the loader
+ * must NOT also reference those names through the host (`${VAR}`, `{env:VAR}`,
+ * `{file:...}`, `env_vars`): an unset `${VAR}` fails the host's config parse on
+ * a desktop launch, and an EMPTY inherited value shadows `.env` and fails
+ * validation (measured). A value that fails the schema stops the server that
+ * needs it: `bunx varlock load --agent` shows which, redacted.
+ */
+// LINT.IfChange(mcp-env-loader)
+export const MCP_ENV_LOADER_COMMAND = 'bunx';
+export const MCP_ENV_LOADER_HEAD = ['-p', 'varlock@1.20.0', 'varlock', 'run', '--no-redact-stdout', '--inject', 'vars', '--filter'] as const;
+
+/** The full loader prefix for a server that needs `names`: head, the comma-joined filter, `--`. */
+export function mcpEnvLoaderArgs(names: readonly string[]): string[] {
+  return [...MCP_ENV_LOADER_HEAD, names.join(','), '--'];
+}
+// LINT.ThenChange(.agents/instructions/agent-critical-rules.md, .agents/instructions/agent-harnesses.md, .agents/skills/testability-guide/references/mcp-and-env-setup.md, .agents/skills/testability-guide/references/pre-flight-discovery.md, docs/mcp/README.md, docs/mcp/mcp-configuration-guide.md, docs/setup/mcp/codex.md, packages/pages-home/harnesses.es.html)
+
+/**
+ * The loader Codex used before the filter existed: every `.env` value, no
+ * `--filter`, names forwarded through `env_vars`. Recognized so a downstream
+ * `.codex/config.toml` (bootstrap-only, never overwritten by a sync) still
+ * parses; parity reports it as out of date.
+ */
+export const LEGACY_CODEX_ENV_LOADER_ARGS = ['-p', 'varlock@1.20.0', 'varlock', 'run', '--no-redact-stdout', '--'] as const;
+
+const VARIABLE_NAME = /^[A-Z][A-Z0-9_]*$/;
+
+export interface UnwrappedLaunch {
+  command: string
+  args: string[]
+  envLoader: boolean
+  /** The `--filter` names, or null when the server is not behind the filtered loader. */
+  filter: string[] | null
+}
+
+/**
+ * Splits `command` + `args` into the server it actually starts. A server
+ * launched through the loader reads as the inner command with `envLoader: true`
+ * and its filter; the legacy unfiltered Codex loader reads as `envLoader: true`,
+ * `filter: null`; anything else is returned as-is. Throws on a filter entry that
+ * is not a plain variable name, because a glob cannot be compared across hosts.
+ */
+export function unwrapEnvLoader(command: string, args: readonly string[]): UnwrappedLaunch {
+  if (command !== MCP_ENV_LOADER_COMMAND) { return { command, args: [...args], envLoader: false, filter: null }; }
+  const head = MCP_ENV_LOADER_HEAD;
+  const filtered = args.length > head.length + 2
+    && head.every((entry, index) => args[index] === entry)
+    && args[head.length + 1] === '--';
+  if (filtered) {
+    const filter = args[head.length].split(',').map(name => name.trim()).filter(name => name.length > 0);
+    const invalid = filter.filter(name => !VARIABLE_NAME.test(name));
+    if (invalid.length > 0) {
+      throw new Error(`MCP env loader --filter must list exact variable names (no globs, negations or selectors): ${invalid.join(', ')}`);
+    }
+    return { command: args[head.length + 2], args: args.slice(head.length + 3), envLoader: true, filter };
+  }
+  const legacy = LEGACY_CODEX_ENV_LOADER_ARGS;
+  const wrapped = args.length > legacy.length && legacy.every((entry, index) => args[index] === entry);
+  if (!wrapped) { return { command, args: [...args], envLoader: false, filter: null }; }
+  return { command: args[legacy.length], args: args.slice(legacy.length + 1), envLoader: true, filter: null };
+}
+
+export type KnownMcpId = (typeof KNOWN_MCP_IDS)[number];
+export type McpHost = 'claude' | 'opencode' | 'codex' | 'pi';
+type Transport = 'stdio' | 'http';
+
+/**
+ * One MCP server, host-agnostic.
+ *
+ * `dependsOn` is the set of `.env` variable NAMES the server needs at launch,
+ * regardless of how the host spells the reference: `${VAR}` in `.mcp.json`,
+ * `{env:VAR}` / `{file:dir/VAR}` in `opencode.jsonc`, `env_vars = [...]` / `bearer_token_env_var`
+ * / `env_http_headers` in `.codex/config.toml`. A renamed key does not count as
+ * a new dependency: `SUPABASE_URL = "${NEXT_PUBLIC_SUPABASE_URL}"` depends on
+ * `NEXT_PUBLIC_SUPABASE_URL`, the same variable Codex forwards by name.
+ *
+ * The loader's `--filter` counts as a dependency too: it is the exact list of
+ * names the server receives.
+ *
+ * `literalEnv` holds the env entries whose value is a plain string (no
+ * placeholder), i.e. settings such as `MCP_MODE = "stdio"`. Those must match
+ * across hosts too, otherwise one harness runs the server in a different mode.
+ */
+export interface NormalizedMcpServer {
+  transport: Transport
+  command?: string
+  args?: string[]
+  url?: string
+  dependsOn: string[]
+  literalEnv: Record<string, string>
+  enabled: boolean
+  /** The server starts through the `.env` loader (`MCP_ENV_LOADER_*`). */
+  envLoader?: boolean
+  /**
+   * Names the HOST delivers (`${VAR}`, `{env:VAR}`, `{file:.../VAR}`,
+   * `env_vars`, `bearer_token_env_var`, `env_http_headers`), as opposed to the
+   * loader's `--filter`. `dependsOn` is the union of both.
+   */
+  hostRefs?: string[]
+  /** Pi only: an `env` or `headers` value is a `!command`, which Pi runs in a shell. */
+  commandValue?: boolean
+  /** Codex only: `startup_timeout_sec`; absent means Codex's default. */
+  startupTimeoutSec?: number
+}
+
+export type NormalizedMcpConfig = Record<string, NormalizedMcpServer>;
+
+interface JsonObject {
+  [key: string]: unknown
+}
+
+/**
+ * PARITY RULE. The canonical server set is whatever the project's `.mcp.json`
+ * declares. `opencode.jsonc`, `.codex/config.toml` and `.pi/mcp.json` must declare exactly that
+ * set (a server missing from one host, or present in one host only, is an
+ * error naming the server and the host), and for every declared server the
+ * hosts in use must agree on `dependsOn` and `literalEnv` (what the server needs
+ * from `.env`, what it is told to do). That generic check applies to every
+ * server, known to this boilerplate or not.
+ *
+ * `transport`, `command` and `args` are NOT compared generically, because a
+ * host may legitimately reach the same server another way. For the servers
+ * this boilerplate ships they are pinned per host in `EXPECTED_MCP` instead,
+ * and that strict shape check runs only when the project declares the server:
+ *
+ *   - every stdio server that needs `.env` values (`supabase`, `n8n`) starts
+ *     through the `.env` loader on every host, its `--filter` naming
+ *     exactly what it reads, and takes nothing from the host itself;
+ *   - `context7` needs no value, so it starts bare: wrapping it would only add
+ *     a hop;
+ *   - every Codex stdio server carries a `startup_timeout_sec` budget.
+ *
+ * The pinned shape is the server the loader starts, plus the launch details.
+ *
+ * Whatever the spelling, the `.env` names each server depends on are identical
+ * across the hosts. That is what the cross-host check enforces.
+ */
+const N8N_LITERAL_ENV = {
+  MCP_MODE: 'stdio',
+  LOG_LEVEL: 'error',
+  DISABLE_CONSOLE_OUTPUT: 'true',
+} as const;
+
+/**
+ * `@supabase/mcp-server-supabase` reads ONE variable: the personal access token
+ * (`SUPABASE_ACCESS_TOKEN`, its documented fallback when `--access-token` is
+ * absent). Measured on 0.13.0: no other `process.env` read in the package. The
+ * project URL and the publishable / secret keys the older configs mapped into
+ * it were never read, so the filter leaves them out and the server-side secret
+ * key no longer reaches an MCP child at all.
+ */
+const SUPABASE_DEPENDS_ON = ['SUPABASE_ACCESS_TOKEN'];
+
+/** `${NAME}`: the canonical spelling every host's placeholder is normalized to. */
+function ref(name: string): string {
+  return `\${${name}}`;
+}
+
+/**
+ * Canonical field order + sorted collections, so two servers compare equal
+ * through `JSON.stringify` whenever they mean the same thing.
+ */
+function canonical(shape: Pick<NormalizedMcpServer, 'transport'> & Partial<NormalizedMcpServer>): NormalizedMcpServer {
+  const literalEnv: Record<string, string> = {};
+  for (const key of Object.keys(shape.literalEnv ?? {}).sort()) {
+    literalEnv[key] = (shape.literalEnv ?? {})[key];
+  }
+  return {
+    transport: shape.transport,
+    command: shape.command,
+    args: shape.args,
+    url: shape.url,
+    dependsOn: [...new Set(shape.dependsOn ?? [])].sort(),
+    literalEnv,
+    enabled: shape.enabled ?? true,
+    envLoader: shape.envLoader ?? false,
+    hostRefs: [...new Set(shape.hostRefs ?? [])].sort(),
+    startupTimeoutSec: shape.startupTimeoutSec,
+  };
+}
+
+const server = canonical;
+
+const EVERY_HOST: Record<KnownMcpId, NormalizedMcpServer> = {
+  // No `.env` dependency, so no loader: wrapping it would only add a hop.
+  context7: server({ transport: 'stdio', command: 'bunx', args: ['-y', '@upstash/context7-mcp@4.1.1'] }),
+  supabase: server({
+    transport: 'stdio',
+    command: 'bunx',
+    args: ['-y', '@supabase/mcp-server-supabase@0.13.0', '--read-only'],
+    envLoader: true,
+    dependsOn: SUPABASE_DEPENDS_ON,
+  }),
+  n8n: server({
+    transport: 'stdio',
+    command: 'npx',
+    args: ['-y', 'n8n-mcp@2.102.0'],
+    envLoader: true,
+    dependsOn: ['N8N_API_URL', 'N8N_API_KEY'],
+    literalEnv: { ...N8N_LITERAL_ENV },
+  }),
+};
+
+/**
+ * Codex starts the same servers with a 30-second startup budget. Codex waits
+ * 10 seconds by default, and every shipped stdio server is fetched by `bunx` /
+ * `npx` on first use: a cold cache plus the loader hop can pass 10 seconds
+ * before the first handshake.
+ */
+export const CODEX_STARTUP_TIMEOUT_SEC = 30;
+const CODEX_SHAPE = Object.fromEntries(
+  Object.entries(EVERY_HOST).map(([id, shape]) => [id, canonical({ ...shape, startupTimeoutSec: CODEX_STARTUP_TIMEOUT_SEC })]),
+) as Record<KnownMcpId, NormalizedMcpServer>;
+
+export const EXPECTED_MCP: Record<McpHost, Record<KnownMcpId, NormalizedMcpServer>> = {
+  claude: EVERY_HOST,
+  opencode: EVERY_HOST,
+  codex: CODEX_SHAPE,
+  pi: EVERY_HOST,
+};
+
+function object(value: unknown, label: string): JsonObject {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error(`${label} must be an object.`);
+  }
+  return value as JsonObject;
+}
+
+function stringArray(value: unknown, label: string): string[] {
+  if (!Array.isArray(value) || !value.every(entry => typeof entry === 'string')) {
+    throw new Error(`${label} must be an array of strings.`);
+  }
+  return value;
+}
+
+function stringValue(value: unknown, label: string): string {
+  if (typeof value !== 'string') {
+    throw new TypeError(`${label} must be a string.`);
+  }
+  return value;
+}
+
+export function stripJsonComments(source: string): string {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+  let lineComment = false;
+  let blockComment = false;
+
+  for (let index = 0; index < source.length; index++) {
+    const current = source[index];
+    const next = source[index + 1];
+
+    if (lineComment) {
+      if (current === '\n') {
+        lineComment = false;
+        result += current;
+      }
+      continue;
+    }
+    if (blockComment) {
+      if (current === '*' && next === '/') {
+        blockComment = false;
+        index++;
+      }
+      else if (current === '\n') {
+        result += current;
+      }
+      continue;
+    }
+    if (inString) {
+      result += current;
+      if (escaped) {
+        escaped = false;
+      }
+      else if (current === '\\') {
+        escaped = true;
+      }
+      else if (current === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (current === '"') {
+      inString = true;
+      result += current;
+    }
+    else if (current === '/' && next === '/') {
+      lineComment = true;
+      index++;
+    }
+    else if (current === '/' && next === '*') {
+      blockComment = true;
+      index++;
+    }
+    else {
+      result += current;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Strips a trailing comma before `}` / `]` (outside strings) so the JSONC that
+ * Prettier writes for `opencode.jsonc` parses with `JSON.parse`.
+ */
+export function stripTrailingCommas(source: string): string {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+  for (let index = 0; index < source.length; index++) {
+    const current = source[index];
+    if (inString) {
+      result += current;
+      if (escaped) { escaped = false; }
+      else if (current === '\\') { escaped = true; }
+      else if (current === '"') { inString = false; }
+      continue;
+    }
+    if (current === '"') {
+      inString = true;
+      result += current;
+      continue;
+    }
+    if (current === ',') {
+      const rest = source.slice(index + 1);
+      const closer = /^\s*[}\]]/.test(rest);
+      if (closer) { continue; }
+    }
+    result += current;
+  }
+  return result;
+}
+
+/**
+ * OpenCode's `{file:<path>/<VAR>}` form, which substitutes a FILE'S CONTENTS.
+ *
+ * It is a DEPENDENCY, not a literal: `{file:.auth/opencode/N8N_API_KEY}` says
+ * the server needs N8N_API_KEY exactly as `{env:N8N_API_KEY}` does; only the
+ * delivery route differs (the retired `harness:env` emitter wrote those files
+ * from `.env`; a downstream config may still carry the form until it moves to
+ * the loader). Reading the file form as an opaque literal would report the
+ * hosts as disagreeing when they agree.
+ *
+ * WHAT KEEPS IT SAFE, and do not widen it: only an ALL-CAPS final path segment
+ * matches. A generic `{file:certs/ca.pem}` still reads as a literal, which is
+ * correct: that is a file, not a credential named after a variable.
+ */
+const FILE_REF = /\{file:(?:[^}]*\/)?([A-Z][A-Z0-9_]*)\}/g;
+
+const PLACEHOLDER = /\$\{([A-Z][A-Z0-9_]*)\}|\{env:([A-Z][A-Z0-9_]*)\}|\{file:(?:[^}]*\/)?([A-Z][A-Z0-9_]*)\}/g;
+
+/** OpenCode spells a placeholder `{env:VAR}` or `{file:dir/VAR}`; compare both as `${VAR}`. */
+function canonicalPlaceholders(text: string): string {
+  return text
+    .replace(/\{env:([A-Z][A-Z0-9_]*)\}/g, (_match, name: string) => ref(name))
+    .replace(FILE_REF, (_match, name: string) => ref(name));
+}
+
+/** Every `${VAR}` / `{env:VAR}` / `{file:dir/VAR}` referenced anywhere inside `value`. */
+function placeholderNames(value: unknown): string[] {
+  const names = new Set<string>();
+  const visit = (entry: unknown): void => {
+    if (typeof entry === 'string') {
+      for (const match of entry.matchAll(PLACEHOLDER)) {
+        const name = match[1] ?? match[2] ?? match[3];
+        if (name !== undefined) { names.add(name); }
+      }
+    }
+    else if (Array.isArray(entry)) {
+      entry.forEach(visit);
+    }
+    else if (typeof entry === 'object' && entry !== null) {
+      Object.values(entry).forEach(visit);
+    }
+  };
+  visit(value);
+  return [...names];
+}
+
+/** Env entries whose value carries no placeholder, sorted by key. */
+function literalEntries(env: JsonObject | undefined, label: string): Record<string, string> {
+  if (!env) { return {}; }
+  const literal: Record<string, string> = {};
+  for (const key of Object.keys(env).sort()) {
+    const value = stringValue(env[key], `${label}.${key}`);
+    if (placeholderNames(value).length === 0) {
+      literal[key] = value;
+    }
+  }
+  return literal;
+}
+
+function sorted(names: Iterable<string>): string[] {
+  return [...new Set(names)].sort();
+}
+
+/**
+ * Claude Code's `mcpServers` shape, which Pi reads too. Pi's own keys
+ * (`exposure`, `toolExposure`, `description`) change how a tool reaches the
+ * model, never which server runs, so they are not part of the comparison.
+ */
+function normalizeMcpServers(root: JsonObject, file: string): NormalizedMcpConfig {
+  const servers = object(root.mcpServers, `${file} mcpServers`);
+  return Object.fromEntries(Object.entries(servers).map(([id, raw]) => {
+    const label = `${file} ${id}`;
+    const server = object(raw, label);
+    const transport: Transport = server.type === 'http' || typeof server.url === 'string' ? 'http' : 'stdio';
+    const env = server.env === undefined ? undefined : object(server.env, `${label}.env`);
+    const launch = transport === 'stdio'
+      ? unwrapEnvLoader(stringValue(server.command, `${label}.command`), stringArray(server.args ?? [], `${label}.args`))
+      : undefined;
+    // `${VAR}` anywhere in the server (args, env, HTTP headers) is a dependency
+    // the HOST delivers; the loader's filter is one the loader delivers.
+    const hostRefs = placeholderNames(server);
+    return [id, {
+      transport,
+      command: launch?.command,
+      args: launch?.args,
+      url: transport === 'http' ? stringValue(server.url, `${label}.url`) : undefined,
+      dependsOn: sorted([...hostRefs, ...(launch?.filter ?? [])]),
+      literalEnv: literalEntries(env, `${label}.env`),
+      enabled: server.enabled !== false,
+      envLoader: launch?.envLoader ?? false,
+      hostRefs: sorted(hostRefs),
+    }];
+  }));
+}
+
+function normalizeOpenCode(root: JsonObject): NormalizedMcpConfig {
+  const servers = object(root.mcp, 'opencode.jsonc mcp');
+  return Object.fromEntries(Object.entries(servers).map(([id, raw]) => {
+    const label = `opencode.jsonc ${id}`;
+    const server = object(raw, label);
+    const transport: Transport = server.type === 'remote' ? 'http' : 'stdio';
+    const command = transport === 'stdio'
+      ? stringArray(server.command, `${label}.command`)
+      : [];
+    const environment = server.environment === undefined
+      ? undefined
+      : object(server.environment, `${label}.environment`);
+    const launch = transport === 'stdio' && command.length > 0
+      ? unwrapEnvLoader(command[0], command.slice(1))
+      : undefined;
+    // OpenCode spells the placeholder `{env:VAR}` (or the legacy
+    // `{file:.auth/opencode/VAR}`) and, like Claude, expands it in `command`,
+    // `environment` and `headers`.
+    const hostRefs = placeholderNames(server);
+    return [id, {
+      transport,
+      command: launch?.command,
+      args: launch === undefined ? undefined : launch.args.map(canonicalPlaceholders),
+      url: transport === 'http' ? canonicalPlaceholders(stringValue(server.url, `${label}.url`)) : undefined,
+      dependsOn: sorted([...hostRefs, ...(launch?.filter ?? [])]),
+      literalEnv: literalEntries(environment, `${label}.environment`),
+      enabled: server.enabled !== false,
+      envLoader: launch?.envLoader ?? false,
+      hostRefs: sorted(hostRefs),
+    }];
+  }));
+}
+
+function normalizeCodex(root: JsonObject): NormalizedMcpConfig {
+  const servers = object(root.mcp_servers, '.codex/config.toml mcp_servers');
+  return Object.fromEntries(Object.entries(servers).map(([id, raw]) => {
+    const label = `.codex/config.toml ${id}`;
+    const server = object(raw, label);
+    const transport: Transport = typeof server.url === 'string' ? 'http' : 'stdio';
+
+    // Codex never expands placeholders: `env` is a table of LITERAL values,
+    // `env_vars` forwards host variables BY NAME (plain strings or
+    // `{ name, source }` objects), `bearer_token_env_var` names the variable
+    // holding the token, `env_http_headers` maps header -> variable name.
+    const dependsOn: string[] = [];
+    if (Array.isArray(server.env_vars)) {
+      for (const entry of server.env_vars) {
+        dependsOn.push(typeof entry === 'string'
+          ? entry
+          : stringValue(object(entry, `${label}.env_vars entry`).name, `${label}.env_vars name`));
+      }
+    }
+    if (typeof server.bearer_token_env_var === 'string') {
+      dependsOn.push(server.bearer_token_env_var);
+    }
+    if (server.env_http_headers !== undefined) {
+      const headers = object(server.env_http_headers, `${label}.env_http_headers`);
+      for (const header of Object.keys(headers)) {
+        dependsOn.push(stringValue(headers[header], `${label}.env_http_headers.${header}`));
+      }
+    }
+    const env = server.env === undefined ? undefined : object(server.env, `${label}.env`);
+    const leaked = placeholderNames(env);
+    if (leaked.length > 0) {
+      throw new Error(`${label}.env cannot reference ${leaked.join(', ')}: Codex does not expand placeholders. Forward the variable through env_vars instead.`);
+    }
+
+    // The loader is a launch detail, not a different server: compare what it
+    // starts, and record that it is there. `env_vars` here are host refs.
+    const launch = transport === 'stdio'
+      ? unwrapEnvLoader(stringValue(server.command, `${label}.command`), stringArray(server.args ?? [], `${label}.args`))
+      : undefined;
+    return [id, {
+      transport,
+      command: launch?.command,
+      args: launch?.args,
+      url: transport === 'http' ? stringValue(server.url, `${label}.url`) : undefined,
+      dependsOn: sorted([...dependsOn, ...(launch?.filter ?? [])]),
+      literalEnv: literalEntries(env, `${label}.env`),
+      enabled: server.enabled !== false,
+      envLoader: launch?.envLoader ?? false,
+      hostRefs: sorted(dependsOn),
+      startupTimeoutSec: typeof server.startup_timeout_sec === 'number' ? server.startup_timeout_sec : undefined,
+    }];
+  }));
+}
+
+function parseJson(path: string): JsonObject {
+  return object(JSON.parse(readFileSync(path, 'utf8')), path);
+}
+
+function parseJsonc(path: string): JsonObject {
+  return object(JSON.parse(stripTrailingCommas(stripJsonComments(readFileSync(path, 'utf8')))), path);
+}
+
+function parseToml(path: string): JsonObject {
+  return object(Bun.TOML.parse(readFileSync(path, 'utf8')), path);
+}
+
+function sameServer(actual: NormalizedMcpServer, expected: NormalizedMcpServer): boolean {
+  return JSON.stringify(canonical(actual)) === JSON.stringify(canonical(expected));
+}
+
+function maskedArgs(args: string[] | undefined, pinned: string[] | undefined): string[] | undefined {
+  return args?.map((arg, i) => {
+    if (pinned?.[i] === arg) { return arg; }
+    const flag = args[i - 1];
+    return flag !== undefined && /^--?[a-z]/i.test(flag) && isSecretKey(flag) ? REDACTED : redactSecretText(arg);
+  });
+}
+
+function describeServer(server: NormalizedMcpServer, pinned?: NormalizedMcpServer): string {
+  const literalEnv = Object.fromEntries(Object.entries(server.literalEnv).map(([key, value]) => [key, pinned?.literalEnv[key] === value ? value : redactValue(key, value)]));
+  const url = server.url === undefined ? undefined : redactSecretText(server.url);
+  return JSON.stringify(canonical({ ...server, literalEnv, args: maskedArgs(server.args, pinned?.args), url }));
+}
+
+function describeContract(server: NormalizedMcpServer): string {
+  return redactSecretText(JSON.stringify({ dependsOn: server.dependsOn, literalEnv: server.literalEnv }), { envKeys: true });
+}
+
+function literalValuesDiffer(a: NormalizedMcpServer, b: NormalizedMcpServer): string[] {
+  return Object.keys(a.literalEnv).filter(key => key in b.literalEnv && a.literalEnv[key] !== b.literalEnv[key]).sort();
+}
+
+const MCP_CONFIG_FILE: Record<McpHost, string> = {
+  claude: '.mcp.json',
+  opencode: 'opencode.jsonc',
+  codex: '.codex/config.toml',
+  pi: '.pi/mcp.json',
+};
+
+function isKnownMcpId(id: string): id is KnownMcpId {
+  return (KNOWN_MCP_IDS as readonly string[]).includes(id);
+}
+
+/**
+ * The project's canonical MCP server set, sorted: the servers of the canonical
+ * host's config (`.mcp.json` while Claude is in use, otherwise the first
+ * declared harness's file, see `canonicalMcpHarness`). Throws when that file
+ * is missing or malformed; `validateMcpParity` reports the same failure as an
+ * error string.
+ */
+export function declaredMcpIds(root = process.cwd(), harnesses: readonly Harness[] = declaredHarnesses(root).harnesses): string[] {
+  const host = canonicalMcpHarness(harnesses);
+  const config = readHostMcpConfig(root, host);
+  if (config === null) {
+    throw new Error(`MCP config missing for ${host}: ${MCP_CONFIG_FILE[host]}`);
+  }
+  return Object.keys(config).sort();
+}
+
+/** What `validateMcpParityFindings` returns: errors fail the check, warnings are printed and never fail it. */
+export interface McpParityFindings {
+  errors: string[]
+  warnings: string[]
+}
+
+export interface McpParityOptions {
+  /**
+   * True in the boilerplate itself (`isSchemaOwner`). There a launch gap (a
+   * server that needs `.env` values but skips the loader, a host-side
+   * reference beside the loader, a missing Codex startup budget) is an ERROR:
+   * the boilerplate ships the fix, so its own copy must carry it. Downstream it
+   * is a WARNING that names the file and what to change: the MCP configs
+   * are bootstrap-only or protected, so a project scaffolded before the loader
+   * existed cannot receive it from a sync, and a red gate it cannot clear by
+   * syncing is how a team learns `--no-verify`. Defaults to reading
+   * `<root>/package.json`.
+   */
+  schemaOwner?: boolean
+  /** The harnesses whose configs are compared. Defaults to `declaredHarnesses(root)`. */
+  harnesses?: readonly Harness[]
+}
+
+function readSchemaOwner(root: string): boolean {
+  const packageJson = join(root, 'package.json');
+  return existsSync(packageJson) && isSchemaOwner(readFileSync(packageJson, 'utf8'));
+}
+
+const LOADER_REASON = 'a desktop or natively launched harness has no process environment, and the loader reads .env (or the secret manager) itself, so no plaintext copy is needed';
+
+function loaderFix(names: readonly string[]): string {
+  return `launch it as \`${MCP_ENV_LOADER_COMMAND} ${mcpEnvLoaderArgs(names).join(' ')} <the server's own command and args>\``;
+}
+
+function hostRefFix(names: readonly string[]): string {
+  return `drop the host-side reference to ${names.join(', ')} (\${VAR}, {env:}, {file:}, env_vars): the loader's --filter delivers them, an unset \${VAR} breaks a desktop launch and an empty one shadows .env`;
+}
+
+/**
+ * What a known server's entry lacks when the ONLY difference from the pinned
+ * shape is a launch detail (the loader, a host-side reference, the Codex
+ * startup budget), or null when anything else differs too. These details
+ * change how a host starts the server, never which server it starts.
+ */
+function launchGaps(actual: NormalizedMcpServer, expected: NormalizedMcpServer): string[] | null {
+  if (!sameServer({ ...actual, envLoader: expected.envLoader, hostRefs: expected.hostRefs, startupTimeoutSec: expected.startupTimeoutSec }, expected)) { return null; }
+  const gaps: string[] = [];
+  const hostRefs = (expected.hostRefs ?? []).length === 0 ? actual.hostRefs ?? [] : [];
+  if (expected.envLoader === true && (actual.envLoader !== true || hostRefs.length > 0)) {
+    // A missing loader, or the unfiltered legacy one that still takes its
+    // names from the host: one fix covers both.
+    gaps.push(`${loaderFix(expected.dependsOn)}${hostRefs.length > 0 ? ` and ${hostRefFix(hostRefs)}` : ''} (${LOADER_REASON})`);
+  }
+  else if (expected.envLoader !== true && actual.envLoader === true) {
+    gaps.push('drop the .env loader: the server needs no .env value, and an unfiltered loader hands it every one');
+  }
+  else if (hostRefs.length > 0) {
+    gaps.push(hostRefFix(hostRefs));
+  }
+  if (actual.startupTimeoutSec !== expected.startupTimeoutSec) {
+    gaps.push(expected.startupTimeoutSec === undefined
+      ? 'remove startup_timeout_sec'
+      : `set startup_timeout_sec = ${expected.startupTimeoutSec} (Codex's 10-second default is too short for a server fetched on a cold cache)`);
+  }
+  return gaps;
+}
+
+export function validateMcpParity(root = process.cwd(), options: McpParityOptions = {}): string[] {
+  return validateMcpParityFindings(root, options).errors;
+}
+
+/** Pi runs a whole `env` or `headers` value that starts with `!`; a committed file must not. */
+function markCommandValues(root: JsonObject, config: NormalizedMcpConfig): NormalizedMcpConfig {
+  const servers = object(root.mcpServers, `${MCP_CONFIG_FILE.pi} mcpServers`);
+  return Object.fromEntries(Object.entries(config).map(([id, normalized]) => {
+    const raw = servers[id] as JsonObject;
+    const values = [raw.env, raw.headers].flatMap(group => typeof group === 'object' && group !== null ? Object.values(group) : []);
+    return [id, { ...normalized, commandValue: values.some(value => typeof value === 'string' && value.startsWith('!')) }];
+  }));
+}
+
+const NORMALIZE: Record<McpHost, (root: JsonObject) => NormalizedMcpConfig> = {
+  claude: root => normalizeMcpServers(root, MCP_CONFIG_FILE.claude),
+  opencode: normalizeOpenCode,
+  codex: normalizeCodex,
+  pi: root => markCommandValues(root, normalizeMcpServers(root, MCP_CONFIG_FILE.pi)),
+};
+const PARSE: Record<McpHost, (path: string) => JsonObject> = {
+  claude: parseJson,
+  opencode: parseJsonc,
+  codex: parseToml,
+  pi: parseJson,
+};
+
+/** One host's MCP config, normalized; null when its file is absent. Throws when it is malformed. */
+export function readHostMcpConfig(root: string, host: McpHost): NormalizedMcpConfig | null {
+  const path = join(resolve(root), MCP_CONFIG_FILE[host]);
+  if (!existsSync(path)) { return null; }
+  try { return NORMALIZE[host](PARSE[host](path)); }
+  catch (error) { throw new Error(redactParseError(error instanceof Error ? error.message : String(error))); }
+}
+
+const RELAY_KEYS = new Set(['command', 'args', 'type', 'enabled', 'exposure', 'toolExposure', 'description']);
+
+type RelayVerdict = { kind: 'relay', disabled: boolean } | { kind: 'direct' } | { kind: 'error', message: string };
+
+/**
+ * A relay entry is exactly `[...prefix, <its own id>]` with nothing else that
+ * could start, configure or feed the server: the launcher starts the canonical
+ * entry with that entry's own values.
+ */
+function relayVerdict(raw: unknown, id: string, prefix: readonly string[]): RelayVerdict {
+  if (typeof raw !== 'object' || raw === null) { return { kind: 'direct' }; }
+  const server = raw as JsonObject;
+  const args = Array.isArray(server.args) ? server.args : [];
+  const argv = [server.command, ...args];
+  if (!prefix.every((part, index) => argv[index] === part)) { return { kind: 'direct' }; }
+  const where = `pi MCP ${id} relay in ${MCP_CONFIG_FILE.pi}`;
+  const shape = `[${[...prefix, id].join(', ')}]`;
+  if (argv.length !== prefix.length + 1 || typeof argv[prefix.length] !== 'string') {
+    return { kind: 'error', message: `${where}: the launch must be exactly ${shape}` };
+  }
+  if (argv[prefix.length] !== id) {
+    return { kind: 'error', message: `${where}: relays ${String(argv[prefix.length])} but is declared as ${id}; the launch must be exactly ${shape}` };
+  }
+  const extra = Object.keys(server).filter(key => !RELAY_KEYS.has(key)).sort();
+  if (extra.length > 0) {
+    return { kind: 'error', message: `${where}: carries ${extra.join(', ')}; a relay entry holds only command and args, because the launcher delivers the canonical entry's own values` };
+  }
+  if (server.type !== undefined && server.type !== 'stdio') {
+    return { kind: 'error', message: `${where}: type must be stdio (the relay is a stdio launcher)` };
+  }
+  if (server.enabled !== undefined && typeof server.enabled !== 'boolean') {
+    return { kind: 'error', message: `${where}: enabled must be true or false` };
+  }
+  return { kind: 'relay', disabled: server.enabled === false };
+}
+
+function git(root: string, args: string[]): { code: number, out: string } {
+  const result = Bun.spawnSync(['git', ...args], { cwd: root, stdout: 'pipe', stderr: 'ignore' });
+  return { code: result.exitCode ?? 1, out: result.stdout.toString() };
+}
+
+function tracked(root: string, path: string): boolean {
+  return git(root, ['ls-files', '--error-unmatch', '--', path]).code === 0;
+}
+
+/** Why the local canonical file is not safely per-machine, or null when a committed `.gitignore` ignores it. */
+function localCanonicalProblem(root: string, file: string): string | null {
+  const why = `checks.mcp_parity.mode is local-only, so ${file} holds literal values`;
+  if (tracked(root, file)) {
+    return `MCP ${file} is tracked by git, but ${why}: untrack it and ignore it in the committed .gitignore`;
+  }
+  const ignored = git(root, ['check-ignore', '-v', '--no-index', '--', file]);
+  const [rule = ''] = ignored.out.split('\t');
+  const [source = '', , pattern = ''] = rule.split(':');
+  if (ignored.code !== 0 || pattern.startsWith('!')) {
+    return `MCP ${file} is not git-ignored, but ${why}: ignore it in the committed .gitignore`;
+  }
+  if (source.startsWith('.git/') || isAbsolute(source) || source.startsWith('~') || !tracked(root, source)) {
+    return `MCP ${file} is ignored by ${source}, a per-machine rule, but ${why}: ignore it in the committed .gitignore so every clone ignores it`;
+  }
+  return null;
+}
+
+function relayLauncherProblem(root: string, prefix: readonly string[]): string | null {
+  const launcher = prefix[prefix.length - 1];
+  const where = `checks.mcp_parity.relay.pi launcher ${launcher}`;
+  if (isAbsolute(launcher) || launcher.split('/').includes('..')) { return `${where}: must be a repo-relative path`; }
+  if (!existsSync(join(root, launcher))) { return `${where}: not found`; }
+  if (!tracked(root, launcher)) { return `${where}: not tracked by git; a relay launcher is reviewed like any committed code`; }
+  return null;
+}
+
+function rawPiServers(root: string): JsonObject {
+  return object(parseJson(join(root, MCP_CONFIG_FILE.pi)).mcpServers, `${MCP_CONFIG_FILE.pi} mcpServers`);
+}
+
+const SERVERS_KEY: Record<McpHost, string> = { claude: 'mcpServers', opencode: 'mcp', codex: 'mcp_servers', pi: 'mcpServers' };
+
+/** A host's raw server table, read leniently: the scan below never adds a parse error. */
+function rawHostServers(root: string, host: McpHost): JsonObject {
+  try {
+    const servers = PARSE[host](join(root, MCP_CONFIG_FILE[host]))[SERVERS_KEY[host]];
+    return typeof servers === 'object' && servers !== null && !Array.isArray(servers) ? servers as JsonObject : {};
+  }
+  catch { return {}; }
+}
+
+const ANY_PLACEHOLDER = /\$\{[A-Za-z_]\w*\}|\{env:[A-Za-z_]\w*\}|\{file:[^}]*\}/g;
+/** Codex keys whose values are variable NAMES, never values. */
+const BY_NAME_KEYS = new Set(['env_vars', 'bearer_token_env_var', 'env_http_headers']);
+/** Secret words that also name plain settings (`X-Auth-Mode: none`, `X-Session-Affinity: sticky`). */
+const SOFT_WORDS = new Set(['AUTH', 'SESSION', 'PASS']);
+const URL_SECRET_PARAMS = new Set(['sig', 'hmac', 'jwt', 'k', 'key', 'apikey']);
+
+function withoutPlaceholders(value: string): string {
+  return value.replace(ANY_PLACEHOLDER, '').trim();
+}
+
+function nameWords(name: string): string[] {
+  return name.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+}
+
+/** A value under a secret-named key that is, at least in part, written out instead of referenced. */
+function literalUnderSecretName(name: string, value: string, softSettings: boolean): boolean {
+  const rest = withoutPlaceholders(value);
+  if (rest === '') { return false; }
+  if (rest !== value.trim() && /^[A-Z :._-]{0,16}$/i.test(rest)) { return false; }
+  const soft = nameWords(name).filter(word => isSecretKey(word)).every(word => SOFT_WORDS.has(word));
+  return !(softSettings && soft && /^(?:[a-z]{1,16}|\d{1,6})$/.test(rest));
+}
+
+/** A key name safe to print: a name that itself looks like a token is withheld. */
+function printableName(name: string): string {
+  return name.length > 48 || looksLikeSecret(name) ? '<name withheld>' : name;
+}
+
+/** Quoted, so the redaction net never reads the next word as the value of a secret-named flag. */
+function quotedName(name: string): string {
+  return `\`${printableName(name)}\``;
+}
+
+/** Token-shaped, plus the long lowercase hex runs `looksLikeSecret` leaves alone (a UUID alone is an id, not a token). */
+function tokenLike(value: string): boolean {
+  return looksLikeSecret(value) || /^[0-9a-f]{32,}$/i.test(withoutPlaceholders(value));
+}
+
+/** A header written out: a literal under a secret-named header, or a token-shaped value under any header. */
+function headerHolds(name: string, value: string): boolean {
+  return isSecretKey(name) ? literalUnderSecretName(name, value, true) : tokenLike(value);
+}
+
+const HEADER_FLAGS = new Set(['--header', '--headers', '-H']);
+const PLACEHOLDER_MARK = /zzph(\d+)zz/g;
+
+function decoded(text: string): string {
+  try { return decodeURIComponent(text); }
+  catch { return text; }
+}
+
+function secretParam(name: string, value: string): boolean {
+  if (withoutPlaceholders(value) === '') { return false; }
+  return URL_SECRET_PARAMS.has(name.toLowerCase()) || (isSecretKey(name) && literalUnderSecretName(name, value, true)) || tokenLike(value);
+}
+
+/** Where a URL carries a credential: userinfo, a secret query, fragment or matrix parameter, a token-shaped path segment. */
+function urlSecretPlaces(text: string): string[] {
+  const refs: string[] = [];
+  const marked = text.trim().replace(ANY_PLACEHOLDER, ref => `zzph${refs.push(ref) - 1}zz`);
+  const restore = (part: string): string => part.replace(PLACEHOLDER_MARK, (_, index: string) => refs[Number(index)] ?? '');
+  const source = /^zzph\d+zz(?=[/?#:])/.test(marked) ? `https://${marked}` : marked;
+  if (!/^[a-z][\w+.-]*:\/\//i.test(source)) { return []; }
+  let url: URL;
+  try { url = new URL(source); }
+  catch { return []; }
+  const places: string[] = [];
+  const user = restore(decoded(url.username));
+  if (withoutPlaceholders(restore(decoded(url.password))) !== '' || tokenLike(user)) { places.push('credentials'); }
+  for (const segment of url.pathname.split('/').map(part => restore(decoded(part)))) {
+    const [head, ...params] = segment.split(';');
+    for (const param of params) {
+      const at = param.indexOf('=');
+      if (at > 0 && secretParam(param.slice(0, at), param.slice(at + 1))) { places.push(`parameter ${quotedName(param.slice(0, at))}`); }
+    }
+    if (withoutPlaceholders(head) === head && (/^[0-9a-f]{32,}$/i.test(head) || /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(head) || looksLikeSecret(head))) { places.push('path'); }
+  }
+  for (const [name, value] of url.searchParams) {
+    if (secretParam(restore(name), restore(value))) { places.push(`parameter ${quotedName(restore(name))}`); }
+  }
+  for (const [name, value] of new URLSearchParams(url.hash.replace(/^#/, ''))) {
+    if (secretParam(restore(name), restore(value))) { places.push(`fragment parameter ${quotedName(restore(name))}`); }
+  }
+  return [...new Set(places)];
+}
+
+/**
+ * Every place in one committed server entry that holds a credential written
+ * out instead of referenced by name: env (by name or by value), headers
+ * (`headers`, Codex `http_headers`), the url, secret flags in args, and any
+ * other secret-named key (OpenCode `oauth.clientSecret`). Names only, never
+ * values. A Pi `!command` value is a command, reported on its own.
+ */
+function literalSecretPlaces(host: McpHost, raw: unknown): string[] {
+  const places: string[] = [];
+  const add = (place: string): void => { if (!places.includes(place)) { places.push(place); } };
+  const visit = (node: unknown, path: string[]): void => {
+    if (typeof node === 'string') {
+      if (host === 'pi' && node.startsWith('!')) { return; }
+      const [group = '', name = ''] = path;
+      const env = (group === 'env' || group === 'environment') && path.length === 2;
+      const header = (group === 'headers' || group === 'http_headers') && path.length === 2;
+      const label = env ? printableName(name) : header ? `header ${quotedName(name)}` : quotedName(path.join('.'));
+      const key = path[path.length - 1] ?? '';
+      const named = /^\d+$/.test(key) ? '' : key;
+      if (header ? headerHolds(name, node) : (named !== '' && isSecretKey(named) && literalUnderSecretName(named, node, !env)) || looksLikeSecret(node)) { add(label); }
+      for (const part of urlSecretPlaces(node)) { add(group === 'url' && path.length === 1 ? `url ${part}` : `${label} url ${part}`); }
+      return;
+    }
+    if (Array.isArray(node)) {
+      node.forEach((item, index) => {
+        const flag = node[index - 1];
+        const passed = typeof item === 'string' && typeof flag === 'string' && HEADER_FLAGS.has(flag)
+          ? item
+          : typeof item === 'string' ? /^--?headers?=(.+)$/i.exec(item)?.[1] ?? /^-H(.+)$/.exec(item)?.[1] ?? null : null;
+        const colon = passed?.indexOf(':') ?? -1;
+        if (passed !== null && passed !== undefined && colon > 0) {
+          const name = passed.slice(0, colon).trim();
+          if (headerHolds(name, passed.slice(colon + 1).trim())) { add(`argument header ${quotedName(name)}`); }
+          return;
+        }
+        if (typeof item === 'string' && typeof flag === 'string' && /^--?[a-z]/i.test(flag) && !flag.includes('=') && isSecretKey(flag) && !item.startsWith('-') && withoutPlaceholders(item) !== '') {
+          add(`argument ${quotedName(flag)}`);
+          return;
+        }
+        const pair = typeof item === 'string' ? /^(--?[a-z][\w-]*)=(.+)$/i.exec(item) : null;
+        if (pair !== null && isSecretKey(pair[1]) && withoutPlaceholders(pair[2]) !== '') {
+          add(`argument ${quotedName(pair[1])}`);
+          return;
+        }
+        visit(item, [...path, String(index)]);
+      });
+      return;
+    }
+    if (typeof node === 'object' && node !== null) {
+      for (const [key, value] of Object.entries(node)) {
+        if (path.length === 0 && BY_NAME_KEYS.has(key)) { continue; }
+        visit(value, [...path, key]);
+      }
+    }
+  };
+  visit(raw, []);
+  return places;
+}
+
+// LINT.IfChange(mcp-parity)
+export function validateMcpParityFindings(root = process.cwd(), options: McpParityOptions = {}): McpParityFindings {
+  const found = mcpParityFindings(root, options);
+  const values = readSecretValues(resolve(root));
+  return { errors: found.errors.map(e => redactAll(e, values)), warnings: found.warnings.map(w => redactAll(w, values)) };
+}
+
+function mcpParityFindings(root: string, options: McpParityOptions): McpParityFindings {
+  const resolvedRoot = resolve(root);
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const schemaOwner = options.schemaOwner ?? readSchemaOwner(resolvedRoot);
+  const hosts = options.harnesses ?? declaredHarnesses(resolvedRoot, { schemaOwner: options.schemaOwner }).harnesses;
+  const canonicalHost = canonicalMcpHarness(hosts);
+  const checks = readChecks(resolvedRoot);
+  if (checks.errors.mcpParity.length > 0) { return { errors: checks.errors.mcpParity, warnings }; }
+  const local = checks.config.mcpParity.mode === 'local-only';
+  const relay = checks.config.mcpParity.relay;
+  const relayHosts = Object.keys(relay);
+  const unrelayed = checks.config.mcpParity.unrelayed;
+  const unrelayedHosts = Object.keys(unrelayed);
+  if (schemaOwner && (local || relayHosts.length > 0 || unrelayedHosts.length > 0)) {
+    return { errors: [`checks.mcp_parity: the boilerplate checks strict parity; keep mode: strict and relay: {}${unrelayedHosts.length > 0 ? ' and unrelayed: {}' : ''}`], warnings };
+  }
+  for (const host of relayHosts) {
+    const problem = host !== 'pi'
+      ? `checks.mcp_parity.relay.${host}: only pi is supported as a relay host`
+      : !hosts.includes('pi')
+          ? 'checks.mcp_parity.relay.pi: pi is not a harness in use'
+          : canonicalHost === 'pi'
+            ? `checks.mcp_parity.relay.pi: pi holds the canonical set (${MCP_CONFIG_FILE.pi}), and a relay points at the canonical set`
+            : relayLauncherProblem(resolvedRoot, relay.pi);
+    if (problem !== null) { errors.push(problem); }
+  }
+  for (const host of unrelayedHosts) {
+    if (!relayHosts.includes(host)) {
+      errors.push(`checks.mcp_parity.unrelayed.${host}: ${host} has no relay (checks.mcp_parity.relay.${host}); the list records only servers a relay host cannot carry, and a host without a relay declares every server itself`);
+    }
+  }
+  if (local) {
+    const problem = localCanonicalProblem(resolvedRoot, MCP_CONFIG_FILE[canonicalHost]);
+    if (problem !== null) { errors.push(problem); }
+  }
+  if (errors.length > 0) { return { errors, warnings }; }
+  const relayPrefix = relayHosts.includes('pi') ? relay.pi : null;
+  let canonicalAbsent = false;
+  // Only the harnesses in use are read: a project on one harness has deleted
+  // the other two's files on purpose. A declared host whose file is missing or
+  // malformed fails here, under the MCP group.
+  const configs: Partial<Record<McpHost, NormalizedMcpConfig>> = {};
+  for (const host of hosts) {
+    try {
+      const config = readHostMcpConfig(resolvedRoot, host);
+      if (config === null && local && host === canonicalHost) {
+        canonicalAbsent = true;
+        continue;
+      }
+      if (config === null) {
+        const why = schemaOwner ? 'the boilerplate checks every harness' : 'a harness in use; declare `harnesses:` in .agents/project.yaml to drop it';
+        errors.push(`MCP config missing for ${host}: ${MCP_CONFIG_FILE[host]} (${why})`);
+        continue;
+      }
+      configs[host] = config;
+    }
+    catch (error) {
+      // The normalizers' own messages already name the file; a raw parser
+      // error does not, and without the file it would not group under MCP.
+      const message = error instanceof Error ? error.message : String(error);
+      errors.push(message.includes(MCP_CONFIG_FILE[host]) ? message : `MCP config unreadable for ${host}: ${MCP_CONFIG_FILE[host]}: ${message}`);
+    }
+  }
+  if (errors.length > 0) { return { errors, warnings }; }
+
+  if (canonicalAbsent) {
+    warnings.push(`MCP parity unverified: ${MCP_CONFIG_FILE[canonicalHost]} is absent (checks.mcp_parity.mode: local-only), so the server set and the env contract are not compared; the committed hosts are checked on their own.`);
+  }
+  // The canonical host defines the set; every other host in use must match it exactly.
+  const canonicalConfig: NormalizedMcpConfig = configs[canonicalHost] ?? {};
+  const declared = Object.keys(canonicalConfig).sort();
+  const adapters = hosts.filter(host => host !== canonicalHost);
+  const idsOf = (host: McpHost): string[] => canonicalAbsent ? Object.keys(configs[host] ?? {}).sort() : declared;
+
+  // A server the relay host cannot carry (http, or disabled in the canonical
+  // file) is recorded, left out of the set comparison and warned by name.
+  const notCarried = new Set<string>();
+  for (const host of unrelayedHosts) {
+    const key = `checks.mcp_parity.unrelayed.${host}`;
+    for (const id of unrelayed[host]) {
+      const target = canonicalConfig[id];
+      if (configs[host as McpHost]?.[id] !== undefined) {
+        errors.push(`${key}: ${id} is declared in ${MCP_CONFIG_FILE[host as McpHost]}, so ${host} carries it; drop it from the list`);
+        continue;
+      }
+      if (canonicalAbsent) {
+        notCarried.add(`${host}:${id}`);
+        warnings.push(`MCP ${id} is not carried by ${host} (${key}): unverified, because ${MCP_CONFIG_FILE[canonicalHost]} is absent`);
+        continue;
+      }
+      if (target === undefined) {
+        errors.push(`${key}: ${id} is not declared in ${MCP_CONFIG_FILE[canonicalHost]}`);
+        continue;
+      }
+      const hostRefs = target.hostRefs ?? [];
+      const reason = target.transport === 'http'
+        ? 'is an http server, and the relay carries stdio only'
+        : !target.enabled
+            ? 'is disabled'
+            : hostRefs.length > 0
+              ? `takes ${hostRefs.join(', ')} from the host, which the launcher does not expand`
+              : null;
+      if (reason === null) {
+        errors.push(`${key}: ${id} is an enabled stdio server, which the relay can carry: relay it, or declare it in ${MCP_CONFIG_FILE[host as McpHost]} directly`);
+        continue;
+      }
+      notCarried.add(`${host}:${id}`);
+      warnings.push(`MCP ${id} is not carried by ${host}: its ${MCP_CONFIG_FILE[canonicalHost]} entry ${reason} (${key}); ${host} sessions run without it unless it is connected at user level (ADR-0005)`);
+    }
+  }
+
+  const relayed = new Set<string>();
+  if (relayPrefix !== null && configs.pi !== undefined) {
+    const raw = rawPiServers(resolvedRoot);
+    for (const id of Object.keys(configs.pi).sort()) {
+      const verdict = relayVerdict(raw[id], id, relayPrefix);
+      if (verdict.kind === 'direct') { continue; }
+      relayed.add(`pi:${id}`);
+      if (verdict.kind === 'error') { errors.push(verdict.message); continue; }
+      if (verdict.disabled) { warnings.push(`pi MCP ${id} relay is disabled in ${MCP_CONFIG_FILE.pi} (enabled: false): pi sessions run without it`); }
+      const target = canonicalConfig[id];
+      if (canonicalAbsent || target === undefined) { continue; }
+      const reason = target.transport !== 'stdio'
+        ? 'is not a stdio server'
+        : !target.enabled
+            ? 'is disabled'
+            : (target.hostRefs ?? []).length > 0
+                ? `takes ${(target.hostRefs ?? []).join(', ')} from the host, which the launcher does not expand`
+                : null;
+      if (reason !== null) {
+        errors.push(`pi MCP ${id} cannot be relayed: its ${MCP_CONFIG_FILE[canonicalHost]} entry ${reason}; the launcher starts an enabled stdio entry with literal values only (drop the pi entry and list it in checks.mcp_parity.unrelayed.pi)`);
+      }
+    }
+  }
+
+  for (const host of canonicalAbsent ? [] : adapters) {
+    const actual = new Set(Object.keys(configs[host]!));
+    for (const id of declared) {
+      if (!actual.has(id) && !notCarried.has(`${host}:${id}`)) {
+        const hint = host === 'pi' && relayPrefix !== null && canonicalConfig[id].transport === 'http'
+          ? ' (the relay carries stdio only: connect this server at user level, ADR-0005, declare it in the relay host directly, or record it in checks.mcp_parity.unrelayed.pi)'
+          : '';
+        errors.push(`MCP ${id} missing from ${host}: declared in ${MCP_CONFIG_FILE[canonicalHost]}, absent from ${MCP_CONFIG_FILE[host]}${hint}`);
+      }
+    }
+    for (const id of [...actual].sort()) {
+      if (!declared.includes(id)) {
+        errors.push(`MCP ${id} present in ${host} only: declare it in ${MCP_CONFIG_FILE[canonicalHost]} or remove it from ${MCP_CONFIG_FILE[host]}`);
+      }
+    }
+  }
+
+  // Strict per-host shape, only for the servers this boilerplate knows AND the
+  // project declares (see PARITY RULE). Downstream, an entry that differs ONLY
+  // in a launch detail is a warning (see `McpParityOptions`).
+  const launchWarned = new Set<string>();
+  for (const [host, config] of Object.entries(configs) as Array<[McpHost, NormalizedMcpConfig]>) {
+    if (local && host === canonicalHost) { continue; }
+    for (const id of idsOf(host)) {
+      const actual = config[id];
+      if (!actual || !isKnownMcpId(id) || relayed.has(`${host}:${id}`)) { continue; }
+      const expected = EXPECTED_MCP[host][id];
+      if (sameServer(actual, expected)) { continue; }
+      const gaps = schemaOwner ? null : launchGaps(actual, expected);
+      if (gaps !== null) {
+        warnings.push(`${host} MCP ${id} launch is out of date in ${MCP_CONFIG_FILE[host]}: ${gaps.join('; ')}. Upstream never overwrites this file, so change it by hand.`);
+        launchWarned.add(`${host}:${id}`);
+        continue;
+      }
+      errors.push(`${host} MCP ${id} mismatch: expected ${describeServer(expected, expected)}, found ${describeServer(actual, expected)}`);
+    }
+  }
+
+  // Every host, every declared stdio server, known to this boilerplate or not:
+  // one that needs `.env` values starts through the loader, and a loader-launched
+  // one takes nothing from the host. Both are what lets a desktop launch get its
+  // credentials with no plaintext copy on disk.
+  for (const [host, config] of Object.entries(configs) as Array<[McpHost, NormalizedMcpConfig]>) {
+    for (const id of idsOf(host)) {
+      const server = config[id];
+      if (!server || server.transport !== 'stdio' || server.dependsOn.length === 0 || launchWarned.has(`${host}:${id}`) || relayed.has(`${host}:${id}`)) { continue; }
+      const hostRefs = server.hostRefs ?? [];
+      const problem = server.envLoader !== true
+        ? `${host} MCP ${id} must launch through the .env loader in ${MCP_CONFIG_FILE[host]}: ${loaderFix(server.dependsOn)} (${LOADER_REASON}).`
+        : hostRefs.length > 0
+          ? `${host} MCP ${id} launches through the .env loader but also takes ${hostRefs.join(', ')} from the host in ${MCP_CONFIG_FILE[host]}: list them in the loader's --filter and ${hostRefFix(hostRefs)}.`
+          : null;
+      if (problem === null) { continue; }
+      if (schemaOwner) { errors.push(problem); }
+      else { warnings.push(problem); }
+    }
+  }
+
+  for (const [id, server] of Object.entries(configs.pi ?? {})) {
+    if (server.commandValue !== true) { continue; }
+    const problem = `pi MCP ${id} runs a shell command for an env or headers value in ${MCP_CONFIG_FILE.pi} (\`!command\`): a committed file must not run one on whoever opens the project. ${server.transport === 'stdio' ? `Use the .env loader's --filter instead (${LOADER_REASON}).` : 'Connect the server at user level instead (ADR-0005).'}`;
+    if (schemaOwner) { errors.push(problem); }
+    else { warnings.push(problem); }
+  }
+
+  if (local) {
+    for (const host of adapters) {
+      const raw = rawHostServers(resolvedRoot, host);
+      for (const [id, server] of Object.entries(configs[host] ?? {}).sort(([a], [b]) => a.localeCompare(b))) {
+        const secret = Object.keys(server.literalEnv).filter(isSecretKey);
+        for (const place of literalSecretPlaces(host, raw[id])) {
+          if (!secret.includes(place)) { secret.push(place); }
+        }
+        if (secret.length > 0) {
+          errors.push(`${host} MCP ${id} holds a literal ${secret.join(', ')} in ${MCP_CONFIG_FILE[host]}: with checks.mcp_parity.mode: local-only, literal values live only in the local ${MCP_CONFIG_FILE[canonicalHost]}; reference the variable by name or relay the server`);
+        }
+      }
+    }
+  }
+
+  // Cross-host contract for EVERY declared server: same `.env` dependencies and
+  // same literal settings, whatever the transport or command each host uses.
+  for (const id of declared) {
+    const baseline = describeContract(canonicalConfig[id]);
+    for (const host of adapters) {
+      const server = configs[host]![id];
+      if (!server || relayed.has(`${host}:${id}`)) { continue; }
+      if (JSON.stringify({ d: server.dependsOn, l: server.literalEnv }) !== JSON.stringify({ d: canonicalConfig[id].dependsOn, l: canonicalConfig[id].literalEnv })) {
+        const differ = literalValuesDiffer(canonicalConfig[id], server);
+        errors.push(`MCP ${id} env contract differs between ${canonicalHost} and ${host}: ${baseline} vs ${describeContract(server)}${differ.length > 0 ? ` (literal values differ at: ${differ.join(', ')})` : ''}`);
+      }
+    }
+  }
+
+  return { errors, warnings };
+}
+// LINT.ThenChange(README.md, CONTEXT.md, INSTALLER.md, .agents/instructions/agent-harnesses.md, docs/agentic-development-engineering.md, docs/architectures/supabase-nextjs/troubleshooting.md, docs/mcp/README.md, docs/mcp/mcp-configuration-guide.md, docs/setup/mcp/claude-code.md, docs/setup/mcp/codex.md, packages/pages-home/harnesses.es.html)
+
+function personalAbsolutePath(command: string): boolean {
+  return /(?:^|[\s"'])(?:\/Users\/|\/home\/|[A-Za-z]:[\\/]Users[\\/])/.test(command);
+}
+
+/**
+ * The OpenCode adapter must load on BOTH plugin generations, because the repo
+ * cannot pin which OpenCode a teammate runs.
+ *
+ * OpenCode 2 reads ONE default export `{ id, setup(ctx) }` and refuses
+ * anything else ("Plugin must export a default definition with an id and an
+ * effect or setup function"); the contract line then goes through
+ * `ctx.session.hook('context', ...)`. OpenCode 1 (1.18.29 and newer) calls
+ * `server()` on that same object and expects the
+ * `experimental.chat.system.transform` hook back. A V1-only named export
+ * passed every other check here while OpenCode 2 refused to load it, so the
+ * check names each entrypoint. Text-level on purpose, like the rest of this
+ * contract: importing the adapter would execute it.
+ */
+export function validateOpenCodePluginEntrypoints(plugin: string): string[] {
+  const errors: string[] = [];
+  if (!/^export default\b/m.test(plugin)) {
+    errors.push('OpenCode personality adapter must default-export one plugin definition: OpenCode 2 loads nothing else.');
+  }
+  if (!/^\s*id:\s*['"][^'"]+['"]/m.test(plugin)) {
+    errors.push('OpenCode personality adapter must declare a stable id: OpenCode 2 refuses a definition without one.');
+  }
+  if (!/\bsetup\s*\(/.test(plugin) || !/ctx\.session\.hook\(\s*['"]context['"]/.test(plugin)) {
+    errors.push('OpenCode personality adapter must register the OpenCode 2 entrypoint: setup(ctx) with ctx.session.hook(\'context\', ...).');
+  }
+  if (!/\bserver\s*\(/.test(plugin) || !plugin.includes('experimental.chat.system.transform')) {
+    errors.push('OpenCode personality adapter must keep the OpenCode 1 entrypoint: server() returning experimental.chat.system.transform.');
+  }
+  return errors;
+}
+
+/**
+ * The Pi adapter is one extension over the shared emitter. It checks only the
+ * event names and exports it depends on, because Pi moves fast and the rest of
+ * its API is not this repo's to pin.
+ */
+export function validatePiAdapter(adapter: string): string[] {
+  const errors: string[] = [];
+  if (!adapter.includes('../../.agents/hooks/personality-reinject.mjs')) {
+    errors.push('Pi adapter must import the shared hook contract.');
+  }
+  if (!adapter.includes('agentContextLines')) {
+    errors.push('Pi adapter must inject the shared context lines (agentContextLines), identity line included.');
+  }
+  if (!adapter.includes('\'input\'')) {
+    errors.push('Pi adapter must classify the raw prompt from the input event: before_agent_start sees /skill: already expanded.');
+  }
+  if (!adapter.includes('\'before_agent_start\'')) {
+    errors.push('Pi adapter must inject its lines in before_agent_start.');
+  }
+  if (!adapter.includes('setSessionName') || !adapter.includes('proposeSessionTitle')) {
+    errors.push('Pi adapter must name the session (setSessionName from the shared proposeSessionTitle).');
+  }
+  if (!adapter.includes('\'tool_call\'') || !adapter.includes('secretBlockReason')) {
+    errors.push('Pi adapter must keep the secret block in tool_call: Pi has no deny config.');
+  }
+  return errors;
+}
+
+function readHookCommand(settings: JsonObject, host: 'claude' | 'codex'): JsonObject {
+  const hooks = object(settings.hooks, `${host} hooks`);
+  const event = hooks.UserPromptSubmit;
+  if (!Array.isArray(event) || event.length !== 1) {
+    throw new Error(`${host} must define exactly one UserPromptSubmit group.`);
+  }
+  const group = object(event[0], `${host} UserPromptSubmit group`);
+  if (!Array.isArray(group.hooks) || group.hooks.length !== 1) {
+    throw new Error(`${host} must define exactly one UserPromptSubmit command.`);
+  }
+  return object(group.hooks[0], `${host} UserPromptSubmit command`);
+}
+
+/** Each harness's hook adapter, repo-relative. */
+export const HOOK_ADAPTER_FILE: Record<Harness, string> = {
+  claude: '.claude/settings.json',
+  opencode: '.opencode/plugins/personality-reinject.js',
+  codex: '.codex/hooks.json',
+  pi: '.pi/extensions/agentic-dev.js',
+};
+
+export const PERSONALITY_OVERRIDE_FILE = '.agents/personality-override.md';
+export const PERSONALITY_OVERRIDE_MAX_BYTES = 2048;
+export const HOOK_LINE_PREFIXES = ['AGENT IDENTITY:', 'ROUTE: read', 'ROUTE-OPTIONAL:', 'ROUTE-PENDING:', 'ROUTE-SCOPE:', 'ORCA:', 'CREDENTIALS:', 'WORKTREE:', 'PERSONALITY OVERRIDE IGNORED:'];
+
+// An error, not a warning: the hook only warns each prompt, so this check is what blocks a broken override from landing.
+export function validatePersonalityOverride(root = process.cwd()): string[] {
+  const file = join(resolve(root), PERSONALITY_OVERRIDE_FILE);
+  let stats;
+  try { stats = lstatSync(file); }
+  catch { return []; }
+  if (!stats.isFile()) { return [`Personality override ${PERSONALITY_OVERRIDE_FILE} must be a regular file, not a symlink or a folder: the hook ignores it and warns on every prompt.`]; }
+  if (stats.size > PERSONALITY_OVERRIDE_MAX_BYTES) { return [`Personality override ${PERSONALITY_OVERRIDE_FILE} is ${stats.size} bytes, over the ${PERSONALITY_OVERRIDE_MAX_BYTES}-byte limit (it is re-injected on every prompt): the hook ignores it and warns on every prompt.`]; }
+  const text = [...readFileSync(file, 'utf8')].map(c => ((c.codePointAt(0) ?? 0) < 0x20 || c.codePointAt(0) === 0x7F ? ' ' : c)).join('').replace(/\s+/g, ' ').trim();
+  if (text === '') { return [`Personality override ${PERSONALITY_OVERRIDE_FILE} is empty: the hook ignores it and warns on every prompt. Write the contract as one paragraph, or delete the file.`]; }
+  const reserved = HOOK_LINE_PREFIXES.find(prefix => text.startsWith(prefix));
+  if (reserved) { return [`Personality override ${PERSONALITY_OVERRIDE_FILE} starts with \`${reserved}\`, a prefix of the hook's own lines: the hook ignores it and warns on every prompt.`]; }
+  return [];
+}
+
+/**
+ * The emitter plus the adapter of every harness in use (`harnesses`, default
+ * `declaredHarnesses(root)`). An adapter of a harness the project does not use
+ * is not read: its absence is the project's choice, not drift.
+ */
+export function validateHookCompatibility(root = process.cwd(), harnesses: readonly Harness[] = declaredHarnesses(root).harnesses): string[] {
+  const resolvedRoot = resolve(root);
+  const errors: string[] = [];
+  const uses = (harness: Harness): boolean => harnesses.includes(harness);
+  const required = [
+    '.agents/hooks/personality-reinject.mjs',
+    ...HARNESSES.filter(uses).map(harness => HOOK_ADAPTER_FILE[harness]),
+  ];
+  for (const path of required) {
+    if (!existsSync(join(resolvedRoot, path))) {
+      errors.push(`Hook compatibility file missing: ${path}`);
+    }
+  }
+  if (errors.length > 0) { return errors; }
+
+  try {
+    const commands: Array<[string, string]> = [];
+    if (uses('claude')) {
+      const claude = readHookCommand(parseJson(join(resolvedRoot, '.claude', 'settings.json')), 'claude');
+      const claudeCommand = stringValue(claude.command, 'Claude hook command');
+      if (claudeCommand !== CLAUDE_HOOK_COMMAND) {
+        errors.push(`Claude hook command must be repository-relative through $CLAUDE_PROJECT_DIR: ${CLAUDE_HOOK_COMMAND}`);
+      }
+      commands.push(['claude', claudeCommand]);
+    }
+    if (uses('codex')) {
+      const codex = readHookCommand(parseJson(join(resolvedRoot, '.codex', 'hooks.json')), 'codex');
+      const codexCommand = stringValue(codex.command, 'Codex hook command');
+      const codexWindows = stringValue(codex.commandWindows, 'Codex Windows hook command');
+      if (codexCommand !== CODEX_HOOK_COMMAND) {
+        errors.push(`Codex hook command must resolve the Git root: ${CODEX_HOOK_COMMAND}`);
+      }
+      if (codexWindows !== CODEX_HOOK_COMMAND_WINDOWS) {
+        errors.push(`Codex Windows hook command must resolve the Git root with Join-Path: ${CODEX_HOOK_COMMAND_WINDOWS}`);
+      }
+      commands.push(['codex', codexCommand], ['codex-windows', codexWindows]);
+    }
+    for (const [host, command] of commands) {
+      if (personalAbsolutePath(command)) {
+        errors.push(`${host} hook command contains an absolute personal path.`);
+      }
+    }
+
+    const shared = readFileSync(join(resolvedRoot, '.agents', 'hooks', 'personality-reinject.mjs'), 'utf8');
+    if (!shared.includes('AGENTS.md') || shared.includes('CLAUDE.md')) {
+      errors.push('Shared personality hook must reference AGENTS.md and must not treat CLAUDE.md as canonical.');
+    }
+    for (const name of HOOK_IDENTITY_EXPORTS) {
+      if (!shared.includes(`export function ${name}`)) {
+        errors.push(`Shared hook emitter must export ${name}(): the identity line has one source.`);
+      }
+    }
+    for (const marker of [HOOK_IDENTITY_MARKER, HOOK_ORCA_MARKER]) {
+      if (!shared.includes(marker)) {
+        errors.push(`Shared hook emitter must emit the "${marker}" line.`);
+      }
+    }
+    if (uses('opencode')) {
+      const plugin = readFileSync(join(resolvedRoot, '.opencode', 'plugins', 'personality-reinject.js'), 'utf8');
+      if (!plugin.includes('../../.agents/hooks/personality-reinject.mjs')) {
+        errors.push('OpenCode personality adapter must import the shared hook contract.');
+      }
+      if (!plugin.includes('agentContextLines')) {
+        errors.push('OpenCode personality adapter must push the shared context lines (agentContextLines), identity line included.');
+      }
+      if (plugin.includes('output.system =')) {
+        errors.push('OpenCode personality adapter must mutate output.system in place.');
+      }
+      if (/\bevent\.system\s*=[^=]/.test(plugin)) {
+        errors.push('OpenCode personality adapter must mutate event.system in place.');
+      }
+      errors.push(...validateOpenCodePluginEntrypoints(plugin));
+    }
+    if (uses('pi')) {
+      const adapter = readFileSync(join(resolvedRoot, HOOK_ADAPTER_FILE.pi), 'utf8');
+      errors.push(...validatePiAdapter(adapter));
+      if (personalAbsolutePath(adapter)) {
+        errors.push('Shared hook Pi adapter contains an absolute personal path.');
+      }
+    }
+    for (const duplicate of ['.claude/hooks/personality-reinject.js', '.codex/hooks/personality-reinject.js']) {
+      if (existsSync(join(resolvedRoot, duplicate))) {
+        errors.push(`Duplicated personality hook must be removed: ${duplicate}`);
+      }
+    }
+    errors.push(...validateInstructionRouterHooks(resolvedRoot, harnesses));
+    errors.push(...validateDocContractHooks(resolvedRoot, harnesses));
+  }
+  catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
+  }
+
+  return errors;
+}
+
+/**
+ * The documentation-contract edit hook (ADR-0017): `PostToolUse` on file
+ * edits, Claude Code and Codex only (OpenCode relies on the pre-push and CI
+ * gate). Bound in the boilerplate itself (`isSchemaOwner`) and nowhere else:
+ * v1 is maintainer-only, and `.claude/settings.json` / `.codex/hooks.json` are
+ * bootstrap-only, so a sync could never deliver the registration downstream.
+ */
+export const DOC_CONTRACTS_HOOK = '.agents/hooks/doc-contracts.mjs';
+export const CLAUDE_DOC_CONTRACTS_MATCHER = 'Edit|Write|MultiEdit';
+export const CODEX_DOC_CONTRACTS_MATCHER = 'Edit|Write';
+export const CLAUDE_DOC_CONTRACTS_COMMAND = 'node "$CLAUDE_PROJECT_DIR/.agents/hooks/doc-contracts.mjs"';
+export const CODEX_DOC_CONTRACTS_COMMAND = 'root="$(git rev-parse --show-toplevel)" && node "$root/.agents/hooks/doc-contracts.mjs" --root "$root"';
+export const CODEX_DOC_CONTRACTS_COMMAND_WINDOWS = 'powershell.exe -NoProfile -Command "$root = git rev-parse --show-toplevel; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; node (Join-Path $root \'.agents/hooks/doc-contracts.mjs\') --root $root"';
+
+function hasPostToolUse(settings: JsonObject, matcher: string, command: string, windows?: string): boolean {
+  const groups = settings.hooks && typeof settings.hooks === 'object' ? (settings.hooks as JsonObject).PostToolUse : undefined;
+  if (!Array.isArray(groups)) { return false; }
+  return groups.some((group) => {
+    if (!group || typeof group !== 'object' || (group as JsonObject).matcher !== matcher) { return false; }
+    const hooks = (group as JsonObject).hooks;
+    return Array.isArray(hooks) && hooks.some(hook => hook && typeof hook === 'object'
+      && (hook as JsonObject).command === command
+      && (windows === undefined || (hook as JsonObject).commandWindows === windows));
+  });
+}
+
+export function validateDocContractHooks(root = process.cwd(), harnesses: readonly Harness[] = declaredHarnesses(root).harnesses, schemaOwner = readSchemaOwner(resolve(root))): string[] {
+  if (!schemaOwner) { return []; }
+  const resolvedRoot = resolve(root);
+  const errors: string[] = [];
+  if (!existsSync(join(resolvedRoot, DOC_CONTRACTS_HOOK))) {
+    return [`Documentation-contract hook missing: ${DOC_CONTRACTS_HOOK}`];
+  }
+  if (harnesses.includes('claude') && !hasPostToolUse(parseJson(join(resolvedRoot, '.claude', 'settings.json')), CLAUDE_DOC_CONTRACTS_MATCHER, CLAUDE_DOC_CONTRACTS_COMMAND)) {
+    errors.push(`claude must register the documentation-contract hook: a PostToolUse group with matcher "${CLAUDE_DOC_CONTRACTS_MATCHER}" running ${CLAUDE_DOC_CONTRACTS_COMMAND}`);
+  }
+  if (harnesses.includes('codex') && !hasPostToolUse(parseJson(join(resolvedRoot, '.codex', 'hooks.json')), CODEX_DOC_CONTRACTS_MATCHER, CODEX_DOC_CONTRACTS_COMMAND, CODEX_DOC_CONTRACTS_COMMAND_WINDOWS)) {
+    errors.push(`codex must register the documentation-contract hook: a PostToolUse group with matcher "${CODEX_DOC_CONTRACTS_MATCHER}" running the Codex command (and its Windows variant)`);
+  }
+  return errors;
+}
+
+/**
+ * Instruction router (progressive disclosure): the emitter classifies each
+ * prompt with the router table of `AGENTS.md` and prints one `ROUTE:` line per
+ * newly matched instruction file. These are the exports and markers its
+ * adapters and the eval rely on.
+ */
+export const HOOK_ROUTER_EXPORTS = ['routeLines', 'rearmRoutes', 'loadInstructionRouter', 'classifyPrompt', 'pendingRouteReminder'] as const;
+export const HOOK_ROUTE_MARKER = 'ROUTE: read';
+export const ROUTER_START_MARKER = '<!-- router:start -->';
+/** Codex `project_doc_max_bytes` default: the always-on file past it is cut at the byte, silently. */
+export const CODEX_PROJECT_DOC_MAX_BYTES = 32 * 1024;
+/** Heading above an adopted app's preserved instructions (`ADOPT_INSTRUCTIONS_HEADING` in `updater-adopt.ts`). */
+const ADOPTED_BLOCK_HEADING = '## 0. Project instructions (pre-adoption)';
+
+/**
+ * `SessionStart` sources after which the routed sections are gone from the
+ * context while the per-session route state still lists them: `compact`
+ * (the messages that carried them were summarized) and `clear` (`/clear`
+ * wiped the conversation). Claude Code and Codex both emit the two sources;
+ * each needs its own matcher group, because a group matches one source.
+ */
+export const REARM_SESSION_START_SOURCES = ['compact', 'clear'] as const;
+
+/**
+ * Claude Code re-surfaces an unread route once, on the first tool call that
+ * reads none of the routed sections (`ROUTE-PENDING:`, ADR-0018), and the Pi
+ * adapter does the same from `tool_result`. Codex and OpenCode carry no such
+ * hook: their agents get the `ROUTE:` cue only.
+ */
+export const ROUTE_RESURFACE_EVENT = 'PostToolUse';
+
+/**
+ * The fix a downstream project reads next to a missing hook group. Its
+ * `.claude/settings.json` is frozen by the sync, but `bun sync` appends the
+ * upstream hook groups it lacks (`mergeHookGroups`, `cli/lib/updater-settings.ts`)
+ * and its `.codex/hooks.json` is rewritten by the sync, so re-running the
+ * update IS the fix. Not said in the boilerplate itself, which has no upstream.
+ */
+export const HOOK_GROUP_FIX = 'run `bun sync`, which adds the upstream hook groups this file lacks';
+
+/** One group of `event` with no matcher (every tool) whose hooks run `command`. */
+function hasUnmatchedGroup(settings: JsonObject, event: string, command: string): boolean {
+  const groups = settings.hooks && typeof settings.hooks === 'object' ? (settings.hooks as JsonObject)[event] : undefined;
+  if (!Array.isArray(groups)) { return false; }
+  return groups.some((group) => {
+    if (!group || typeof group !== 'object' || ((group as JsonObject).matcher ?? '*') !== '*') { return false; }
+    const hooks = (group as JsonObject).hooks;
+    return Array.isArray(hooks) && hooks.some(hook => hook && typeof hook === 'object' && (hook as JsonObject).command === command);
+  });
+}
+
+function hasRearmSessionStart(settings: JsonObject, source: string, command: string, windows?: string): boolean {
+  const groups = settings.hooks && typeof settings.hooks === 'object' ? (settings.hooks as JsonObject).SessionStart : undefined;
+  if (!Array.isArray(groups)) { return false; }
+  return groups.some((group) => {
+    if (!group || typeof group !== 'object' || (group as JsonObject).matcher !== source) { return false; }
+    const hooks = (group as JsonObject).hooks;
+    return Array.isArray(hooks) && hooks.some(hook => hook && typeof hook === 'object'
+      && (hook as JsonObject).command === command
+      && (windows === undefined || (hook as JsonObject).commandWindows === windows));
+  });
+}
+
+/**
+ * Binds once `AGENTS.md` carries the router markers (a repo still on the
+ * single-file layout has nothing to route). Each command host must re-arm the
+ * routes on every `REARM_SESSION_START_SOURCES` source, the OpenCode adapter must classify the prompt and
+ * re-arm on compaction on both plugin generations, and the always-on file
+ * must fit the Codex project-doc budget whole. Each part binds only while its
+ * harness is in use (`harnesses`, default `declaredHarnesses(root)`).
+ */
+export function validateInstructionRouterHooks(root = process.cwd(), harnesses: readonly Harness[] = declaredHarnesses(root).harnesses): string[] {
+  const resolvedRoot = resolve(root);
+  const l0Path = join(resolvedRoot, 'AGENTS.md');
+  if (!existsSync(l0Path)) { return []; }
+  const l0 = readFileSync(l0Path, 'utf8');
+  if (!l0.includes(ROUTER_START_MARKER)) { return []; }
+
+  const errors: string[] = [];
+  const fix = readSchemaOwner(resolvedRoot) ? '' : `. Fix: ${HOOK_GROUP_FIX}`;
+  const shared = readFileSync(join(resolvedRoot, '.agents', 'hooks', 'personality-reinject.mjs'), 'utf8');
+  for (const name of HOOK_ROUTER_EXPORTS) {
+    if (!shared.includes(`export function ${name}`)) {
+      errors.push(`Shared hook emitter must export ${name}(): the ROUTE: lines have one classifier.`);
+    }
+  }
+  for (const marker of [HOOK_ROUTE_MARKER, ROUTER_START_MARKER]) {
+    if (!shared.includes(marker)) {
+      errors.push(`Shared hook emitter must read the AGENTS.md router and emit "${marker}" lines.`);
+    }
+  }
+
+  const claudeSettings = harnesses.includes('claude') ? parseJson(join(resolvedRoot, '.claude', 'settings.json')) : null;
+  const codexHooks = harnesses.includes('codex') ? parseJson(join(resolvedRoot, '.codex', 'hooks.json')) : null;
+  for (const source of REARM_SESSION_START_SOURCES) {
+    if (claudeSettings && !hasRearmSessionStart(claudeSettings, source, CLAUDE_HOOK_COMMAND)) {
+      errors.push(`claude must re-arm the routes on SessionStart "${source}": a SessionStart group with matcher "${source}" running ${CLAUDE_HOOK_COMMAND}${fix}`);
+    }
+    if (codexHooks && !hasRearmSessionStart(codexHooks, source, CODEX_HOOK_COMMAND, CODEX_HOOK_COMMAND_WINDOWS)) {
+      errors.push(`codex must re-arm the routes on SessionStart "${source}": a SessionStart group with matcher "${source}" running the Codex hook command (and its Windows variant)${fix}.`);
+    }
+  }
+
+  if (claudeSettings && !hasUnmatchedGroup(claudeSettings, ROUTE_RESURFACE_EVENT, CLAUDE_HOOK_COMMAND)) {
+    errors.push(`claude must re-surface unread routes: a ${ROUTE_RESURFACE_EVENT} group with no matcher running ${CLAUDE_HOOK_COMMAND}${fix}`);
+  }
+
+  if (harnesses.includes('opencode')) {
+    const plugin = readFileSync(join(resolvedRoot, '.opencode', 'plugins', 'personality-reinject.js'), 'utf8');
+    if (!plugin.includes('\'chat.message\'') || !plugin.includes('routeLines')) {
+      errors.push('OpenCode personality adapter must classify the prompt in chat.message with the shared routeLines (OpenCode 1).');
+    }
+    if (!plugin.includes('experimental.session.compacting') || !plugin.includes('rearmRoutes')) {
+      errors.push('OpenCode personality adapter must re-arm the routes in experimental.session.compacting (OpenCode 1).');
+    }
+    if (!/ctx\.session\.hook\(\s*['"]prompt['"]/.test(plugin)) {
+      errors.push('OpenCode personality adapter must classify the prompt in ctx.session.hook(\'prompt\') with the shared routeLines (OpenCode 2).');
+    }
+    if (!/ctx\.session\.hook\(\s*['"]compaction['"]/.test(plugin)) {
+      errors.push('OpenCode personality adapter must re-arm the routes in ctx.session.hook(\'compaction\') (OpenCode 2).');
+    }
+  }
+
+  if (harnesses.includes('pi')) {
+    const adapter = readFileSync(join(resolvedRoot, HOOK_ADAPTER_FILE.pi), 'utf8');
+    if (!adapter.includes('\'session_compact\'') || !adapter.includes('rearmRoutes')) {
+      errors.push('Pi adapter must re-arm the routes in session_compact.');
+    }
+    if (!adapter.includes('\'tool_result\'') || !adapter.includes('pendingRouteReminder')) {
+      errors.push('Pi adapter must re-surface unread routes in tool_result (ROUTE-PENDING).');
+    }
+  }
+
+  // An adopted app's preserved block is measured by `instructions:check`, which
+  // budgets the composed file; this check pins the boilerplate's own L0. Codex
+  // reads AGENTS.md natively and cuts it at the byte; the other harnesses
+  // carry no such budget.
+  const bytes = Buffer.byteLength(l0);
+  if (harnesses.includes('codex') && !l0.includes(ADOPTED_BLOCK_HEADING) && bytes > CODEX_PROJECT_DOC_MAX_BYTES) {
+    errors.push(`AGENTS.md is ${bytes} bytes: Codex cuts the always-on file at ${CODEX_PROJECT_DOC_MAX_BYTES} bytes, router included.`);
+  }
+  return errors;
+}
+
+/**
+ * Every scoped config block `eslint.config.base.js` exports must be wired into
+ * `eslint.config.js`.
+ *
+ * THE HOLE THIS CLOSES. The base is SYNCED, so a new block reaches every
+ * project on the next `bun sync`. `eslint.config.js` is on the protected
+ * watchlist and is NEVER overwritten, and the wiring (importing the block and
+ * passing it to `antfu(...)`) lives only there. So upstream can ship a rule
+ * that lands on disk, exports cleanly, and enforces NOTHING, while
+ * `lint:check` stays green and the parity report shows at most a
+ * non-blocking drift row.
+ *
+ * This is a NAME check on purpose. Verifying the blocks actually take effect
+ * would mean executing the consumer's flat config, which depends on its
+ * plugins resolving: a check that cannot run is worse than a coarse one that
+ * does. A project is free to narrow a block's `files` afterwards; it is not
+ * free to drop it silently.
+ *
+ * On an ADOPTED app (`.template/installer.lock.json` says `"adopted": true`)
+ * the consumer is the synced `eslint.config.tooling.mjs` instead: a root
+ * `eslint.config.js` there is the app's own, and requiring it to wire the
+ * tooling's blocks would force the app's lint to include the tooling.
+ */
+/** `.template/installer.lock.json` records `adopted: true` (read inline: the adopt module imports this one). */
+function isAdoptedRepo(root: string): boolean {
+  try {
+    return (JSON.parse(readFileSync(join(root, '.template', 'installer.lock.json'), 'utf8')) as { adopted?: unknown }).adopted === true;
+  }
+  catch { return false; }
+}
+
+/**
+ * `.oxlintrc.json` is project-owned and must extend the synced
+ * `.oxlintrc.base.json`, the same split as `eslint.config.js` over
+ * `eslint.config.base.js`. A project config that drops the `extends` keeps
+ * pre-commit green while the GUARD rules, the `cli/` closure and the size
+ * limits stop running. Every local `jsPlugins` path the base lists must exist,
+ * because Oxlint fails the whole run on a plugin it cannot load. An adopted app
+ * runs no Oxlint (its own lint-staged and config stay its own), so it is exempt.
+ */
+export function validateOxlintWiring(root = process.cwd()): string[] {
+  const basePath = join(root, '.oxlintrc.base.json');
+  const consumerPath = join(root, '.oxlintrc.json');
+  if (!existsSync(basePath) || isAdoptedRepo(root)) { return []; }
+  if (!existsSync(consumerPath)) {
+    return ['.oxlintrc.json is missing: .oxlintrc.base.json ships but nothing runs it. Create it with {"extends": ["./.oxlintrc.base.json"]}.'];
+  }
+
+  let base: { jsPlugins?: unknown };
+  let consumer: { extends?: unknown };
+  try {
+    base = JSON.parse(readFileSync(basePath, 'utf8'));
+    consumer = JSON.parse(readFileSync(consumerPath, 'utf8'));
+  }
+  catch { return ['.oxlintrc.json or .oxlintrc.base.json is not valid JSON.']; }
+
+  const errors: string[] = [];
+  const extended = Array.isArray(consumer.extends) ? consumer.extends : [];
+  if (!extended.some(entry => typeof entry === 'string' && /(?:^|\/)\.oxlintrc\.base\.json$/.test(entry))) {
+    errors.push('.oxlintrc.json does not extend ./.oxlintrc.base.json: the shared Oxlint rules ship but enforce nothing. Add "extends": ["./.oxlintrc.base.json"].');
+  }
+  for (const plugin of Array.isArray(base.jsPlugins) ? base.jsPlugins : []) {
+    if (typeof plugin === 'string' && plugin.startsWith('./') && !existsSync(join(root, plugin))) {
+      errors.push(`.oxlintrc.base.json loads the JS plugin ${plugin} and it is not on disk: Oxlint fails every run. Restore it with bun sync.`);
+    }
+  }
+  return errors;
+}
+
+export function validateEslintBlockWiring(root = process.cwd()): string[] {
+  const basePath = join(root, 'eslint.config.base.js');
+  const consumerFile = isAdoptedRepo(root) ? 'eslint.config.tooling.mjs' : 'eslint.config.js';
+  const consumerPath = join(root, consumerFile);
+  if (!existsSync(basePath) || !existsSync(consumerPath)) { return []; }
+
+  let base: string;
+  let consumer: string;
+  try {
+    base = readFileSync(basePath, 'utf8');
+    consumer = readFileSync(consumerPath, 'utf8');
+  }
+  catch { return []; }
+
+  // Scoped blocks are SCREAMING_SNAKE exports; `BASE_ESLINT_OPTIONS` is the
+  // options object spread into the first argument, and the two GUARD
+  // constants are values the GUARD blocks read (severity string, default layer
+  // map), so none of them is a block and all are excluded by name.
+  const notBlocks = new Set(['BASE_ESLINT_OPTIONS', 'GUARD_ENFORCEMENT_LEVEL', 'GUARD_LAYERS']);
+  const blocks = [...base.matchAll(/^export const ([A-Z][A-Z0-9_]*)\s*=/gm)]
+    .map(m => m[1])
+    .filter(name => !notBlocks.has(name));
+
+  // Comments are stripped before the search, and the search is word-bounded.
+  // Both matter: `eslint.config.js`'s own JSDoc names blocks in prose, so a raw
+  // `includes` would pass a consumer that stopped wiring one; and without the
+  // word boundary, wiring `CLI_IMPORT_CLOSURE_EXTRA` would satisfy
+  // `CLI_IMPORT_CLOSURE`.
+  const code = consumer
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+  const errors: string[] = [];
+  for (const name of blocks) {
+    if (!new RegExp(`\\b${name}\\b`).test(code)) {
+      errors.push(`${consumerFile} does not wire ${name} from eslint.config.base.js: the rule ships but enforces nothing. Add it to the import and to the antfu(...) call.`);
+    }
+  }
+  return errors;
+}
+
+export function compatibilityContractPaths(root = process.cwd()): string[] {
+  const resolvedRoot = resolve(root);
+  return [
+    '.agents/hooks/personality-reinject.mjs',
+    '.opencode/plugins/personality-reinject.js',
+    '.pi/extensions/agentic-dev.js',
+    '.claude/settings.json',
+    '.codex/hooks.json',
+    '.mcp.json',
+    'opencode.jsonc',
+    '.codex/config.toml',
+    '.pi/mcp.json',
+  ].map(path => relative(resolvedRoot, join(resolvedRoot, path)));
+}

@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
-import { expectFullScreen } from './helpers'
+import { alerta, expectFullScreen } from './helpers'
 
 async function expectNoSeriousA11y(page: Page) {
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
@@ -193,7 +193,7 @@ test.describe('Soporte', () => {
   test('valida el mensaje y confirma el envío', async ({ page }) => {
     await page.goto('/ajustes/soporte')
     await page.getByTestId('soporte-enviar').click()
-    await expect(page.getByRole('alert')).toHaveText('Escribe tu mensaje.')
+    await expect(alerta(page)).toHaveText('Escribe tu mensaje.')
     await expect(page.getByTestId('soporte-mensaje')).toBeFocused()
     await page.getByTestId('soporte-asunto').selectOption('Sugerencia')
     await page.getByTestId('soporte-mensaje').fill('Me gustaría ver más retos de Ligue 1.')

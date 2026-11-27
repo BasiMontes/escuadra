@@ -1,8 +1,24 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+  "extends": ["./.oxlintrc.base.json"],
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "test-results",
+    "playwright-report",
+    "allure-results",
+    "allure-report",
+    "reports",
+    "cli/legacy/**",
+    "**/*.min.js",
+    "**/*.md",
+    ".github/**",
+    "api/openapi-types.ts",
+    "src/types/supabase.ts",
+    ".claude/worktrees/**",
+    ".claude/skills/**",
+    ".agents/skills/**",
+    "docs/mcp/**",
+    "modules/**"
+  ]
 }
