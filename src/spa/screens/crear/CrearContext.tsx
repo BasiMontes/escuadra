@@ -1,9 +1,8 @@
-import { useState } from 'react'
-import { Outlet } from '../../router'
+import { useState, type ReactNode } from 'react'
 import { CrearCtx, EMPTY_DRAFT, type CrearDraft, type PublishedChallenge } from './crearState'
 
 /** Conserva el borrador mientras se recorren los pasos. */
-export function CrearProvider() {
+export function CrearProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<CrearDraft>(EMPTY_DRAFT)
   const [published, setPublished] = useState<PublishedChallenge | null>(null)
 
@@ -19,7 +18,7 @@ export function CrearProvider() {
         },
       }}
     >
-      <Outlet />
+      {children}
     </CrearCtx.Provider>
   )
 }

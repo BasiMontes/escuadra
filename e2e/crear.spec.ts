@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { alerta, elegir, expectFullScreen } from './helpers'
+import { abrir, alerta, elegir, expectFullScreen } from './helpers'
 
 const PREGUNTA = '¿Qué equipo juega en el Emirates Stadium?'
 
@@ -250,19 +250,12 @@ test.describe('Compartir reto', () => {
     await publicar(page)
     await page.getByTestId('crear-compartir').click()
     const url = (await page.locator('body').getAttribute('data-shared'))!
-    // Navegación sin recargar para conservar los datos en memoria
-    const abrir = (ruta: string) =>
-      page.evaluate((r) => {
-        history.pushState({}, '', r)
-        dispatchEvent(new PopStateEvent('popstate'))
-      }, ruta)
-
-    await abrir(new URL(url).pathname)
+    await abrir(page, new URL(url).pathname)
     await expect(page.getByTestId('detalle-pregunta')).toHaveText(PREGUNTA)
     await expect(page.getByTestId('detalle-aviso')).toHaveText('Es tu reto y está pendiente de revisión.')
     await expect(page.getByTestId('detalle-comenzar')).toBeDisabled()
 
-    await abrir(`${new URL(url).pathname}/jugar`)
+    await abrir(page, `${new URL(url).pathname}/jugar`)
     await expect(page.getByTestId('vacio-tarjeta')).toContainText('Este reto no está disponible.')
   })
 })

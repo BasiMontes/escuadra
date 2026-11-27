@@ -1,13 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { expectFullScreen } from './helpers'
-
-/** Navega sin recargar, para conservar los datos en memoria. */
-const abrir = (page: Page, ruta: string) =>
-  page.evaluate((r) => {
-    history.pushState({}, '', r)
-    dispatchEvent(new PopStateEvent('popstate'))
-  }, ruta)
+import { abrir, expectFullScreen } from './helpers'
 
 const tarjeta = (page: Page, id: string) => page.getByTestId(`mis-retos-tarjeta-${id}`)
 const MOTIVO = 'La pregunta admite más de una respuesta correcta.'

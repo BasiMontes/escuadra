@@ -1,17 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
+import { abrir } from './helpers'
 
 /**
  * Fija qué recuerda cada entrada del historial: el resultado de la partida y el aviso de perfil
  * guardado. El cambio de router no puede alterarlo.
  */
 const RETO = '/retos/balon-oro-2018'
-
-/** Entrada nueva del historial, sin recargar. */
-const abrir = (page: Page, ruta: string) =>
-  page.evaluate((r) => {
-    history.pushState({}, '', r)
-    dispatchEvent(new PopStateEvent('popstate'))
-  }, ruta)
 
 async function terminarPartida(page: Page) {
   await page.goto(`${RETO}/intro`)

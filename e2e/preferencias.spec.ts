@@ -1,13 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { alerta } from './helpers'
-
-/** Navega sin recargar, para conservar los datos en memoria. */
-const abrir = (page: Page, ruta: string) =>
-  page.evaluate((r) => {
-    history.pushState({}, '', r)
-    dispatchEvent(new PopStateEvent('popstate'))
-  }, ruta)
+import { abrir, alerta } from './helpers'
 
 async function expectNoSeriousA11y(page: Page) {
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()

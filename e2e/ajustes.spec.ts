@@ -1,20 +1,13 @@
 import AxeBuilder from '@axe-core/playwright'
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
-import { alerta, elegir, expectFullScreen } from './helpers'
+import { abrir, alerta, elegir, expectFullScreen } from './helpers'
 
 async function expectNoSeriousA11y(page: Page) {
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
   const serious = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
   expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([])
 }
-
-/** Navega sin recargar, para conservar los datos en memoria. */
-const abrir = (page: Page, ruta: string) =>
-  page.evaluate((r) => {
-    history.pushState({}, '', r)
-    dispatchEvent(new PopStateEvent('popstate'))
-  }, ruta)
 
 test.describe('Ajustes', () => {
   for (const seccion of ['juego', 'notificaciones', 'privacidad', 'soporte', 'contrasena']) {
