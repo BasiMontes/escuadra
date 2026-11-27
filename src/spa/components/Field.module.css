@@ -77,6 +77,74 @@ textarea.input {
   cursor: pointer;
 }
 
+.trigger {
+  display: flex;
+  align-items: center;
+  text-align: left;
+}
+
+.value {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* La lista se pinta fuera del campo: por encima de la navegación fija */
+.positioner {
+  z-index: 100;
+}
+
+.popup {
+  box-sizing: border-box;
+  /* El ancla es el botón, que va dentro del borde del campo */
+  min-width: calc(var(--anchor-width) + 2 * var(--bw));
+  max-width: var(--available-width);
+  max-height: var(--available-height);
+  overflow-y: auto;
+  background: var(--c-white);
+  color: var(--c-ink);
+  border: var(--border);
+  box-shadow: var(--shadow-md);
+  outline: none;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: 48px;
+  padding: var(--s-3) var(--s-5);
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+}
+
+.option + .option {
+  border-top: var(--border-thin);
+}
+
+.option[data-highlighted] {
+  background: var(--c-yellow);
+}
+
+.option[data-selected] {
+  font-weight: 700;
+}
+
+.check {
+  display: inline-flex;
+  flex: none;
+}
+
+.check svg {
+  width: 20px;
+  height: 20px;
+}
+
 .chevron {
   position: absolute;
   right: 18px;

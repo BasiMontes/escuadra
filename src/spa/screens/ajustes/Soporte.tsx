@@ -96,7 +96,7 @@ function Formulario() {
           look="dark"
           options={SUBJECTS}
           value={subject}
-          onChange={(e) => setSubject(e.target.value)}
+          onValueChange={setSubject}
           data-testid="soporte-asunto"
         />
         <TextArea

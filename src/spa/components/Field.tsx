@@ -1,5 +1,6 @@
-import { useId, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
-import { ChevronDown, Eye, EyeOff } from 'lucide-react'
+import { useId, useState, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react'
+import { Select } from '@base-ui/react/select'
+import { Check, ChevronDown, Eye, EyeOff } from 'lucide-react'
 import { cx } from './cx'
 import styles from './Field.module.css'
 
@@ -95,6 +96,8 @@ export function TextArea({
   )
 }
 
+type Option = { value: string; label: string }
+
 export function SelectField({
   label,
   error,
@@ -102,25 +105,56 @@ export function SelectField({
   className,
   look = 'shadow',
   options,
-  ...select
-}: Wrap & SelectHTMLAttributes<HTMLSelectElement> & { options: Array<{ value: string; label: string }> }) {
+  value,
+  defaultValue,
+  onValueChange,
+  'data-testid': testId,
+}: Wrap & {
+  options: Option[]
+  value?: string
+  defaultValue?: string
+  onValueChange?: (value: string) => void
+  'data-testid'?: string
+}) {
   const id = useId()
   return (
     <FieldWrap id={id} label={label} error={error} hint={hint} className={className}>
       <div className={cx(styles.control, styles[look], styles.select, error && styles.invalid)}>
-        <select
-          id={id}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${id}-error` : undefined}
-          {...select}
-          className={styles.input}
+        <Select.Root
+          items={options}
+          value={value}
+          defaultValue={defaultValue ?? (value === undefined ? options[0]?.value : undefined)}
+          onValueChange={(next) => next !== null && onValueChange?.(next)}
         >
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+          <Select.Trigger
+            id={id}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${id}-error` : undefined}
+            className={cx(styles.input, styles.trigger)}
+            data-testid={testId}
+          >
+            <Select.Value className={styles.value}>
+              {/* Mientras llegan las opciones no se enseña el identificador interno */}
+              {(selected: string | null) => options.find((o) => o.value === selected)?.label ?? '\u00a0'}
+            </Select.Value>
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner className={styles.positioner} sideOffset={12} alignItemWithTrigger={false}>
+              <Select.Popup className={styles.popup}>
+                <Select.List>
+                  {options.map((o) => (
+                    <Select.Item key={o.value} value={o.value} className={styles.option}>
+                      <Select.ItemText>{o.label}</Select.ItemText>
+                      <Select.ItemIndicator className={styles.check}>
+                        <Check aria-hidden="true" />
+                      </Select.ItemIndicator>
+                    </Select.Item>
+                  ))}
+                </Select.List>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>
         <ChevronDown className={styles.chevron} aria-hidden="true" />
       </div>
     </FieldWrap>

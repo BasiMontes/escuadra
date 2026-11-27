@@ -86,11 +86,16 @@
   font-size: 24px;
 }
 
-.contact select,
+.contact [role='combobox'],
 .contact textarea {
-  padding: var(--s-4);
+  padding-block: var(--s-4);
+  padding-left: var(--s-4);
   font-size: 16px;
   font-weight: 700;
+}
+
+.contact textarea {
+  padding-right: var(--s-4);
 }
 
 .message textarea {

@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
-import { alerta, expectFullScreen } from './helpers'
+import { alerta, elegir, expectFullScreen } from './helpers'
 
 async function expectNoSeriousA11y(page: Page) {
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
@@ -208,12 +208,18 @@ test.describe('Soporte', () => {
     await expect(page.getByRole('main')).not.toContainText(/tienda|balones/i)
   })
 
+  test('el asunto conserva la letra de los campos del formulario', async ({ page }) => {
+    await page.goto('/ajustes/soporte')
+    await expect(page.getByTestId('soporte-asunto')).toHaveCSS('font-size', '16px')
+    await expect(page.getByTestId('soporte-asunto')).toHaveCSS('font-weight', '700')
+  })
+
   test('valida el mensaje y confirma el envío', async ({ page }) => {
     await page.goto('/ajustes/soporte')
     await page.getByTestId('soporte-enviar').click()
     await expect(alerta(page)).toHaveText('Escribe tu mensaje.')
     await expect(page.getByTestId('soporte-mensaje')).toBeFocused()
-    await page.getByTestId('soporte-asunto').selectOption('Sugerencia')
+    await elegir(page, 'soporte-asunto', 'Sugerencia')
     await page.getByTestId('soporte-mensaje').fill('Me gustaría ver más retos de Ligue 1.')
     await page.getByTestId('soporte-enviar').click()
     await expect(page.getByTestId('soporte-enviado')).toContainText('Mensaje enviado.')

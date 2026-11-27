@@ -5,6 +5,13 @@ export function alerta(page: Page) {
   return page.getByRole('alert').and(page.locator(':not(#__next-route-announcer__)'))
 }
 
+/** Abre un desplegable y elige la opción por su texto. */
+export async function elegir(page: Page, testId: string, opcion: string) {
+  await page.getByTestId(testId).click()
+  await page.getByRole('option', { name: opcion, exact: true }).click()
+  await expect(page.getByTestId(testId)).toHaveText(opcion)
+}
+
 /**
  * Captura la pantalla completa como la verá el usuario al hacer scroll:
  * amplía la ventana a la altura del documento para que la navegación fija
