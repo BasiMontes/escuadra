@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { connection } from 'next/server';
+import { Providers } from './providers';
 import '@fontsource/archivo-black/400.css';
 import '@fontsource/public-sans/400.css';
 import '@fontsource/public-sans/500.css';
@@ -23,7 +24,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="es">
       <body>
-        <div id="root">{children}</div>
+        <div id="root">
+          <Providers>{children}</Providers>
+        </div>
       </body>
     </html>
   );

@@ -5,6 +5,11 @@ export function alerta(page: Page) {
   return page.getByRole('alert').and(page.locator(':not(#__next-route-announcer__)'))
 }
 
+/** Navega sin recargar, para conservar los datos en memoria. */
+export function abrir(page: Page, ruta: string) {
+  return page.evaluate((r) => (window as unknown as { next: { router: { push: (url: string) => void } } }).next.router.push(r), ruta)
+}
+
 /** Abre un desplegable y elige la opción por su texto. */
 export async function elegir(page: Page, testId: string, opcion: string) {
   await page.getByTestId(testId).click()
