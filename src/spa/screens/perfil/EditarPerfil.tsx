@@ -7,6 +7,7 @@ import { ErrorNotice, Skeleton } from '../../components/States'
 import { useLoad, useRepository } from '../../data/hooks'
 import type { Profile } from '../../data/types'
 import { AppShell } from '../../layouts/AppShell'
+import { handOff } from '../../lib/entryState'
 import { BIO_MAX, validateAvatar, validateBio, validateEmail, validateUsername } from '../../lib/validation'
 import styles from './EditarPerfil.module.css'
 
@@ -83,7 +84,8 @@ function Formulario({ profile }: { profile: Profile }) {
         bio: values.bio.trim(),
         avatarUrl: values.avatarUrl,
       })
-      navigate('/perfil', { state: { saved: true } })
+      handOff('perfil-guardado', true)
+      navigate('/perfil')
     } catch (err) {
       setFormError((err as Error).message)
       setSaving(false)

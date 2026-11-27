@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react'
 import { BadgeCheck, ChevronRight, LogOut, SlidersHorizontal, SquarePen, Trophy } from 'lucide-react'
-import { Link, useLocation } from 'react-router'
+import { Link } from 'react-router'
 import { BallIcon } from '../../components/BallIcon'
 import { Card } from '../../components/Card'
 import { ErrorNotice, Skeleton } from '../../components/States'
 import { useLoad } from '../../data/hooks'
 import { useSignOut } from '../../data/useSignOut'
 import { AppShell } from '../../layouts/AppShell'
+import { useEntryState } from '../../lib/entryState'
 import { formatNumber } from '../../lib/game'
 import styles from './Perfil.module.css'
 
@@ -18,7 +19,7 @@ const MENU: Array<{ id: string; label: string; to: string; icon: ReactNode }> = 
 ]
 
 export function Perfil() {
-  const saved = (useLocation().state as { saved?: boolean } | null)?.saved
+  const saved = useEntryState<boolean>('perfil-guardado')
   const { data, error, loading, reload } = useLoad(async (r) => {
     const [me, stats] = await Promise.all([r.getMe(), r.getStats()])
     return { me, stats }

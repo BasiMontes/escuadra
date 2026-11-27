@@ -1,12 +1,13 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { CircleCheck, CircleStar, Timer } from 'lucide-react'
-import { Navigate, useLocation, useParams } from 'react-router'
+import { Navigate, useParams } from 'react-router'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { ErrorNotice, Skeleton } from '../../components/States'
 import { useLoad } from '../../data/hooks'
 import type { AttemptResult, Challenge } from '../../data/types'
 import { AppShell } from '../../layouts/AppShell'
+import { useEntryState } from '../../lib/entryState'
 import { countsForRanking, formatNumber, formatSeconds, hintSlots } from '../../lib/game'
 import { HintsPanel } from './HintsPanel'
 import type { ResultState } from './resultState'
@@ -14,7 +15,7 @@ import styles from './RetoResultado.module.css'
 
 export function RetoResultado() {
   const { id = '' } = useParams()
-  const state = useLocation().state as ResultState | null
+  const state = useEntryState<ResultState>('resultado')
   // Sin un intento recién terminado no hay resultado que enseñar
   if (state?.result.challengeId !== id) return <Navigate to={`/retos/${id}/intro`} replace />
   return <Resultado {...state} />

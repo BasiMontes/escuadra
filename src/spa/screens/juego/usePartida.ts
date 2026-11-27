@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 're
 import { useNavigate } from 'react-router'
 import { useRepository } from '../../data/hooks'
 import type { OpenAttempt } from '../../data/types'
+import { handOff } from '../../lib/entryState'
 import { CHALLENGE_SECONDS } from '../../lib/game'
 import type { ResultState } from './resultState'
 
@@ -49,8 +50,8 @@ export function usePartida(attempt: OpenAttempt, initialHintsLeft: number) {
         wait(pauseMs),
       ])
       if (!mounted.current) return
-      const state: ResultState = { result, hints: hintsRef.current }
-      navigate(`/retos/${challengeId}/resultado`, { replace: true, state })
+      handOff('resultado', { result, hints: hintsRef.current } satisfies ResultState)
+      navigate(`/retos/${challengeId}/resultado`, { replace: true })
     } catch {
       if (mounted.current) setError('envio')
     }
