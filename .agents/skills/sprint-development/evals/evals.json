@@ -1,0 +1,154 @@
+{
+  "evals": [
+    {
+      "name": "should-trigger-single-user-story",
+      "prompt": "Implement the user story UPEX-277. It's the empty-states story for the dashboard.",
+      "expected_behavior": "Activates sprint-development in single-story mode. Runs the 12-step workflow: epic precheck, Jira transition Ready-For-Dev -> In Progress, Stage 1 Planning (story-implementation-plan.md), Stage 2 Implementation (code + unit tests, may invoke /unit-testing for TDD slices), Stage 3 Code Review (review-pr.md, transitions to In Review), Stage 4 Staging Deploy. Pauses for user OK before each stage transition.",
+      "category": "positive"
+    },
+    {
+      "name": "should-trigger-bug-fix",
+      "prompt": "Fix bug PROJ-445: checkout button broken on mobile. Root-cause it first, then fix.",
+      "expected_behavior": "Activates sprint-development in bug-fix mode. Reads bug-fix-workflow.md reference. Runs root-cause analysis BEFORE proposing a fix (reproduce, isolate, identify the offending commit/component), drafts the minimal fix plan, then implements, opens PR, and transitions Jira. Adds a regression test to prevent reintroduction.",
+      "category": "positive"
+    },
+    {
+      "name": "should-trigger-resume-work",
+      "prompt": "Continue from where I left off on UPEX-100 — I think I had the API done but the UI wasn't wired yet.",
+      "expected_behavior": "Activates sprint-development in continue-implementation mode. Reads continue-implementation.md reference. Loads the .context/PBI/epics/EPIC-<KEY>-<slug>/stories/STORY-UPEX-100-<slug>/ folder to recover state (synced implementation-plan, local session notes), inspects git status + recent commits to detect actual progress, summarizes what's done vs pending, asks user OK before resuming the next stage.",
+      "category": "positive"
+    },
+    {
+      "name": "should-trigger-code-review",
+      "prompt": "Code review for PR #123 — please go through it before I merge.",
+      "expected_behavior": "Activates sprint-development in Stage 3 Code Review mode. Reads review-pr.md reference. Fetches the PR via gh, walks the diff, checks adherence to project-dev-guide and code-standards, flags issues with severity, posts inline review comments, produces a final verdict (approve / request-changes / comment). Does not merge automatically.",
+      "category": "positive"
+    },
+    {
+      "name": "should-trigger-staging-deploy",
+      "prompt": "Deploy to staging once the tests are green on the PR for UPEX-200.",
+      "expected_behavior": "Activates sprint-development in Stage 4 Staging Deploy mode. Verifies CI is green via gh, merges the PR (after user OK), triggers the staging deploy workflow, monitors until completion, posts the staging URL + version to Jira, transitions the ticket to Ready-For-QA. Does NOT auto-deploy to production (gated separate step).",
+      "category": "positive"
+    },
+    {
+      "name": "should-trigger-spanish-implement-story",
+      "prompt": "Implementá la historia UPEX-412 de punta a punta: plan, código, PR y deploy a staging.",
+      "expected_behavior": "Activates sprint-development in single-story mode and runs the five-stage pipeline in order: Stage 1 plan, Stage 2 implementation with verification, Stage 3 code review, Stage 4 staging deploy. Stops before Stage 5, which needs QA green and a person's approval.",
+      "category": "positive"
+    },
+    {
+      "name": "should-trigger-spanish-process-sprint",
+      "prompt": "Procesá el sprint 7 completo, historia por historia, y avisame cuando una quede lista para QA.",
+      "expected_behavior": "Activates sprint-development in batch-sprint mode. Checks `.context/reports/SPRINT-7-DEVELOPMENT.md` first and generates it when missing, then loops Stages 1 to 4 per ticket. Stage 5 is never part of the loop.",
+      "category": "positive"
+    },
+    {
+      "name": "should-accept-business-maps-without-prd-srs",
+      "prompt": "Implement BK-42 on our adopted app. We never wrote a PRD or SRS; the business maps, dev guide and glossary are generated.",
+      "expected_behavior": "Pre-requisites pass on the business-maps form: `.context/PRD/` and `.context/SRS/` hold only their READMEs, but `bun run context:map business-data-context` prints sections. No fast-fail and no suggestion to write a PRD or SRS. Stage 1 reads the architecture record from `business-api-context` `architecture` + `business-data-context` `overview` + `.context/business/project-dev-guide.md` and `.context/ADR/`; data model from the data map's `entities` / `access-control` / `migrations`; the API contract from the app's OpenAPI spec when present, else `auth-model` / `journey-<slug>` and the feature map's `route-inventory`; UI copy from the glossary and the live UI. A placeholder map the story needs is a `missing_input` that recommends `/project-context <mode>`.",
+      "category": "positive"
+    },
+    {
+      "name": "should-fast-fail-without-any-product-docs",
+      "prompt": "Implement BK-7. The repo has no PRD, no SRS and the business maps are still placeholders.",
+      "expected_behavior": "Fast-fails at Pre-requisites because neither product-doc set exists. Hands off to /project-foundation when the product is still being defined, or /project-context data when the app's code already exists. Does not write a PRD, an SRS or a map itself, and does not start Stage 1.",
+      "category": "positive"
+    },
+    {
+      "name": "should-keep-srs-inputs-when-prd-srs-exist",
+      "prompt": "Implement UPEX-310, a new backend endpoint. This project went through /project-foundation, so PRD and SRS are there.",
+      "expected_behavior": "PRD/SRS path, unchanged: Pre-requisites pass on the PRD/SRS form. Stage 1 reads `.context/SRS/architecture-specs.md` and `.context/ADR/` as input 9, Stage 2 reads `.context/SRS/api-contracts.yaml` for the backend contract, and UI copy follows the glossary plus the PRD `executive-summary.md` / `user-personas.md`. Business maps remain optional inputs; a missing one is a `missing_input` note, not a blocker.",
+      "category": "positive"
+    },
+    {
+      "name": "should-run-greenfield-verification-unchanged",
+      "prompt": "Implementa UPEX-210 en este proyecto recién creado desde el boilerplate (stack: con los defaults del schema).",
+      "expected_behavior": "Reads `stack:` from `.agents/project.yaml` with input 1. With the greenfield defaults the verification cap=3 resolves to exactly the commands the skill always ran: `bun run lint:check`, `bun run types:check`, `bun run test`, the dev server is `bun run dev`, the PR base is `git_strategy.branches.integration` (or production when null), and a schema change goes through the DB MCP (`migrations_tool: supabase-mcp`, `list_migrations` read first, no migration file). Nothing in the run differs from the pre-parametrization behaviour.",
+      "category": "positive"
+    },
+    {
+      "name": "should-use-the-adopted-apps-script-names",
+      "prompt": "Implement BK-77 on this adopted app. Its stack block says package_manager bun, scripts.lint: lint, scripts.types: null, scripts.test: test:unit, app_root: apps/web.",
+      "expected_behavior": "Runs verification from `apps/web` as `bun run lint` and `bun run test:unit`; the `types` role is null, so that check is skipped and named in the report as skipped (no invented `tsc` call, no script added to the app's package.json). The agentic tooling (`bun run jira:sync-issues`, `bun run context:map`) still runs from the repo root.",
+      "category": "positive"
+    },
+    {
+      "name": "should-target-production-when-integration-is-null",
+      "prompt": "Open the PR for UPEX-88 and take it through Stage 4. git_strategy is solo-main with branches.integration: null.",
+      "expected_behavior": "Opens the PR against `git_strategy.branches.production` through /git-flow-master, never against a literal `staging` or `develop`. Stage 4 verifies the PR's preview deployment instead of merging into an integration branch; the merge to production is Stage 5, gated.",
+      "category": "positive"
+    },
+    {
+      "name": "should-apply-schema-change-per-migrations-tool",
+      "prompt": "The story needs a new `invoices.due_date` column. stack.database.migrations_tool is prisma, migrations_dir prisma/migrations.",
+      "expected_behavior": "Loads /supabase + /supabase-postgres-best-practices, reads the migration history through the DB MCP (`list_migrations`) first, then lets the app's own Prisma tool generate the migration and asks before the team's pipeline applies it; the MCP stays read-only (an `apply_migration` around Prisma would never reach Prisma's migrations table). After it runs, the live column is re-read through the MCP and the database types are regenerated. Per `agentic-dev-core/references/db-change-doctrine.md`.",
+      "category": "positive"
+    },
+    {
+      "name": "should-not-stop-a-non-db-story-for-the-db-capability",
+      "prompt": "Implementa UPEX-301: cambiar el texto del botón de checkout. No hay DB MCP conectado en esta sesión.",
+      "expected_behavior": "Proceeds: the story's plan touches no schema, RLS, function or data, so capability `db` does not bind it (`## Stack parameters`; mcp-capabilities §4 optional steps). It would STOP only if the plan needed a database change.",
+      "category": "positive"
+    },
+    {
+      "name": "should-keep-the-apps-testid-convention",
+      "prompt": "Add the new filter dropdown for BK-90. The app already marks elements with data-test=\"kebab-case\" ids and stack.conventions.testid_style is null.",
+      "expected_behavior": "Follows the app's existing convention (`data-test`, kebab-case) for the new elements instead of the `data-testid` camelCase/snake_case defaults of references/data-testid-standards.md, and renames no existing test id. A reviewer flags a departure from the app's convention, not from the reference's default.",
+      "category": "positive"
+    },
+    {
+      "name": "should-not-overwrite-an-existing-ci-workflow",
+      "prompt": "Set up CI for this project (first time). The repo already has .github/workflows/ci.yml running lint and build on main.",
+      "expected_behavior": "Follows references/ci-cd-setup.md Step 0: the existing `ci.yml` is never replaced, renamed or written over. It reports what the workflow covers, and proposes only the missing jobs (types, test, the integration deploy) as a NEW workflow with its own name or as a diff to approve; nothing is written without the user's OK.",
+      "category": "positive"
+    },
+    {
+      "name": "should-not-trigger-ac-refinement",
+      "prompt": "Refine the AC for UPEX-277 — the criteria are vague and I want them as Gherkin before we code.",
+      "expected_behavior": "Does NOT activate sprint-development. Should route to /product-management (acceptance-criteria.md reference) because AC refinement happens BEFORE implementation. sprint-development assumes the story is Ready-For-Development; refining AC mid-flight is a sign the story shouldn't have been pulled into the sprint yet.",
+      "category": "negative"
+    },
+    {
+      "name": "should-not-trigger-standalone-unit-tests",
+      "prompt": "Write unit tests for this calculate-discount function — TDD style, red-green-refactor.",
+      "expected_behavior": "Does NOT activate sprint-development. Should route to /unit-testing because the request is standalone unit-test design, not full-story implementation. sprint-development MAY invoke /unit-testing internally for TDD slices, but a direct unit-test request bypasses the orchestrator.",
+      "category": "negative"
+    },
+    {
+      "name": "should-not-trigger-regression-suite",
+      "prompt": "Run the regression test suite on staging and tell me if we can release.",
+      "expected_behavior": "Does NOT activate sprint-development. Regression testing is out of scope for this repo (QA workflow). sprint-development's Stage 4 deploys to staging but does not run formal regression.",
+      "category": "negative"
+    },
+    {
+      "name": "github-story-uses-trail-and-board",
+      "prompt": "Implement GH-41. The project's issue_tracker is github; the issue has an AC checklist and no milestone.",
+      "expected_behavior": "Runs no Jira step at all (no jira:sync-issues, ATP, AI Effort, DTU or QA assignee). Stage 1 asks which milestone the change goes into, writes the plan to the trail folder under trail.dir as GH-41-<slug>/plan.md, posts one issue comment linking it and moves the card to In progress through /github-projects with a read-back. The PR body carries the <<TRAIL>> link and the compliance matrix, and the commit trailers put Trail: above Worktree: and Session:.",
+      "category": "positive"
+    },
+    {
+      "name": "github-issue-without-ac-hands-off",
+      "prompt": "Implement GH-58. The tracker is github and the issue body has no acceptance criteria.",
+      "expected_behavior": "Fast-fails the story prerequisite and hands off to /github-projects to refine the issue, not to /product-management. Writes no code.",
+      "category": "positive"
+    },
+    {
+      "name": "no-feature-pr-path-local-build-off",
+      "prompt": "Implement GH-60. git_strategy has integration branch staging, direct_push_to_protected allowed, require_pr_reviews 0 and a description that pushes feature work straight to staging; stack.local_build is false.",
+      "expected_behavior": "Reviews the local diff before the push, giving the two reviewers the diff command with the trail excluded. The Spec Compliance Matrix lives in the trail results.md. Skips the local build and says so, reading the staging deploy check instead. The final commit carries Closes #60 above the Trail:, Worktree: and Session: trailers.",
+      "category": "positive"
+    },
+    {
+      "name": "none-tracker-numbers-the-trail",
+      "prompt": "issue_tracker is none. Add a dark-mode toggle to the settings page.",
+      "expected_behavior": "Uses a three-digit key for the trail folder, puts the acceptance criteria in the trail plan.md, makes no tracker call and still runs the five stages.",
+      "category": "positive"
+    },
+    {
+      "name": "tracker-null-keeps-the-jira-path-without-a-trail",
+      "prompt": "Implement UPEX-5. issue_tracker in .agents/project.yaml is null and there is no trail block.",
+      "expected_behavior": "Resolves the tracker to jira and runs every Jira step exactly as written: the epic precheck, the start_working transition, the plan push to the Jira field, the PR path and the Ready For QA hand-off. Writes no trail folder, no trail file and no Trail: or Closes trailer, and states the resolved tracker in the Stage 1 plan.",
+      "category": "positive"
+    }
+  ]
+}

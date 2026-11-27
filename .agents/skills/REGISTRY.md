@@ -1,0 +1,600 @@
+# Skill Registry (auto-generated)
+
+> Generated: `2026-11-26T22:51:04.735Z`
+> Generator: `bun scripts/build-skill-registry.ts`
+> Protocol: `.agents/skills/agentic-dev-core/references/skill-resolver.md`
+
+This file is the per-session compact-rules cache for the Skill Resolver protocol.
+The orchestrator copies one or more `## Skill: <slug>` blocks below into every subagent briefing under `## Project Standards (auto-resolved)`.
+Subagents trust those compact rules and only read the full SKILL.md when explicitly instructed.
+
+Skills indexed: 24
+
+---
+## Skill: acli
+
+**Purpose**: Atlassian CLI (`acli`) for Jira, Confluence and org admin.
+
+**Compact Rules**:
+- Pass `--paginate` (or an explicit `--limit`) on any search whose result is counted, iterated or decided on. Pagination is opt-in and truncation is silent: there is no warning.
+- Exit 0 does not prove a subcommand exists. An unknown subcommand falls back to the parent help and exits 0, so check that the help body actually changed. Every multi-word flag is kebab-case; do not invent flags.
+- Verify auth status before any bulk mutation (`acli jira auth status`). Auth is per product (jira, confluence, admin and global are separate sessions), and a silent expiry leaves the batch half-applied with no clean rollback.
+- Pass the non-interactive confirmation flag on every mutating command in CI, or the command hangs waiting on stdin.
+- Author rich text in Markdown, convert it with `scripts/md-to-adf.ts` and pass the ADF. The CLI never converts Markdown and stores the literal characters, and hand-written ADF trips the combined-marks bug.
+- Let the converter's validation gate run on every ADF document before publishing, and read the field back after writing. The gate catches node-level errors; only the read-back catches Jira's silent server-side coercion.
+- Measure the serialized ADF of every rich-text value (description, comment, rich-text custom field) before writing it: `jq -c . <file>.adf.json | wc -m` must stay at or under 30000. Jira's cap counts the ADF JSON, which is several times longer than the Markdown. Over budget means stop and propose which sections move where; truncating, or splitting one value across two fields or comments, is off the table. Detail: "Size budget" under "Publishing rich text".
+- `workitem edit` takes no custom-field values. It hard-rejects every shape with exit 1, so editing a custom field on an existing item works only through the REST PUT path.
+- `--status` matches a status name, not a transition id; when two transitions reach one status, use REST `POST .../transitions` with the id.
+- Custom fields on `workitem create` go in `additionalAttributes` of `--from-json`, by numeric id.
+- `workitem edit` does not set COMPONENTS either: there is no flag and no `--from-json` key, so the edit succeeds and leaves components untouched without saying so. Set them at create time, or change them through the same REST PUT path.
+- The vendor's own `--help` examples are not safe to copy. Several omit the subcommand the flags live on (`workitem comment --key …` instead of `workitem comment create --key …`) and fail with `unknown flag`. The forms in this skill's references are the tested ones.
+- Resolve a `customfield_NNNNN` id through the host project's slug catalog instead of hardcoding it in a script or generated output. Ids differ per workspace; slugs travel.
+- The Atlassian host lives in `.agents/project.yaml` under `issue_tracker.atlassian_url` and is read through the accessor. An environment copy goes stale and points scripts at the wrong site.
+- Creating an issue link: `--out` and `--in` are empirically inverted against Jira's semantics. `--out` takes the prerequisite, `--in` the dependent. List the link afterwards to verify the direction, and delete and recreate it with swapped flags if it landed backwards.
+- Capture and surface the trace id from any backend failure. It is the only debug signal, and Atlassian Support needs it.
+- Known blind spots (enumerating custom fields, editing custom-field values, workflows, issue types, versions, components, attachments, watchers, adding an item to a sprint) go through REST or the opt-in Atlassian MCP, not through forcing the CLI.
+- A REST fallback that needs `ATLASSIAN_EMAIL` and `ATLASSIAN_API_TOKEN` runs inside the `.env` loader (`bunx varlock run --filter ATLASSIAN_EMAIL,ATLASSIAN_API_TOKEN -- sh -c '...'`) or through a bundled script that loads `.env` itself (`scripts/jira-attach-media.ts`). Exporting them, running `source .env` or printing them in the agent's shell is off the table.
+- Prefer API-token auth in scripted contexts, and pin the binary to an explicit version in production pipelines: tracking `latest` has caused same-day mass failures.
+
+**Read full SKILL.md when**: composing a specific command, publishing rich text, running the REST PUT workaround, or working any surface outside Jira work items.
+
+> Source: `.agents/skills/acli/SKILL.md` · phase: `unknown` · kind: `utility` · source: frontmatter `compact_rules` (verbatim)
+
+---
+
+## Skill: agentic-dev-core
+
+**Purpose**: Shared doctrine host for the workflow skills: briefing, dispatch, decisions, secrets, ADRs, DB changes.
+
+**Compact Rules**:
+- `agentic-dev-core` is a passive reference library: it creates or modifies no file, runs no external command (no `bun install`, `git` or `gh`) and provides no bootstrap or init action. The layer installs whole: `create-agentic-dev` for a new project, `create-agentic-dev --adopt` then `/project-adoption` for an existing app.
+- Work that looks adjacent belongs to another skill. `.context/` files go to `/agentic-dev-onboard` and `/project-foundation`. Tests, fixtures and test components go to `/unit-testing` and any test-automation skill. Adapting the framework to a stack goes to `/project-bootstrap` (new project) or `/project-adoption` (existing app). Project facts in `AGENTS.md` go to the docs follow-through (`references/docs-follow-through.md`), run inside the change that moved the fact. OpenAPI and API schemas go to `bun run api:sync`.
+- Secret hygiene (Critical Rule #1, binds every skill and subagent): use a secret only through its variable name (`$VAR` in the shell, a name in the MCP loader's `--filter` list). Do not open `.env*` (except `.env.example` and the committed `.env*.schema` files), `.auth/**` or `.claude/settings.local.json`, and do not print a value (`printenv`, `env`, `echo $SECRET`, `set -x`, `curl -v`). Check presence with `bun run setup:doctor --json` (set or missing per name). Do not run `varlock load`, even with `--agent`, against a schema `bun run vars:schema:check` has not passed: a scratch schema is banned because `--agent` redacts only `@sensitive` items. The human types every secret into `.env`; the AI writes a non-sensitive value (URL, project key, flag, port) only when asked, and only through `bun run env:set KEY=value`. Safe command shapes and the leak response: `references/secret-hygiene.md`.
+- Instructions maintenance (ADR-0014, binds every skill and subagent): any change to `AGENTS.md`, a section under `.agents/instructions/`, the router or a `triggers:` list follows `references/instructions-doctrine.md`. Place each sentence with its §2 decision tree, run its §6 procedure and close with `bun run instructions:check`. Section prose stays out of `AGENTS.md`. A router row changes only with the ADR that decides it (`bun run instructions:check --accept-router ADR-NNNN`). A trigger miss is fixed in the section's `triggers:` plus a labelled prompt in `cli/lib/fixtures/instruction-router-eval.json`, and the eval set is never relabelled to hide it.
+- GUARD architecture (ADR-0023, binds every skill and subagent that writes or reviews app code): code lives in four layers (`src/platform`, `src/adapters`, `src/features/<name>`, `src/app`) that import only downward, each feature has one door (`index.ts`, imported as `@features/<name>`), and `guard-manifest.json` is read before creating a feature or an action. Layers, rules R1 to R6, the layer map and the example: `references/guard-architecture.md`.
+- Correction to check (ADR-0023, binds every skill and subagent): when a review finding repeats, the first remedy is a `guard` lint rule or a guard-manifest check whose message names the doctrine and the root-cause fix. Prose is the remedy only for what a machine cannot judge.
+- Documentation contracts (ADR-0017, binds every skill and subagent that changes this boilerplate): close every change that adds, renames or retires a skill, a `package.json` script or a doc path, or that changes a behaviour a page describes, with the docs follow-through (`references/docs-follow-through.md`), decks (`packages/decks/**`) and the Pages home (`packages/pages-home/**`) included, in the same PR. When an edit lands inside a `LINT.IfChange(<label>)` region (the hook prints a `DOCS:` line), update every page its `LINT.ThenChange(...)` names in the same push. Add `Docs-Checked: <label> <reason>` to a commit message only when the documented behaviour did not change, and never by reflex or without a reason; pre-push and CI block otherwise. A drift found later gets a new marker. When the change touches `cli/`, `scripts/`, `.husky/`, `AGENTS.md` or `.agents/instructions/`, run the drift sweep (follow-through §6) after the verification gates. It is report-only: it greps the doc surface for prose that describes the old behaviour and counts the `Docs-Checked:` trailers the change used.
+- Sweep pending decisions (SPD, ADR-0019, binds the session the human types into: a top-level conductor, a super-conductor, an independent worker): when a turn would end with small open items for the human (a decision, an unconfirmed assumption, an item left for later), ask all of them with the harness's own structured-question tool, in rounds at the tool's per-call limit until done, each with a recommended option, a free-text way out and a "Later" option. With no tool, or a refused call, use a numbered list. Heavy decisions (tradeoffs, architecture, larger changes) go to the `mkd` deck: weight decides, never the count. A session launched by another session (its prompt carries the fleet token `/<skill> <label> fleet worker`: a worker, or a middle conductor) never asks the human: no question tool, no `mkd` deck, no sweep. It sends what `references/decision-protocol.md` §5 escalates (§5.1 applied) and every error or blocker it cannot clear to its launcher (`ask`, then it ends its turn; `escalation`; or a `BLOCKED: ` status without a dispatch), which relays it. The one exception is a request the human typed into that session, or one its brief grants in writing; the session then tells its launcher what it asked and the answer. Subagents and routines never ask: they list pendings in their report. Full: `references/decision-elicitation-doctrine.md` §0 and §7.
+
+**Read full SKILL.md when**: the compact rules above are insufficient (e.g. novel scenario, debugging, or the briefing tells you to load the full skill).
+
+> Source: `.agents/skills/agentic-dev-core/SKILL.md` · phase: `foundation` · kind: `core` · source: frontmatter `compact_rules` (verbatim)
+
+---
+
+## Skill: agentic-dev-onboard
+
+**Purpose**: Onboard a newcomer to this repo's dev flow and hand off to the right skill.
+
+**Compact Rules**:
+- Use `library-docs` (Context7) for "how to use X": official docs, current API
+- Use `web-search` (Exa or Tavily, connected at harness level) for "how to solve X": community fixes, troubleshooting
+- Use Atlassian only as a fallback; prefer the `/acli` skill (fewer tokens, faster)
+- What this skill does not do:
+- Implement features: use `/sprint-development`
+- Write unit tests: use `/unit-testing`
+- Refine acceptance criteria: use `/product-management`
+- Define a brand-new product: use `/project-foundation`
+- Scaffold backend or frontend code: use `/project-bootstrap` (greenfield only; `bun run bootstrap:guard` refuses its base phases on an existing app)
+- Teach the agentic layer an existing app: use `/project-adoption`
+- Generate the in-app `/qa` page and credentials artifact: use `/testability-guide`
+- Entry path: `.template/installer.lock.json` with `adopted: true` is an adopted app (tour the adoption hand-off, never the `/project-bootstrap` base phases); otherwise it is a new project. Stack facts come from the `stack:` block of `.agents/project.yaml`, never from this skill's defaults.
+
+**Read full SKILL.md when**: the compact rules above are insufficient (e.g. novel scenario, debugging, or the briefing tells you to load the full skill).
+
+> Source: `.agents/skills/agentic-dev-onboard/SKILL.md` · phase: `foundation` · kind: `workflow` · source: frontmatter `compact_rules` (verbatim)
+
+---
+
+## Skill: autonomous-delivery
+
+**Purpose**: Unattended delivery runs: audit git, pick genuinely unblocked work, dispatch the owning skill, report.
+
+**Compact Rules**:
+- **Git is the source of truth; the tracker is a hint.** A ticket shipped only when `git merge-base --is-ancestor <mergeCommit> <integration-branch>` succeeds. A status of ready-for-QA, done or merged proves nothing, because merge automation fires on any pull request merge, including a chain's internal ones. Never advance a dependency on a status flip.
+- **`<integration-branch>` is read, and may be the production branch.** It is `git_strategy.branches.integration`, or `git_strategy.branches.production` when that is null (`solo-main`, `github-flow`, `trunk-based`). Every ancestry check, base check and merge-in runs against it, and a null integration never ends a run. With a null integration the run never merges: the ticket stops at an open PR with its preview deployment verified, because the merge to production is `/sprint-development` Stage 5, a human-gated event. App commands, branches and database changes follow `## Stack parameters` of `/sprint-development` (`{{stack.*}}`); capability `db` binds only a ticket that touches the database.
+- **Run `git fetch` immediately before every ancestor or fast-forward check, every time.** A merge made through the host's API updates the real ref at once; your remote-tracking ref updates only on the next fetch.
+- **One lock per mode, never a queue.** A live lock for your mode means another run owns it: exit cleanly with a report, without waiting, queuing or running anyway. A lock older than `lock_staleness_minutes` is abandoned: reclaim it and log the reclamation.
+- **An empty run is a correct outcome.** When nothing is genuinely unblocked, stop and say so. Selecting marginal work to avoid an empty report is the failure this phase exists to prevent.
+- **Caps are hard: `story` 1 per run, `bug` 3 sequential (each fully closed before the next), `discovery` writes no code.** Two chain-sized stories do not fit in one run's context.
+- **AI Effort High is a note, never a skip.** Read `{{jira.ai_effort}}` at selection and always proceed. `High` (or unset) is written in the plan and the PR description (the story may be split; about 200 changed lines and 2 to 5 files per stacked PR is the reference), and never makes the run skip, defer or escalate the story. A missing ATP is flagged to QA in a comment, never a block.
+- **The close-out DTU and assignee are verified, never invented.** At the verified Ready For QA state the owning skill reads the current `{{jira.development_token_usage}}`, adds this cycle's measured delta and posts `DTU cycle N: +x K (total y K) source=<harness or human>`. With no figure the field stays empty and N/A with the reason, never an estimate. It moves the native `assignee` to the `{{jira.qa_assignee}}` QA (empty: leave it and say so in the QA comment) and reads it back.
+- **Write the handoff as you go, never at the end.** A run that exhausts its context cannot write up why. Checkpoint after every phase and after every completed slice.
+- **When context runs low, push the branch first, then record resume state, then stop.** Unpushed commits in a disposable worktree are the only unrecoverable loss here. A clean mid-work handoff is a success.
+- **Applying a schema change to shared infrastructure is irreversible and hits every concurrent agent.** Under `migrations: confirm` (default) the run stops with an escalation that asks for approval, stating the target and whether the change is additive or destructive. Under `migrations: autonomous` it proceeds for additive changes only and still stops for anything that drops, renames or rewrites a live object. Composing the change (and its file, when `{{stack.database.migrations_tool}}` keeps one) is always autonomous; applying it is not. How it is applied (the DB MCP, or the app's own tool for `prisma` / `drizzle`) is `agentic-dev-core/references/db-change-doctrine.md`; this gate decides only whether.
+- **Read the migration history through the DB MCP immediately before composing a schema change**, and take any file's number or version from it, never from a local directory listing. The ledger can be ahead of your branch by a peer's unmerged migration.
+- **Read regenerated output before committing it.** Types, clients and API specs generated from a shared live instance silently absorb a concurrent sibling's unmerged schema. Diff it, and strip foreign entries only after proving zero consumers.
+- **The dispatch brief carries the push-and-PR permission.** Component 7 says the dispatched agent may push its own work branch and open its PR against `<integration-branch>` (the brief-as-approval of `/git-flow-master` "Autonomous use"); merging follows the merge permission.
+- **Give every dispatched agent its own worktree.** A background subagent writes into its dispatcher's working directory by default, outlives its dispatcher, and keeps mutating shared state after the dispatcher is gone.
+- **Merge the base into a branch a subagent already pushed, never rebase it:** `git checkout -B <branch> origin/<branch> && git merge <integration-branch> --no-edit`. A rebase forces a force-push, which rewrites pushed history.
+- **An unmapped transition is a flag, never a guess.** When a transition slug the run needs is absent from `.agents/jira-workflows.json` (or Jira rejects a mapped one on a validator), fire nothing, leave the issue where it is, and name the slug, the live candidates and the recommended `bun run jira:sync-workflows` in the run report. Use no remembered id, no status-name guess and no invented field value (`agentic-dev-core/references/artifact-lifecycle.md` §4 step 6, §4.2).
+- **Green tests are not evidence the feature works.** Fixtures that seed the column the code reads, rather than the column production writes, keep every test green over a dead data path. Require at least one assertion against a real production write path before calling an acceptance criterion covered.
+- **Editing a skill's rules does nothing until the registry is regenerated** (`bun run skills:registry`). The registry is what reaches a subagent briefing.
+- **Decide technical calls yourself, after searching the record, and never wait for a person.** Follow `agentic-dev-core/references/decision-protocol.md`: search, follow what is settled, run a scored judge panel when the call is novel, and escalate only product, a novel security posture, irreversible actions and whatever the operator reserved. An escalation is a clean stop (§5.2): write the entry, do the reversible work, end the run. Nothing this skill calls waits for a person either. Record every autonomous decision where the next run's Phase 1 will find it.
+- **Whether a product call escalates is per-project config.** Read `decision_authority.product` in `.agents/project.yaml`. `escalate` (the default) stops the run. `decide` means there is no human PO: dispatch a scored decision subagent, publish the ruling to the ticket under a heading that names the authority, resync and continue, never styled as human sign-off. Categories 2 to 4 escalate under both settings (`decision-protocol.md` §5.1).
+- **Capabilities** (`metadata.requires_capabilities`): resolve each by tool-name suffix, any prefix. When none is available at the step that needs it, stop per `agentic-dev-core/references/mcp-capabilities.md` §4 and never substitute silently (built-in `WebSearch` / `WebFetch` only when the user chooses it).
+- **Three brakes, and a fix never starts a fix.** What a run produces passes checks (the app's own lint, types and test scripts, green on the final tree), then a review by a reader that did not write it (the Stage 3 review of `/sprint-development`), then a person's review after the run ends. A run that cannot pass a brake reports instead of pushing on. A run that fixes a failure never starts another fix run, and a failed ticket is retried at most three times before the report says `BLOCKED`. None of this waits for a person or narrows what the project's `autonomous_delivery` config lets the run merge. Detail: `### The three brakes` in Phase 3.
+
+**Read full SKILL.md when**: you are running any phase of a scheduled run, a gate fires, or the briefing tells you to load the full skill.
+
+> Source: `.agents/skills/autonomous-delivery/SKILL.md` · phase: `implementation` · kind: `workflow` · stage owner · source: frontmatter `compact_rules` (verbatim)
+
+---
+
+## Skill: business-api-context
+
+**Purpose**: The business meaning of the API: auth model and roles, route groups, who calls them, journeys, errors, integrations.
+
+**Compact Rules**:
+- Read the map through `bun run context:map business-api-context` (or `--section <id>` for one route group or journey). Skip `references/business-api-map.html` raw: its SVG is most of the bytes and none of the facts.
+- A placeholder map means there is no map. Say so and hand the user `project-context` mode `api`, so nobody mistakes an empty map for an empty API.
+- Take field names, types and required flags from the OpenAPI types (`bun run api:sync`, `@schemas/{domain}.types`) and the meaning from the map. When they conflict, the spec wins for shape and the running API wins for behaviour.
+- When a session observes something that contradicts a section (a status, a field, an auth rule), propose the one-section edit with its evidence to the user, or to the conductor when you are a supervised worker, and apply it only on approval. A routine with nobody applies nothing unless its brief names the map or section. Procedure: `references/refresh.md`.
+- Write only inside this skill's own `references/`. Jira, `.context/`, other skills, generated types and product code are out of scope, because this skill owns one map and nothing else.
+- Keep map content out of this SKILL.md. Judgment goes in `## Rules` or `references/gotchas.md`, dated and measured.
+- Before a step that uses `diagrams` (redrawing a figure), run the point-of-use check in `agentic-dev-core/references/mcp-capabilities.md` §4.
+
+**Read full SKILL.md when**: building a briefing for a route, OpenAPI or auth dispatch, deciding whether a section is stale, or proposing an edit to the map.
+
+> Source: `.agents/skills/business-api-context/SKILL.md` · phase: `unknown` · kind: `context` · extraction strategy: A
+
+---
+
+## Skill: business-data-context
+
+**Purpose**: The product's data model: entities, RLS, migrations, state machines and background jobs.
+
+**Compact Rules**:
+- Read the map through `bun run context:map business-data-context` (or `--section <id>` for one entity or flow). Skip `references/business-data-map.html` raw: its SVG is most of the bytes and none of the facts.
+- A placeholder map means there is no map. Say so and hand the user `project-context` mode `data`, so nobody plans a migration as if the schema were empty.
+- Cite a fact with its section id and `data-updated` date. A section older than the migration it describes is a hypothesis to check with `[DB_TOOL]`, not an answer.
+- When a session observes something that contradicts a section (a column, a policy, a trigger), propose the one-section edit with its evidence to the user, or to the conductor when you are a supervised worker, and apply it only on approval. A routine with nobody applies nothing unless its brief names the map or section. Procedure: `references/refresh.md`.
+- Write only inside this skill's own `references/`. Jira, `.context/`, other skills, migrations and product code are out of scope, because this skill owns one map and nothing else.
+- Keep map content out of this SKILL.md. A rule for reading the data goes in `## Rules` or `references/gotchas.md`, dated and measured.
+- Before a step that uses `db` (verifying a section) or `diagrams` (redrawing a figure), run the point-of-use check in `agentic-dev-core/references/mcp-capabilities.md` §4.
+
+**Read full SKILL.md when**: building a briefing for a migration, RLS or seed dispatch, deciding whether a section is stale, or proposing an edit to the map.
+
+> Source: `.agents/skills/business-data-context/SKILL.md` · phase: `unknown` · kind: `context` · extraction strategy: A
+
+---
+
+## Skill: business-feature-context
+
+**Purpose**: Knowledge of what the product does for its users, feature by feature: catalog, CRUD matrix, UI inventory, cross-feature flows.
+
+**Compact Rules**:
+- Read the map through `bun run context:map business-feature-context` (`--section <id>` for one feature or module). Do not read `references/business-feature-map.html` raw: its SVG is most of the bytes and none of the facts.
+- A placeholder map counts as no map. Say so and hand the user `project-context` mode `features`; do not place a story as if the product had no features.
+- Take how a screen looks from the live UI and the master design plan (`AGENTS.md` Rule 14), and what a feature does from the map. When they conflict, the running app wins for behaviour.
+- When a session observes something that contradicts a section (a CRUD action, a role gate, a page the inventory lacks), propose the one-section edit with its evidence to the user, or to the conductor when you are a supervised worker, and apply it only on approval. A routine with nobody applies nothing unless its brief names the map or section. Procedure: `references/refresh.md`.
+- Each feature entry carries what proves it works: the test or the live check that shows it works, or an explicit `none yet`. Name the entry as the feature's folder is named (`src/features/<name>/`, `agentic-dev-core/references/guard-architecture.md`), so a story, the map and the manifest share one word.
+- Write only inside this skill's own `references/`: no Jira, no `.context/`, no other skill, no design file, no product code.
+- Keep map content out of this SKILL.md. Judgment goes in `## Rules` or `references/gotchas.md`, dated and measured.
+- Before a step that uses `diagrams` (redrawing a figure), run the point-of-use check in `agentic-dev-core/references/mcp-capabilities.md` §4.
+
+**Read full SKILL.md when**: building a briefing for a UI, CRUD or navigation dispatch, deciding whether a section is stale, or proposing an edit to the map.
+
+> Source: `.agents/skills/business-feature-context/SKILL.md` · phase: `unknown` · kind: `context` · extraction strategy: A
+
+---
+
+## Skill: design-system
+
+**Purpose**: Writes DESIGN.md (Google Labs spec) for a product's visual identity, and designs one story's screen just in time.
+
+**Compact Rules**:
+- **D1.** Keep hex colours, font sizes and spacing values out of component code. They live in `DESIGN.md` frontmatter tokens and reach components through the Tailwind config or CSS variables.
+- **D2.** Answer "what colour is X?" and "what is the spacing scale?" by reading `DESIGN.md`. The file is the source of truth, for the assistant too, so a guess is never an answer.
+- **D3.** Rebrand surgically: upsert the tokens that change, keep the section order and the rationale prose. Regenerating from scratch loses both.
+- **D4.** Ship a token rename with a migration path for its consumers. A silent rename breaks every downstream import and `tailwind.config.js` reference.
+- **D5.** Do not override tokens inline (`style={{ color: '#fff' }}`, `className="text-[#1A1C1E]"`). The escape hatch becomes the rule and the token system rots.
+- **D6.** Accept a designer's hand-off only as exported token JSON or a built `DESIGN.md`, never a Figma URL alone. Downstream scaffolds need design intent a machine can read.
+- **D7.** Run the screen phase only on an explicit user opt-in, and take every mockup from a design tool: supplied by the user into `.context/designs/<project>/` (Mode B), commissioned through the Open Design MCP and exported there (Mode A, see `references/screen-design-mapping.md` S1), produced by Claude Code's own `design` skill, or generated as HTML through a loaded design skill (Mode C: the design set loaded before the first line of HTML, `agentic-dev-core/references/skill-composition-strategy.md` §3.5). The orchestrating AI never writes mockup markup itself with no design skill loaded. A prototype that settles one logic question is inspiration only, never a mockup or a spec. A human ratifies every mockup, whatever produced it.
+- **D8.** In `extract` mode, copy the LIVE theme and nothing else: pick no catalog brand, invent no token, write no application code. `DESIGN.md` mirrors `tailwind.config.*`, the stylesheet the root layout imports and `components.json`, each value in its own CSS format with a `# <file> <selector>` provenance comment. A kind the code lacks is omitted and reported as a Discovery Gap. Only `DESIGN.md` (plus an accepted variant) and `.session/design-system/` may change. Lint must reach `errors: 0`, and a sub-AA warning the app ships is reported, never fixed in the token (`references/extract-from-code.md`).
+- **D9.** Feature UI lives in `src/features/<x>/`, and shared primitives (the components built from the tokens) live in the design system (`agentic-dev-core/references/guard-architecture.md` §1).
+
+**Read full SKILL.md when**: the compact rules above are insufficient (e.g. novel scenario, debugging, or the briefing tells you to load the full skill).
+
+> Source: `.agents/skills/design-system/SKILL.md` · phase: `foundation` · kind: `workflow` · stage owner · source: frontmatter `compact_rules` (verbatim)
+
+---
+
+## Skill: escuadra-context
+
+**Purpose**: Escuadra product and UI rules for this football trivia app.
+
+**Compact Rules**:
+- Interface text, commits and chat replies are in Spanish from Spain. The reference design is the Figma file and the screens are replicated as they are.
+- Screens use only `useRepository()` / `useLoad()`; they never import mock data or Supabase directly.
+- Colors, borders and shadows come from `src/spa/styles/tokens.css`. Everything interactive has a `data-testid` shaped `pantalla-elemento`.
+- Only official challenges count for the ranking and the streak.
+- Screenshots are compared with zero tolerance. Never regenerate them to make a change pass without comparing with the design first.
+
+**Read full SKILL.md when**: the compact rules above are insufficient (e.g. novel scenario, debugging, or the briefing tells you to load the full skill).
+
+> Source: `.agents/skills/escuadra-context/SKILL.md` · phase: `unknown` · kind: `context` · source: frontmatter `compact_rules` (verbatim)
+
+---
+
+## Skill: git-flow-master
+
+**Purpose**: Git operator that adapts to the repo's branching strategy.
+
+**Compact Rules**:
+- Read the repo state (status, branches, diff, log, fetch, upstream, remotes) at the start of every invocation and report it before acting (Step 1). A wrong guess about state is the most common git mistake.
+- The strategy comes from the `git_strategy:` block in `.agents/project.yaml`, read on every invocation; then layout heuristics; then ask. Never pick one silently, never infer it from a skill example or from another project, and persist a new resolution back into that block, never into a separate file or into `AGENTS.md`.
+- `strategy: solo-main` is the shipped default, not evidence of a decision. `meta.strategy_source` tells them apart: `inherited` means nobody chose. On a named project (`project.project_name` set) whose `strategy_source` is still `inherited`, offer Strategy Setup once per session and say what the default costs (no integration branch, no promotion path, no review gate). Only Strategy Setup stamps `chosen`. Never auto-run it; on a "no", proceed under the inherited strategy.
+- `policy:` records intent, not enforcement. At the first push, PR or merge intent of a session, run `bun run git:policy verify` (Step 1b), then `--stamp` when clean. Never hand-query the protection endpoints, and never state what the remote requires from a `declared` reading: say "declared, not verified".
+- GitHub has two protection mechanisms, classic (`branches/{b}/protection`) and rulesets (`rules/branches/{b}`); `git:policy verify` queries both. A `404` on the classic endpoint does not mean unprotected, because rulesets enforce PR requirements without it. A push that succeeds does not prove a rule is absent: admins bypass rulesets while the rule still binds everyone else. Report it as a bypass, never as permission.
+- Report drift, never auto-correct it. A mismatch between `policy:` and the host is shown with both values and three options (update the yaml, change the host, accept and record why). Editing `.agents/project.yaml` needs the user's choice, and so does writing the host: `git:policy apply` is a dry run until `--yes`, and it refuses to remove a guard, lower the approval bar, turn off code-owner review or widen the merge methods unless `--allow-loosening` names that specific give-up.
+- `require_code_owner_review: true` with no `CODEOWNERS` file is unsatisfiable, not strict: nobody outside the bypass list can clear it, so every merge becomes a bypass. Treat it as drift with a named remedy (add the file, or turn the flag off).
+- Config snippets in `references/` are illustrations. A claim about this repo's strategy, branches or policy cites `.agents/project.yaml` (or `git:policy verify` output) read in the same turn.
+- Before a direct push to a protected branch, resolve `git_strategy.policy.direct_push_to_protected` (Critical Rule 4). `allowed` is standing authorization: push without asking, because asking anyway collapses it into `confirm`. `confirm` asks every time. `forbidden` refuses and routes through a PR. A missing or null block behaves as `confirm`.
+- Never rewrite pushed history (amend, rebase) and never force-push (Critical Rule 5, an invariant no authorization relaxes). `--force`, `--force-with-lease` and `--no-verify` need the user's explicit request and an unshared branch. Fix forward with a new commit.
+- Offer admin bypass only when `admin_bypass: true`, and only after confirming at runtime that the operator is an admin and accepts the specific irreversible action.
+- Never run a repo-wide discard (`git restore .`, `git checkout -- .`, `git reset --hard`, untargeted `git stash`, `git clean -f`) (Critical Rule 13): concurrent sessions may share the working tree. Discard only explicit paths this session modified, and when ownership is unclear, stop and ask.
+- In a stacked or chained PR, the body names its place in the chain (which PR comes before it and which come after) so a reviewer knows what to read first.
+- Never `git add -A` or `git add .`. List explicit paths, so a secret or another session's work cannot ride along.
+- One commit has one responsibility, a conventional prefix and no AI attribution (Critical Rule 3). Every commit ends with the two forensic trailers `Worktree: <name|primary>` then `Session: <label>`, copied from the `AGENT IDENTITY:` context line (`unknown` when unresolved). They are provenance, not attribution; harness-branded trailers (`Claude-Session:`, an AI `Co-Authored-By:`) stay forbidden (§3.2).
+- When the pre-push or CI documentation-contract gate names a region (ADR-0017), update every page it lists in the same push. Only if they still hold, add `Docs-Checked: <label> <reason>` above the forensic trailers, and always with the reason, never by reflex.
+- When a pre-commit hook rejects a commit, stop, fix the cause and create a new commit. `--amend` would rewrite the previous, unrelated commit.
+- Propose every branch name, commit set and PR body, and wait for an explicit OK before executing (Autonomous use below says who gives it when no person is present). Commits, branch names and PR bodies are English.
+- `gh` is the PR transport. If it is missing or unauthenticated, surface the blocker and do not imply a PR was opened. Stop at PR creation: merging is the user's next step.
+- When a planned change passes about 400 changed lines, run the chained-PR decision (Step 4) before coding, and re-run it if the real diff outgrows the estimate. Return `Chain strategy`, `Decision trace` (each tree question answered with the reason from this change) and `Decided by`. This skill is the only authority that fills those lines; a bare label counts as no decision.
+- When a conflict fires, diagnose and classify it first, present options ranked by safety, and prefer a safe abort over a guess. Never pick a destructive option silently.
+
+**Read full SKILL.md when**: running Strategy Setup, resolving a specific conflict type, planning a chain, picking a base branch or prefix for an unfamiliar strategy, setting up a worktree, or when the compact rules do not settle the operation.
+
+> Source: `.agents/skills/git-flow-master/SKILL.md` · phase: `implementation` · kind: `workflow` · source: frontmatter `compact_rules` (verbatim)
+
+---
+
+## Skill: github-projects
+
+**Purpose**: GitHub Issues and Projects v2 operator for projects whose `issue_tracker` is `github`.
+
+**Compact Rules**:
+- Resolve the tracker first: `issue_tracker.issue_tracker` in `.agents/project.yaml`, read in the same turn (`cli/lib/issue-tracker.ts`). Act only when it is `github`; for `jira` hand off to `/acli`, for `none` make no tracker call.
+- Read-modify-read: every card move is `gh project item-edit --field Status --value "<option name>"`, followed by `gh project item-list` to read the new Status back (Critical Rule 16). A zero exit says the call was well formed, never that the card moved. No id catalog: options are addressed by name.
+- Status names come from `issue_tracker.github.statuses` (abstract backlog, in_progress, in_review, on_staging, released). Never hardcode the five names, never invent a sixth column. `blocked` is a label, not a status.
+- Every issue creation and every Stage-1 idea asks which milestone it goes into: the open releases, "new release" (writes the release file and syncs it) or an explicit "unplanned" from the owner. An issue never lands without that answer.
+- An issue body carries an acceptance-criteria checklist (`- [ ]`) before it leaves Backlog, and an issue type (Bug, Feature or Task) set with `--type`. English.
+- Add each issue to the Project (`gh project item-add`) right after creating it: auto-add is UI-only, so nothing does it for you. Never add PRs to the Project: the built-in "PR merged" workflow would then fire on a merge into the integration branch and set Released too early.
+- Never edit Status options by hand-built GraphQL. `bun run github:project:bootstrap` is the only writer: `updateProjectV2Field` replaces the whole option list, so a name-based edit wipes every card in a renamed column. A rename is `--rename Old=New` (keeps the id), a drop that holds items needs `--force`, and the dry run is the default.
+- Never run a `gh` call that creates, edits or deletes on GitHub without the user's request or the owning workflow's step. Reads are free; a project, milestone or label write follows the dry-run, then `--apply`.
+- `gh project` needs the `project` token scope. When it is missing, stop and give the owner the command (`gh auth refresh -h github.com -s project`); a missing scope is the human's to grant, never worked around.
+- Releases are milestones with a local record: `<issue_tracker.github.releases_dir>/<slug>.md`. The definition goes repo to GitHub, the membership goes GitHub to the generated block. Close a release with `bun run github:releases:sync --close-out <slug>`, which reads back that every issue is closed and Released.
+- Built-in workflows, auto-add, auto-archive and column limits are UI-only. State the gap and move the card explicitly instead of promising automation; `references/automation-gaps.md` lists the four.
+
+**Read full SKILL.md when**: the compact rules do not settle the operation, or a reference below is named for it.
+
+> Source: `.agents/skills/github-projects/SKILL.md` · phase: `planning` · kind: `workflow` · source: frontmatter `compact_rules` (verbatim)
+
+---
+
+## Skill: jira-administration
+
+**Purpose**: Administer Jira in two approval-gated modes: Components reconciliation and instance migration.
+
+**Compact Rules**:
+- Take the mode from the first token of `$ARGUMENTS`; with no match, ask, and a bare "fix Jira" or "sync Jira" picks none.
+- One mode per run. Load only its reference, never combine the two or fall through into the other, and run only the selected reference's verification steps.
+- Load `/acli` before any Jira operation. Load other tool-owner skills only when the selected reference requires them.
+- Missing MCP or Jira credentials is a hard stop (`AGENTS.md` Critical Rule #9). Name the exact env var, point at `.env` and `.env.example`, ask for an agent-session restart. No workaround, no partial run.
+- Read the live state before authoring any plan. Nothing is created, applied, deleted or repointed without the user's explicit approval given inside the same run.
+- `components`: derive and inspect, author the plan file, dry-run, wait for explicit approval, then `--apply`.
+- `instance-migration`: resolve and confirm both instances, audit and verify reachability, wait for explicit approval, then change files or the `acli` session. That session lives at `~/.config/acli` and is machine-global, so a re-login repoints every repo on the host, not only this one.
+- The Atlassian host lives in `.agents/project.yaml` under `issue_tracker.atlassian_url` and nowhere else locally. A stale `ATLASSIAN_URL` in `.env` or the process environment is contamination: delete it, never update it, because a second copy is what goes stale.
+- Template-repo carve-out: when `.agents/project.yaml` has `project.project_name` set to `null`, the repo is an un-onboarded template. Leave `atlassian_url` and `project_key` as `null`, say so in the report, and do not create a commit to hide the emptiness.
+
+**Read full SKILL.md when**: the mode is ambiguous, a dry-run diff or migration audit looks wrong, or you need the selected reference's step-by-step phases and verification list.
+
+> Source: `.agents/skills/jira-administration/SKILL.md` · phase: `unknown` · kind: `workflow` · extraction strategy: A
+
+---
+
+## Skill: orca-orchestration
+
+**Purpose**: Renamed: load agent-orchestration.
+
+**Compact Rules**:
+- This skill was renamed: load the user-level skill `/agent-orchestration` (from `upex-galaxy/agentic-user-skills`) and follow it instead.
+- If it is not installed, run `bun setup`; until then a fleet runs on one-shot subagents plus the `launch.txt` lines a human pastes.
+- This repo's own parts are `agentic-dev-core/references/fleet-launch-seam.md`, `agentic-dev-core/references/fleet-provisioning.md` and `agentic-dev-core/references/fleet-project-profile.md`.
+- This stub is deleted once every downstream repo has synced (ADR-0025).
+
+**Read full SKILL.md when**: the compact rules above are insufficient (e.g. novel scenario, debugging, or the briefing tells you to load the full skill).
+
+> Source: `.agents/skills/orca-orchestration/SKILL.md` · phase: `unknown` · kind: `workflow` · extraction strategy: B
+
+---
+
+## Skill: pr-review-lead
+
+**Purpose**: Reviews a colleague's pull request as a Tech Lead against the repo's development doctrine, citing doctrine or code for every finding.
+
+**Compact Rules**:
+- Run the strictness preflight (Flexible, Standard or Strict) before reading any diff. If the invocation already answered it, do not ask again.
+- At Flexible and Standard, a doctrine-pattern deviation is an observation framed as a comparison, never an error, and it does not move the score the way a Real defect does. Strict widens what counts as a finding; it does not turn a pattern note into an error.
+- When the target repo ships its own doctrine (`AGENTS.md`, `.agents/skills/`, `.context/`), load it before analyzing. Only when it has none is this repo's doctrine the reference standard, and the output says so once, up front.
+- Present a "best practice" as a repo requirement only with a `file §section` citation. An ungrounded call is labeled as opinion, in those words.
+- Put every finding in exactly one bucket (Real, Pattern or Positive) with a severity from the shared scale in `sprint-development/references/review-pr.md` §"Adjudication contract" (`BLOCKER`, `MAJOR`, `MINOR`, `NIT`).
+- Fill the Positive bucket. A review with no positives on a PR that clearly has some is uncalibrated, not rigorous.
+- Read the actual diffs, never the PR description. On a PR too large for one diff, page the per-file patches, and check the commit headlines first so a lockfile, generated-types or vendor-sync commit is not reviewed line by line.
+- When the PR has a ticket, plan or acceptance criteria to check against, review on two axes, Spec and Standards, each by its own reviewer in a fresh context, with the briefs in `sprint-development/references/review-pr.md` `## Two-axis review`. Check the new tests for lying tests (LT-1 and LT-2 with Spec, LT-3 with Standards), defined in `unit-testing/references/tdd-workflow.md`.
+- Present the findings table, the positives and a score out of 10 as a checkpoint, then let the user triage and re-classify. Their context decides what ships; do not defend the first-pass severity.
+- Skip what `guard` lint and `guard-manifest.json` already check (layer direction, feature door, thin app, registry). Spend GUARD review on judgment (`agentic-dev-core/references/guard-architecture.md`): is the action named as the business names it, is the feature a deep module (deletion test), is a new adapter a real seam or a hypothetical one (one adapter is hypothetical), does each exception carry an `eslint-disable` with a reason.
+- Post to GitHub only after an explicit go-ahead on the final draft. Approval for a different PR does not carry over, and silence is not approval. The comment carries no AI-generated marker.
+- With no person to ask, follow `## Who holds the gates`: the brief's strictness or Standard, no triage, and the draft saved to the report unless the brief names this PR and says to post.
+- Drafting and posting stay with the orchestrator, because tone and an outward action are not for a subagent.
+- Write the posted comment in English (Critical Rule #12) unless the user asked for another language for that comment.
+- Review the PR and leave the fixing to its author: push nothing to the PR under review. A fix the user wants goes through the PR author or a separate branch through `/git-flow-master`. Submit a formal GitHub approval or change request only when the user asks for that action; the default artifact is a plain comment.
+
+**Read full SKILL.md when**: applying the severity rubric or score weighting, probing an external repo for its doctrine, or drafting the posting flow itself.
+
+> Source: `.agents/skills/pr-review-lead/SKILL.md` · phase: `unknown` · kind: `workflow` · extraction strategy: A
+
+---
+
+## Skill: product-management
+
+**Purpose**: Manages the Jira product backlog after the PRD exists.
+
+**Compact Rules**:
+- **I1.** Never hardcode `customfield_NNNNN` IDs in skill or AI output. Resolve them through `{{jira.<slug>}}`.
+- **I2.** Never prefix a story summary with `FR-XXX` and a dash. Put `**Source spec:** FR-XXX` as the first line of the body.
+- **I3.** Never copy AC, Scope or Out-of-Scope content into the description. They live only in their custom fields.
+- **I4.** Never let two stories in the same epic share a literal Scope bullet. Surface it as `overlap_alert` and have it resolved.
+- **I5.** Never invent acceptance criteria, scope items or business rules. The source is the PRD, the SRS, a business map or explicit user input. With no source, report a `gap`, halt that field and continue with the rest.
+- **I6.** Never batch several ADF custom fields in one MCP update call. Split per field, or pre-convert with `md-to-adf.ts`.
+- **I7.** Never nest inline `code` inside `**bold**` markdown headed for ADF. The converter combines incompatible marks and Jira rejects the call with HTTP 400.
+- **I8.** Never create stories without running the dependency-linking phase right after. Local declarations are not enough; the Jira links must exist.
+- **I9.** Never hardcode `acli`, `mcp__atlassian__` or REST URL examples in this skill. Use `[ISSUE_TRACKER_TOOL]` pseudo-code; the tool skill owns the syntax.
+- **I10.** Never use the word "Wave". Say "Sprint" (or "Master Sprint" or "Execution Sprint" when the layer matters).
+- **I11.** Never skip sprint-sequencing after creating several linked stories.
+- **I12.** Never hardcode link-type names (`"Dependencies"`, `"Blocks"`, `"Relates"`). Use `{{jira.link_types.<slug>}}`.
+- **I13.** Never use `Relates` for a dependency whose order matters: it is symmetric and loses the direction. Use `Dependencies`, or flag the fallback explicitly as a degradation.
+- **I14.** Never ignore cycle detection in sprint-sequencing. A cycle in the `dependencies` graph is a bug: halt and report.
+- **I15.** Never put implementation surface in `{{jira.acceptance_criteria}}`, `{{jira.scope}}`, `{{jira.out_of_scope}}` or `{{jira.workflow}}`. Implementation surface means API or endpoint paths, HTTP status codes, DB table or column names, error-code identifiers (such as `VALIDATION_ERROR`), framework or library names, transaction or locking patterns, and internal algorithms. Those describe how; AC, Scope and Workflow describe what the persona observes, does or receives, and the how belongs in the impl-plan from `/sprint-development`. `{{jira.business_rules_specification}}` tolerates domain rules (boundaries, role gates, retry semantics, audit guarantees) but not internal algorithms. Exception: when the persona is an API consumer (DevEx, integration agent, headless client), endpoint paths and response shapes are part of their observable experience. Test: if the criterion stays true after a stack swap it is in business voice; if a swap breaks it, rewrite it.
+- **I16.** Never populate `{{jira.ai_effort}}`, `{{jira.development_token_usage}}` or `{{jira.quality_token_usage}}` on create or edit. QA sets AI Effort in shift-left, the dev and QA agents measure the two token fields, and the PO refines the story. A `High` AI Effort is a size warning for the dev, never a gate: the PO may propose splitting the story (clone it, refine both, leave both Ready For Dev), and whoever resolves a split may add one optional label (`split-accepted`, `split-edited` or `split-rejected`; no label is valid), but nobody waits for it. No story points, no planning poker.
+- **I17.** Never write `{{jira.acceptance_criteria}}` as plain text. Wrap every scenario in a fenced ```gherkin code block, on the first create and on every edit or re-format pass, because Jira ADF renders the fence as monospaced, highlighted text and that is the only readable shape for Given/When/Then in the Jira UI. When refining existing AC that was written unfenced, rewrite the whole field to apply the fence.
+- **I18.** Never create or edit a story or epic before an active dependency-discovery pass over the current backlog graph (`.context/PBI/epic-tree.md`, the live Jira link graph and, when generated, the data map from `bun run context:map business-data-context`). The default is that no global or infrastructural dependency becomes a story link: generic prerequisites (auth exists, the DB exists, the framework is set up) are noise. Only feature-level, observable, explicit dependencies become candidate links. The output is a `(from, to, source-of-decision)` matrix, confirmed before any Jira link is written. "Link only if obviously needed" is rejected: discovery is an active step.
+- **I19.** Never use a generic actor ("the user", "the customer", "the system") in the `As a` line of a story. The persona resolves to a named entity in `.context/PRD/user-personas.md` (a business-maps project with no PRD: an actor the domain glossary or the data map's `access-control` section names). When no persona matches, surface a `gap` and never invent one.
+- **I20.** Never write the `As a … I want to … so that …` sentence as the story summary. The summary is `{Feature} | {Action}` (see Story title format) and the full sentence lives only in the description's `## User story` section. Persona and benefit never appear in the title. Domain-entity prefixes that collide with agile or QA vocabulary carry the `TMS-` (project-domain) tag; cross-cutting features stay plain. Epics keep noun-phrase titles (no pipe, no verb).
+- **I21.** Never publish Jira content whose domain entity, process or state names diverge from `.context/business/domain-glossary.md`, and never use a term its anti-glossary bans (use the prescribed replacement). A needed term missing from the glossary is a `gap` for the PM to add through the glossary's change protocol, never a term to invent mid-story.
+- **Capabilities** (`metadata.requires_capabilities`): resolve each by tool-name suffix, any prefix. When none is available at the step that needs it, stop per `agentic-dev-core/references/mcp-capabilities.md` §4 and never substitute silently (the built-in `WebSearch` or `WebFetch` only when the user chooses it).
+
+**Read full SKILL.md when**: the compact rules above are insufficient (e.g. novel scenario, debugging, or the briefing tells you to load the full skill).
+
+> Source: `.agents/skills/product-management/SKILL.md` · phase: `management` · kind: `workflow` · stage owner · source: frontmatter `compact_rules` (verbatim)
+
+---
+
+## Skill: project-adoption
+
+**Purpose**: Adopts an existing app into the agentic layer after the `--adopt` install, with one approved plan and no change to the app.
+
+**Compact Rules**:
+- Run exactly one mode: `adopt` (the default, Phases 0 to 9 in `references/adoption-workflow.md`) or `check` (the Phase 0 signals plus the `bun run setup:doctor` stack drift section; read-only). Forward the rest of `$ARGUMENTS` unchanged.
+- Entry gate: `.template/installer.lock.json` records `adopted: true` and `git status --porcelain` is empty (the adoption install is committed). A missing lock means the files were never installed: stop and say to run `bun <boilerplate clone>/cli/update-boilerplate.ts --adopt` first. A greenfield lock (`adopted` absent) means the repo was scaffolded: stop, because `/project-bootstrap` and `bun run agents:setup` own it.
+- Phases 0 to 2 are sealed, with no tracked file changing. The seal is measured: `git status --porcelain` after Phase 2 differs from Phase 0 only by `.context/reports/project-adoption-plan.md`. Phase 3 starts once the person approves that plan in this run (`Status: PENDING APPROVAL` becomes `APPROVED`). Resume a plan from an earlier run and never rewrite it.
+- The v1 support set is `V1_SUPPORTED` in `cli/lib/stack-descriptor.ts` (Next.js plus the Postgres family, bun). Anything outside it stops at analysis and names the field and value (owner decisions OD2, OD3), because adapting an unsupported stack or switching a package manager is what this limit prevents.
+- One app per adoption: `stack.app_root` names it (OD6). A monorepo with several Next.js apps means you ask which one, and you never adopt two in one run.
+- The refusal list binds every write and every briefing. Never write or delete a file under `stack.app_root` that existed before adoption. Never run a migration, apply SQL, change RLS, seed data or open a database connection in any environment (the adoption never touches a database; OD4 = C governs later delivery work, not this skill). Never add, remove, upgrade or downgrade an app dependency or regenerate its lockfile. Never edit CI workflows, `README.md`, `tsconfig.json`, eslint or prettier config, `.gitattributes`, `middleware.ts` / `proxy.ts` or an app `package.json` script. Never change git history, remotes, branch protection or rulesets. Never create Jira projects, fields, workflows or issues. Never push. Never write a secret value anywhere, `.env` included: the person types secrets, and `.env` takes non-sensitive values only.
+- Writes stay on the agentic surfaces the approved plan names: `.agents/project.yaml` (identity, `stack:` through `bun run agents:setup --stack`, environments, `updater.protected_paths`), non-sensitive `.env` values, the Jira catalogs under `.agents/`, a hand-copied framework skill (upstream's copy saved under `.agents/prompts/adopt-upstream/` only, on its own approval line, the app's copy backed up first), `api/openapi*` when absent before adoption, the saved instruction merge (`.agents/prompts/adopt-instructions.md`, own approval line, originals under `.backups/project-adoption/`), the app's `<app>-context` skill (its `description` only; a legacy `## 0.` block moves verbatim into `references/app-instructions.md` on its own line, and that file is never rewritten) with its pointer in `.agents/instructions/agent-project.md`, the plaintext MCP credential copies `bun run harness:env` retires, the plan file, `.context/reports/project-adoption-architecture.md` and `.session/project-adoption/`. The full allowlist is `references/adoption-workflow.md` §Refusal list.
+- A collision is refused file by file (OD7): a path the app already owned stays the app's, gets an `updater.protected_paths` entry and is reported. Never `take upstream` on an adopted repo, except for the app's hand copy of a framework skill (a folder upstream ships under `.agents/skills/`): it stays unprotected, and its row proposes `take upstream` on its own approval line (Phase 3).
+- Web platform pass (Phase 1.7): run `npx modern-web-guidance@latest legacy-scan .` from `stack.app_root` (read-only) and put the findings in the plan as a modernization proposal, never applied. Record the Baseline target the questionnaire returned (`## Web platform` in `agent-project.md`, written at Phase 6 only on its approval line).
+- Detection never guesses: an undetected value goes to the Phase 1 questionnaire or under `## Discovery Gaps`, and a null `stack.scripts.<x>` is skipped, with a note.
+- The app is intact when its own `build`, `lint`, `types` and `test` exit codes after Phase 7 equal the Phase 1 baseline. Run a script that may reach a shared database or a paid API only when the questionnaire confirmed it is safe; otherwise record it as not measured.
+- Fail-closed prerequisites a live app may lack (`testing.automation_identity`, `autonomous_delivery.automation_gh_account`, a dedicated DB role) go in the plan as owed by the team. This skill never creates them.
+- An adopted app's product docs are the business maps and the glossary (OD5). Never invent a PRD or SRS: `/sprint-development` accepts the maps instead, and `/project-foundation` Discovery-only adds the dev guide and glossary.
+- Close with the signal table, the plan marked `Status: COMPLETED` with its results block, and the hand-offs of the body table (`/project-context refresh-all` first, in a fresh session). Never chain them automatically, and propose the commit through `/git-flow-master` instead of making it silently.
+- GUARD on an adopted app (`agentic-dev-core/references/guard-architecture.md` §3): the app keeps its folders and maps them to layers in its own `eslint.config.js` as `settings.guard.layers`. The plan proposes that block, derived from the folders the analysis found, and the team applies it, because eslint config is on the refusal list. Lint runs at `warn` and the team fixes violations over time. Copy no example into the app: the example belongs to new projects.
+- Every gate that waits for a person has a path for a supervised worker and for a routine with nobody (the body section "With nobody at the keyboard", `agentic-dev-core/references/decision-protocol.md` §5.2).
+
+**Read full SKILL.md when**: the entry gate fails in an unexpected way, the app's stack is outside the v1 set, the instruction merge is pending, or a verification step disagrees with the baseline.
+
+> Source: `.agents/skills/project-adoption/SKILL.md` · phase: `unknown` · kind: `workflow` · stage owner · source: frontmatter `compact_rules` (verbatim)
+
+---
+
+## Skill: project-bootstrap
+
+**Purpose**: Scaffolds a new project's backend and frontend, plus API add-ons, once the PRD and SRS exist.
+
+**Compact Rules**:
+- **B0. Brownfield guard (fail-closed).** Run `bun run bootstrap:guard` at entry, before the session plan, and record its verdict and exit code in `plan.md`. Exit 2 (`existing-app`: an adoption lock, an app `package.json` or app files) refuses the base phases (backend setup and frontend setup: tables, RLS, seed, clients, `middleware.ts` / `proxy.ts`, layout, theme, `tailwind.config`, `shadcn init`, `next@latest`, README, demo pages, demo credentials). Quote the signals and route to `/project-adoption` (design identity: `/design-system extract`). Exit 2 with `template-base` (the app that ships with the template) refuses the base phases too, with nothing to adopt: continue with `/project-foundation`, `/design-system` and `/sprint-development`. The add-on phases stay available and read `stack:`. A base phase runs only on a plan that recorded exit 0, so a missing verdict means refused. Never override the verdict by reading the tree yourself.
+- **B1.** A new project uses the GUARD default layout (`agentic-dev-core/references/guard-architecture.md` §1: `src/app`, `src/features`, `src/adapters`, `src/platform`), with the example already inserted by the installer. The backend `api/`, `schemas/` and `db/` boundaries are its layer map (`api/` routes in `app`, `schemas/` and domain in `features`, `db/` in `adapters`), and the design-system structure stays in the frontend. That structure is framework architecture, and AGENTS.md §2 SIMPLICITY FIRST exempts it from the ban on speculative abstraction.
+- **B2.** Validate env vars at boot (Zod or an equivalent schema check). A missing variable that passes silently shows up as a cryptic production failure far from its cause.
+- **B3.** Never clobber existing scaffolding. B0 refuses the base phases on an existing app, so this rule binds the add-ons and a resumed greenfield run. Detect prior state under `app/`, `lib/` and `db/`, apply upsert semantics, patch surgically and keep the user's edits.
+- **B4.** Keep credentials, URLs and environment-specific values out of scaffolded code: secrets go in `.env`, non-secret config in `.agents/project.yaml`.
+- **B5.** Scaffold the frontend only once `DESIGN.md` exists at the repo root. Its tokens are the input contract for Phase 2, so run `/design-system` first. Never emit `tailwind.config`, `globals.css` or CSS variables over an app's existing theme: `/design-system extract` records an existing design identity, and nothing here replaces it.
+- **B6.** Generate the Supabase types whenever you scaffold the DB layer. Runtime TypeScript types have to match the live schema, because drift is a silent bug factory.
+- **B7.** Ship bearer-token auth with rate limiting and secret-rotation guidance in the same scaffold. Auth without both is a half-finished feature.
+- **B8.** Scaffold OpenAPI with the Scalar UI route at `/api/docs` (the `@scalar/nextjs-api-reference` route handler), so the contract is browsable from day one and downstream consumers trust it. Scalar is the standard for this stack: do not ship Redoc or Swagger instead. An existing app that already serves its own docs UI keeps it, and Scalar goes beside it only on the user's OK, never as a replacement.
+- **B9.** Load the stack skills before writing the DB layer or the UI layer. `supabase` and `supabase-postgres-best-practices` come before any install, DB-MCP schema, RLS or migration call, or type generation. The design set (`frontend-design`, `ui-ux-pro-max`, `impeccable`, `emil-design-eng`, `modern-web-guidance`, strategy doc §3.5), `shadcn` and `tailwind-css-patterns` come before the component strategy (Phase 1.6 of `references/frontend-setup.md`). A skill that is not installed is said once, with a pointer to `bun setup`, and the work continues; never skip silently (`agentic-dev-core/references/skill-composition-strategy.md` §3.5).
+- **B10.** Database changes go through the DB MCP under `agentic-dev-core/references/db-change-doctrine.md`: read `list_migrations` before the first write, run DDL only through `apply_migration`, take the route `stack.database.migrations_tool` names, verify at the destination, and record an ADR for an architecturally significant migration.
+- **Capabilities** (`metadata.requires_capabilities`): resolve each by tool-name suffix, any prefix. When none is available at the step that needs it, stop per `agentic-dev-core/references/mcp-capabilities.md` §4 and never substitute silently (the built-in `WebSearch` / `WebFetch` only when the user chooses them).
+
+**Read full SKILL.md when**: the compact rules above are insufficient (e.g. novel scenario, debugging, or the briefing tells you to load the full skill).
+
+> Source: `.agents/skills/project-bootstrap/SKILL.md` · phase: `foundation` · kind: `workflow` · stage owner · source: frontmatter `compact_rules` (verbatim)
+
+---
+
+## Skill: project-context
+
+**Purpose**: Generate or refresh project context: the business data, feature and API maps, the master implementation plan and the dev roadmap.
+
+**Compact Rules**:
+- Run exactly one mode: `data`, `features`, `api`, `master-plan`, `dev-roadmap`, `refresh-all` or `context-skill`. The first token of `$ARGUMENTS` is the mode when it matches one of these; otherwise resolve it from the trigger phrases in Mode routing. Load only that mode's reference, and open a second one only when `refresh-all` reaches it.
+- When the user named no mode, ask. A generic "refresh the context" is not `refresh-all`, because that chain rewrites five artifacts and the user has to ask for it.
+- The Mode routing table below maps each mode to its reference and its output file. Map modes write into the context skill's `references/<map>.html`; `master-plan` and `dev-roadmap` write `.context/master-implementation-plan.md` and `.context/dev-roadmap.md`.
+- `context-skill` scaffolds a project-owned `<aspect>-context` (`references/context-skill.md`, contract `agentic-dev-core/references/skill-scaffold.md` §3-§5) through `skill-creator` (T3), for an aspect the business maps do not cover. It cites its sources and copies nothing from them, and `refresh-all` never includes it. Its router row goes in the "Project context skills" table of `.agents/instructions/agent-project.md`, not in the synced `agent-skills-and-mcps.md`, because `bun sync` would drop it.
+- `refresh-all` runs `data`, `features`, `api`, `master-plan`, `dev-roadmap` in that order, one at a time. Each reference's own validation and approval gate closes before the next one loads.
+- A map mode writes only its own skill's `references/<map>.html`, read and checked through `bun run context:map <skill>`. The map skill already exists (delivered by `bun sync`, never scaffolded here). A project's legacy `.context/business/business-*-map.md` (the skill's `legacy` list in `CONTEXT_MAP_SKILLS`, `cli/lib/context-maps.ts`) is read as input and is never deleted.
+- A missing artifact, or a placeholder map, is CREATE mode: write once the analysis completes. An existing artifact is UPDATE mode: generate a candidate (for a map, only its stale sections), show the diff summary and wait for explicit approval. Overwriting without that approval, or regenerating a whole generated map, destroys edits its readers depend on. A map candidate holds its stale sections only (`business-context-maps.md` §4-§5), and `dev-roadmap` UPDATE is surgical: it regenerates the sort section and keeps the hand-authored edges and gates, as its reference defines.
+- Read `stack:` once per run (`.agents/project.yaml`, leaves `{{stack.<path>}}`) and parametrize the mode as `## Stack parameters` describes: every app path under `{{stack.app_root}}`, one app per run; the schema from `{{stack.database.schema_source}}` (`live` through `[DB_TOOL]` against the active env, production only when the user names it for this run; `migrations` from the files under `{{stack.database.migrations_dir}}`, offline). A null leaf means the app has none: skip it and say so. A missing block takes the defaults of `.agents/project.schema.yaml` plus one Discovery Gap naming `bun run agents:setup --stack`.
+- Hard dependency gates stop the run with the reference's exact message (the table in Dependency gates lists them). `master-plan` needs a generated data map, which `bun run context:map business-data-context` shows by printing sections instead of the placeholder notice. A missing soft dependency is a Discovery Gap and the run continues. `dev-roadmap` needs at least one epic with child stories in the issue tracker, and `api` needs an OpenAPI spec, a route-scannable backend or a Supabase-direct API.
+- Business facts come from sources. Read every source the selected reference requires; what stays unverified goes under the output's mandatory `## Discovery Gaps`, not into the body.
+- After a map write, review that skill's `## Rules` and `references/gotchas.md` against the new map and propose any change; the rules themselves are not rewritten here.
+- After a successful artifact write, add its pointer to `.agents/instructions/agent-project.md` (`## Key paths (this project)`), and only when neither the shared Key paths in `.agents/instructions/agent-context-map.md` nor that file names it yet. `AGENTS.md` is the boilerplate-owned always-on layer and `bun sync` overwrites the shared sections (`agentic-dev-core/references/docs-follow-through.md`). `CLAUDE.md` is the generated `@AGENTS.md` shim and takes no operational prose. Placement follows `agentic-dev-core/references/instructions-doctrine.md` §4, then `bun run instructions:check`; any other instruction change runs that reference's §6 procedure.
+- Forward the rest of `$ARGUMENTS` (everything after the mode token) unchanged to the selected mode: project path, module filter, epic key or Master Sprint name, as each reference defines.
+- Resolve each capability in `metadata.requires_capabilities` by tool-name suffix, any prefix (`diagrams`, for the maps' figures, by the `diagram-design` skill's presence). When none is available at the step that needs it, stop as `agentic-dev-core/references/mcp-capabilities.md` §4 says; built-in `WebSearch` and `WebFetch` stand in only when the user chooses them.
+
+**Read full SKILL.md when**: the requested mode is ambiguous, a `refresh-all` chain fails mid-sequence, or you need the selected reference's own analysis steps and validation gate.
+
+> Source: `.agents/skills/project-context/SKILL.md` · phase: `unknown` · kind: `workflow` · extraction strategy: A
+
+---
+
+## Skill: project-foundation
+
+**Purpose**: Defines a product before code: Constitution, PRD, SRS and discovery docs (business maps, dev guide, glossary).
+
+**Compact Rules**:
+- **F1.** Upsert, never rewrite. When a Constitution, PRD or SRS already exists under `.context/`, refine it in place: keep the earlier decisions and show the diff. A rewrite from scratch throws away decisions people already made.
+- **F2.** Personas, market data and competitor analysis come only from sources the user supplies. With none, leave a `[PLACEHOLDER]` open TODO and ask for the research. A speculative persona misleads every downstream skill.
+- **F3.** The PRD answers what and why (problem, users, journeys, MVP cut). The SRS answers how (functional contracts, NFRs, tech stack, API definitions). Keep them apart, because mixing them breaks traceability.
+- **F4.** Run Phase 4 Discovery (`/project-context data`, `/project-context features`, `/project-context api`, `project-dev-guide`). `/product-management` and `/sprint-development` assume those mental-model docs exist.
+- **F5.** Keep the Constitution vendor-agnostic: no DB engine, hosting provider, auth vendor or framework in it. Tool choices live in the SRS architecture, so the SRS can change without invalidating the strategic anchor.
+- **F6.** Every persona, problem statement and KPI quotes its evidence (user interview, analytics snapshot, stakeholder ask, market-data citation). A claim without evidence looks authoritative and misleads the PRD downstream.
+- **F7.** Every PRD has an explicit out-of-scope section. Implicit scope boundaries leak, and the leak is the top source of mid-sprint argument.
+- **F8.** Seed the SRS architecture's foundational decisions as ADRs in `.context/ADR/`, per `agentic-dev-core/references/adr-doctrine.md`: a decision qualifies when it passes that file's three-gate test (hard to reverse, surprising without context, a real trade-off). Later sessions then neither re-litigate nor silently violate them. Status follows `adr-doctrine.md` §3 step 4: a decision the human already approved is `Accepted` from the start (cite the approval), and only a still-open one is `Proposed`.
+- **F9.** On an app whose code already exists (`.template/installer.lock.json` records `adopted: true`, or the user asks to document an existing app), do not run Phases 1 to 3: they would invent a Constitution, PRD or SRS for code that is already there. Its foundation is Phase 4 Discovery alone, read from the code ("Existing app: Discovery-only foundation"), and a missing PRD or SRS there is not a gap to fill.
+- **Capabilities** (`metadata.requires_capabilities`): resolve each by tool-name suffix, any prefix. When none is available at the step that needs it, stop per `agentic-dev-core/references/mcp-capabilities.md` §4 and do not substitute silently (the built-in `WebSearch` / `WebFetch` only when the user chooses them).
+
+**Read full SKILL.md when**: the compact rules above are insufficient (e.g. novel scenario, debugging, or the briefing tells you to load the full skill).
+
+> Source: `.agents/skills/project-foundation/SKILL.md` · phase: `foundation` · kind: `workflow` · stage owner · source: frontmatter `compact_rules` (verbatim)
+
+---
+
+## Skill: session-handoff
+
+**Purpose**: Hand a whole session to a fresh successor through a handoff file, so work continues as if the context window had been extended.
+
+**Compact Rules**:
+- The file lives in the primary checkout, `<<PRIMARY_ROOT>>/.session/handoffs/<predecessor-session-name>-handoff-NN.md`, also from a linked worktree (`.agents/README.md` "Checkout roots"). Do not derive the root from `pwd`.
+- `NN` comes from listing that directory (two digits from `01`, across the whole lineage). The successor's session name is the handoff basename.
+- Write all ten sections of the capture contract, in order. An empty one gets an explicit `none` line with a reason.
+- Label each claim `measured`, `read` or `predicted`. Mark live state `PERISHABLE` with the time it was measured and the exact command that re-verifies it. Perishable beats priority.
+- Copy ids verbatim, in backticks (PR number, tracker key, SHA, deploy id, session id, terminal handle). Write every path as absolute.
+- Finish the file before launching the successor, in the same worktree and on the same harness. Keep every earlier handoff.
+- Launch only when a person is present, the conductor says so, or the delegating brief names the launch. Otherwise print the launch line and report (`## With nobody at the keyboard`).
+- A handoff is a repo artifact: English, no AI attribution (Critical Rules #3 and #12), never committed (`.session/` is gitignored). It names the variable a credential lives under (`$STAGING_USER_PASSWORD`), never the value, and leaves out session cookies, tokens and `.auth/**` paths (Critical Rule #1; `AGENTS.md` §3 ephemeral-artifact contract).
+
+**Read full SKILL.md when**: the compact rules above are insufficient (e.g. novel scenario, debugging, or the briefing tells you to load the full skill).
+
+> Source: `.agents/skills/session-handoff/SKILL.md` · phase: `unknown` · kind: `workflow` · extraction strategy: A
+
+---
+
+## Skill: sprint-development
+
+**Purpose**: Drives the per-story dev loop from tracker ticket to deployed code: plan, implement, review, staging deploy, gated production deploy.
+
+**Compact Rules**:
+- Critical Rule #18, no comments in code by default: new and edited code carries no comments except a toolchain directive (`eslint-disable-next-line <rule> -- <reason>`, `@ts-expect-error`, `LINT.IfChange`/`LINT.ThenChange`) or one line of WHY the code cannot express and a reader would otherwise get wrong. No JSDoc blocks, section banners, narrated steps or example TODOs; teaching goes to docs and decks. Put this rule in component 7 of every briefing that writes or edits code.
+- Log into a running app only as the account that `testing.automation_identity` in `.agents/project.yaml` names (the file holds variable names, the values live in `.env`). If the slot is unset or a variable is missing, stop and report. Do not substitute another account, look one up in the database, create one, or reuse the human's browser session. See `references/live-ui-identity.md`.
+- Load a stack skill at the step that writes in its domain: `supabase` and `supabase-postgres-best-practices` before a DB MCP schema, RLS or migration call; the design set (`frontend-design`, `ui-ux-pro-max`, `impeccable`, `emil-design-eng`, `modern-web-guidance`, strategy doc §3.5) plus `shadcn` and `tailwind-css-patterns` before a component or layout write; `deploy-to-vercel` next to `vercel-cli` at Stage 4 and 5; `resend-cli` for email; `seo` for a public page. If one is not installed, say so once with the install path (`bun setup`) and continue (`agentic-dev-core/references/skill-composition-strategy.md` §3.5).
+- Never go around the app's own login path: no service-role, secret or admin keys, no admin user-management APIs, no generated magic or password-reset links, no locally signed JWTs, no hand-crafted session cookies, no impersonating an account, not even to look at the admin view. Report the need as a finding instead.
+- Session material is ephemeral. Keep cookie jars, `storageState.json`, token files and `.har` captures in the session scratch directory, never the repo tree, delete them before reporting, and disclose them as `secrets_materialized:` and `cleaned:` in the report. Never echo a credential into a report, plan, commit, PR body or tracker comment.
+- A login never leaves the typed credential in a file. Type with `--raw fill`, submit with `run-code`, take no `snapshot`, `click`, `press` or `goto` while a credential field is filled, then run the count-only scan of `.playwright/` and delete any snapshot that holds the value (`references/live-ui-validation.md` §3.3).
+- Approve a UI story on browser evidence at the gate, not on HTTP probes alone. Tier 0 probes carry the inner loop and non-visual assertions only (`references/live-ui-validation.md` §7). Validate against the dev server, never a production build.
+- `/playwright-cli` is the only browser path. Name every session (`-s=<name>`, never the default), keep it in memory (no `--persistent`, no `--profile`), and never touch the human's own browser. Type credentials only as `--raw fill <ref> "$VAR"`. One identity gets one live browser, so subagents on the same identity run serially. Close every session before the report and prove it with `playwright-cli list`; never `close-all`, `kill-all` or `pkill`. Report `browser_sessions:` with the names (`references/live-ui-validation.md` §3).
+- The `WHERE` clause of a `SECURITY DEFINER` function is not authorization. The function bypasses RLS unless the table declares `FORCE ROW LEVEL SECURITY` (check your schema, never assume it), so a filter on a caller-supplied identity or scope parameter selects rows but does not decide who may ask. Such a function needs both an actor bind at step 0 (`if auth.uid() is not null and auth.uid() <> p_actor_user_id then raise ... errcode 'P0002'`) and explicit scoping of every returned row; asserting the caller's own membership does not scope the result set. First ask whether `SECURITY INVOKER`, or deleting the identity parameter, removes the whole class. Prove the fix with a DB integration test that attempts the spoof against the real database; a mocked `db.rpc` proves nothing (`references/rpc-authorization.md`).
+- The review size forecast gate fails closed. With `Review Size = High`, accept a `Chain strategy` only with a verbatim `Decision trace:` citing the git-flow-master chained-PR tree answers. A missing or malformed trace counts as `pending` and blocks Stage 2. The planner may only emit `pending` and never picks a strategy itself.
+- On the `jira` tracker, AI Effort `High` warns and never blocks. At pickup read the QA shift-left handoff comment, the ATP (the QA test intent) and `{{jira.ai_effort}}`, then proceed. On `High`, write in the plan and the PR description that the story may be large and may be split; you may split your own work into stacked small PRs (about 200 changed lines and 2 to 5 files each) but you still work the whole ticket. Unset: proceed and note it. Autonomous and fleet runs never skip or stop a story for `High`, and a missing ATP is flagged to QA in a comment, never a block.
+- On the `jira` tracker, DTU is optional, measured and cumulative. At the verified `{{jira.status.story.ready_for_qa}}` state (not when the `deployed` automation fires) and after each fix loop, read the current `{{jira.development_token_usage}}`, add this cycle's measured delta (K = input plus output tokens, cache reads apart) and never overwrite it (an empty value takes just the delta). Post one comment `DTU cycle N: +x K (total y K) source=<harness or human>` and append each session's measured tokens to `progress.md` so Stage 4 can sum them. If the field is absent from `.agents/jira-fields.json`, the comment carries the figure. With no measured figure from the harness or a human, leave it empty and state N/A with the reason in the stage verifier; never estimate or invent a number. A tech item that goes straight to `completed` states N/A too.
+- On the `jira` tracker, at Ready For QA, move the native `assignee` to the QA named in `{{jira.qa_assignee}}` (the record of the QA who followed the story since shift-left; read it, never overwrite it), then read `assignee` back. If `qa_assignee` is empty, leave `assignee` as it is and say so in the QA notification comment.
+- Query ticket availability live. Before planning or recommending a ticket, ask the tracker about it and its direct blockers. `.context/dev-roadmap.md` is authoritative for dependency edges and mockup gates, never for current status, whatever its timestamp says. With tracker `none` there is no ticket to query: say so.
+- Read `.agents/project.yaml`, `package.json` and `.env.example` before asserting what the project is configured to do, and cite the file. A value in a skill reference or a worked example is never project state.
+- Resolve the tracker before the first tracker call: `issue_tracker.issue_tracker` in `.agents/project.yaml` through `cli/lib/issue-tracker.ts` gives `jira`, `github` or `none` (null and any text other than exactly `github` or `none` are `jira`). Every Jira step (`{{jira.*}}` fields, `jira:sync-*`, the `.context/PBI/` tree, ATP, AI Effort, DTU, the QA assignee, the QA comment, the defect loop) runs only on `jira`, exactly as written. On `github` and `none` (and on `jira` with `trail.enabled: true`) the trail `<trail.dir>/<KEY>-<slug>/` holds the plan and the results, and a commit of the change carries `Trail: <trail.dir>/<KEY>-<slug>/` on the line above `Worktree:` and `Session:` (`## Tracker modes`, `## The trail`).
+- Product docs are the PRD/SRS or the business maps. Fast-fail only when neither set exists (Pre-requisites), and never author a PRD, an SRS or a Constitution to satisfy the check. `## Inputs`, under "Product docs: PRD/SRS or business maps", lists what each case reads.
+- Read the app's stack, never assume it. An app command is `{{stack.package_manager}} run {{stack.scripts.<role>}}` from `{{stack.app_root}}`; a null role means skip that check and say so, never invent or add the script. Branches come from `git_strategy.branches` (with integration null, the base and merge target are the production branch, never a literal `staging` or `develop`). A schema change goes through the DB MCP per `{{stack.database.migrations_tool}}` after reading the migration history through it (`agentic-dev-core/references/db-change-doctrine.md`); capability `db` binds only a story that touches the database. The app's own conventions win over this skill's defaults, and an existing test id is never renamed (`## Stack parameters`). With `stack.local_build` (absent means true) false, Stages 2 to 4 skip the local `build` role, say so in the report and rely on the hosting build that the Stage 4 staging deploy check reads.
+- Technical decisions are yours, but read the record first. Search the run's decision and escalation log, `.context/ADR/`, and the ticket plus its siblings before deciding or asking. Follow and cite a decision already made; re-asking a settled question, even of a human who gets it cold, produces a contradiction and not an override. Decide an unsettled technical call through a scored judge panel of 3 to 5 independent lenses, and record the decision with its scoring rationale where the next agent's search will find it. Escalate only product or business calls, a new security posture nobody ratified, irreversible or destructive actions, and whatever the operator reserved (`agentic-dev-core/references/decision-protocol.md`, which also says who answers when a person, a conductor or nobody is present). With `decision_authority.product: decide` in `.agents/project.yaml` (no human PO in the loop), product calls go to a scored, attributed decision subagent instead (`decision-protocol.md` §5.1).
+- Name tracker moves by slug, verify them at the destination, never guess. On `github` a move is an abstract status set by option name through `/github-projects` and read back (`agentic-dev-core/references/artifact-lifecycle.md` §6), and `none` makes no tracker call. On `jira`, fire only the transitions `agentic-dev-core/references/artifact-lifecycle.md` §1 gives this stage (Stage 1 `start_working`; Stage 3 `pull_request` and `ready`; Stage 4 `deployed` and `fixed_and_deployed`; the bug-triage slugs; the defect loop `fix_defect` and `back_to_dev` when QA moved the story to `blocked`). Re-read the status after every Stage 3 and Stage 4 event and fire the slug yourself when automation did not. Read `assignee` before and after every transition, because merge automation reassigns it to the developer. If the slug is missing for the work type, list the live transitions, ask one question through the path `decision-protocol.md` §5.2 gives for who is running (a routine with nobody records it and fires nothing), fire the live id and recommend `bun run jira:sync-workflows`. Never use a remembered or cross-project id, hand-edit `.agents/jira-workflows.json`, or skip silently.
+- A fleet worker stops at an open PR. In batch-sprint with N>1 executors (`references/fleet-mode.md`), a worker is detected from its prompt (`/sprint-development <KEY> fleet worker` plus a brief path), never from the environment. It runs Stages 1 to 3 on its one ticket without human checkpoints and without returning to its prompt. Merge, staging deploy, shared-DB migrations, live-instance regeneration and the sprint report stay with the conductor. N=1 is unchanged, and when the orchestration gate fails the launch file is still written and the orchestrator is never named.
+- Plan before code. Stage 1 always runs; even a bug fix gets a one-paragraph root-cause analysis before the diff.
+- Verification cap=3: run lint, types and unit tests in parallel, and push only when all three are green.
+- Commit atomically with semantic prefixes and no AI-attribution lines. Never use `--no-verify` and never force-push a pushed branch. A push to a protected branch follows `git_strategy.policy.direct_push_to_protected` (Critical Rule #4: `allowed` pushes, `confirm` asks, `forbidden` routes through a PR).
+- Touch only what the story states. No "while I'm here" refactors.
+- Place code by GUARD layer (`agentic-dev-core/references/guard-architecture.md`). Before writing, read `guard-manifest.json` and reuse a feature action that exists before adding one. A new feature starts from the shape of `packages/guard-example/`. Run `bun run guard:manifest` when a feature door changed.
+- Docs travel with the change. A story that adds, renames or retires a skill mode, a `package.json` script, a doc or `.context/` path, an MCP server or an env var, or changes a behaviour a page describes, patches every doc that names or describes it in the same PR, per `agentic-dev-core/references/docs-follow-through.md`. `bun run docs:check` proves the mechanical half.
+- Adjudicate reviewer findings instead of applying them blindly: verify each against the diff and the AC, or dismiss it with a one-line reason.
+- Resolve each capability in `metadata.requires_capabilities` by tool-name suffix, any prefix. When none is available at the step that needs it, stop per `agentic-dev-core/references/mcp-capabilities.md` §4 and never substitute silently (built-in `WebSearch` and `WebFetch` only when the user chooses it).
+
+**Read full SKILL.md when**: the stage you are running needs its full walkthrough, a gate fires, or the briefing tells you to load the full skill.
+
+> Source: `.agents/skills/sprint-development/SKILL.md` · phase: `implementation` · kind: `workflow` · stage owner · source: frontmatter `compact_rules` (verbatim)
+
+---
+
+## Skill: testability-guide
+
+**Purpose**: Builds the in-app `/qa` page ("Software Testability Guide for QA") and a credentials artifact for testers and AI agents.
+
+**Compact Rules**:
+- **T1.** The `/qa` page and the credentials artifact body never contain a credential value. They name the slot (`LOCAL_USER_EMAIL`, `STAGING_USER_PASSWORD`); the real values live in `.env` and at the chosen publisher destination, never in source.
+- **T2.** Drift detection decides what gets written. When the host-stack signature changed, read the snapshot comment (`/* qa-guide-snapshot: stack=…, generated=… */`) and propose a surgical patch. Regenerate the page from scratch only when no targeted diff can carry the change.
+- **T3.** Gate `/qa` in production only when the host is an internal tool or a customer-facing product where an operational page would leak. A public practice or demo platform, where `/qa` is the teaching surface (for example the page that onboards external testers), keeps the page public. Detect the project type in pre-flight and ask when unsure (with nobody to ask, gate the page and say so in the report). Public means public docs, never public credentials (T1).
+- **T4.** The guide contains no PII, real customer data or production data examples. Demo users and sanitized fixtures only.
+- **T5.** The markdown body in `references/credentials-content-template.md` is the single source of truth for the credentials artifact. Publishers are thin adapters, so the body is never copied into several publisher targets.
+- **T6.** Idempotency is checked, never assumed. A re-run reads the snapshot, diffs it against the detected stack, and only then chooses no-op, surgical patch or fresh scaffold.
+- **T7.** The deployed commit SHA never enters the generated `/qa` source. The hero build stamp (`data-testid="qa-build-sha"`) reads it at runtime from the platform env var whose NAME detection put in `qaConfig.build` (on Vercel `VERCEL_GIT_COMMIT_SHA`) and shows a visible fallback line when it is absent. The value stays out of the snapshot comment and the content-hash, so a redeploy is never drift (Build stamp section of `references/page-craft.md`).
+- **T8.** The testers' DB MCP comes from `stack.database` (`references/mcp-and-env-setup.md` §4.0), never from habit, and testers never get the agent's own `db` credential. DBHub logged in as a `qa_*` read-only role is the default; the Supabase MCP is only a `--read-only --project-ref` alternative for people who already hold a Supabase account; the `SUPABASE_ACCESS_TOKEN` personal access token is never published. Provisioning the read-only role is a database change on the route `stack.database.migrations_tool` names (`agentic-dev-core/references/db-change-doctrine.md`): this skill hands over the SQL and never applies it.
+- **Capabilities** (`metadata.requires_capabilities`): resolve each by tool-name suffix, any prefix. When none is available at the step that needs it, stop per `agentic-dev-core/references/mcp-capabilities.md` §4 instead of substituting silently (built-in `WebSearch` / `WebFetch` only when the user chooses it).
+
+**Read full SKILL.md when**: the compact rules above are insufficient (e.g. novel scenario, debugging, or the briefing tells you to load the full skill).
+
+> Source: `.agents/skills/testability-guide/SKILL.md` · phase: `foundation-extension` · kind: `workflow` · stage owner · source: frontmatter `compact_rules` (verbatim)
+
+---
+
+## Skill: unit-testing
+
+**Purpose**: Design and write unit tests: TDD, test naming, mocking, coverage.
+
+**Compact Rules**:
+- **U1.** Test public behavior and observable contracts, not implementation details (private helpers, internal state, call counts on internal methods). Implementation refactors freely and the tests should survive it. A test that breaks on a behavior-preserving refactor is a lying test (see Lying tests in `references/tdd-workflow.md`).
+- **U2.** Do not over-mock. A test that mocks every collaborator verifies the mock graph, not the code under test. Prefer real implementations plus dependency injection at the seam, and mock only true external boundaries (HTTP, DB, filesystem, time, randomness).
+- **U3.** Watch the test fail before writing the production code. A test written after the code gives no design feedback, and it must fail for the right reason (an assertion, not a setup error).
+- **U4.** Assert the exact value, shape or error. `expect(result).toBeTruthy()` and `expect(x).toBeDefined()` hide regressions when you mean a specific value (see Lying tests in `references/tdd-workflow.md`).
+- **U5.** Keep state out of the space between tests: no module-level variables, singleton caches or fixtures mutated in place. Shared state causes order-dependent flakes, so reset it in `beforeEach` or scope it inside the test.
+- **U6.** Treat coverage as a signal, not a target. 100% with brittle, mock-heavy tests is worse than 80% with behavior-driven ones. Mutation testing answers "do my tests catch bugs?" better than line coverage.
+- **U7.** Mock what you own only with a real reason. Inject a fake or stub at the seam, and reach for `jest.mock` / `vi.mock` only when the seam is unavoidable (module-level side effects, a third-party SDK).
+- **U8.** A flaky test never ships green. Fix the root cause (timing, shared state, network) or quarantine it with a tracked ticket, because ignored flakes erode trust in the whole suite.
+- **U9.** Test your own logic, not the framework's (matcher behavior, library internals, ORM mechanics). The framework has its own test suite.
+- **U10.** In a GUARD app, test a feature through its door (`@features/<x>`), never its internals; fake adapters at the port. The interface is the test surface (`agentic-dev-core/references/guard-architecture.md` §6).
+- **Runner and command come from `stack:`** (`.agents/project.yaml`): the runner is `stack.test_runner`, the command is `{{stack.package_manager}} run {{stack.scripts.test}}`, and test files live under `stack.app_root` next to their siblings. A non-null runner is the app's own: extend it, never add or swap in a second one. Only `stack.test_runner: null` (not chosen yet) opens runner setup, and the choice is recorded with `bun run agents:setup --stack`. A null `stack.scripts.test` is reported, never invented.
+- **Capabilities** (`metadata.requires_capabilities`): resolve each by tool-name suffix, any prefix. When none is available at the step that needs it, stop per `agentic-dev-core/references/mcp-capabilities.md` §4 and do not substitute silently (built-in `WebSearch` / `WebFetch` only when the user chooses it).
+
+**Read full SKILL.md when**: the compact rules above are insufficient (e.g. novel scenario, debugging, or the briefing tells you to load the full skill).
+
+> Source: `.agents/skills/unit-testing/SKILL.md` · phase: `implementation` · kind: `workflow` · source: frontmatter `compact_rules` (verbatim)
+
+---
+
+## Skill: vercel-cli
+
+**Purpose**: Vercel CLI cookbook for verifying deploys, syncing env vars, reading logs and rolling back.
+
+**Compact Rules**:
+- Use `--no-wait` on `vercel deploy` and `--wait` on `vercel inspect`, never the other way round. Inverted, you either block for 10 minutes on a URL you needed at once, or you smoke-test a deployment that has not finished.
+- Find your own deploy with `vercel ls -m githubCommitSha=<sha> --format json` and `jq`. It needs no grep and no parsing, and it cannot race a sibling branch.
+- Status filter values are UPPERCASE. `vercel ls --status READY` works; `--status ready` returns an empty list with no error.
+- `vercel env pull` writes `.env.local` by default. That file is gitignored, so keep it out of every commit. To write a different file, pass the name as a positional argument.
+- Pass `--format json` to `ls`, `env ls` and `teams ls`. The human tables carry ANSI colour and lose columns at narrow widths.
+- Pass `--no-wait` to `vercel deploy` in scripts, capture the URL, then poll with `vercel inspect --wait` as a separate step.
+- Verify with `vercel inspect <url> --wait --timeout=10m`. Without `--wait` it returns the state at call time, usually `BUILDING`, which tells you nothing.
+- On an account with more than one team (`vercel teams ls`), pass `--scope <team-slug>` on every mutating command, or the operation hits the wrong team's project or fails with a confusing 404. A linked project resolves the team from `orgId` in `.vercel/project.json` or `.vercel/repo.json`, so `--scope` can then be omitted.
+- Do not grep `vercel ls` output for URLs. ANSI codes break the regex; use the metadata filter, `--format json` and `jq`.
+- Treat a non-zero exit from `vercel inspect --wait` as a real failure (only `READY` exits 0), and surface it.
+- Pin the CLI version in CI (in `package.json` devDependencies or the workflow). Majors have changed flag shapes, for example `--confirm` to `--yes`.
+- A production deploy, a rollback and any env write or removal on the `production` scope are outward actions. Run them when a person asked for them or the delegating brief covers them; otherwise do the reads, stop and report.
+
+**Read full SKILL.md when**: the compact rules above are insufficient (e.g. novel scenario, debugging, or the briefing tells you to load the full skill).
+
+> Source: `.agents/skills/vercel-cli/SKILL.md` · phase: `implementation` · kind: `utility` · source: frontmatter `compact_rules` (verbatim)
