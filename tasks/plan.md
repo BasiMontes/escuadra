@@ -158,7 +158,9 @@ incompleta: la primera revisión útil es el punto de control A.
 ### Tarea 8: estado de navegación fuera de React Router
 
 - **Hace:** el resultado de la partida (`usePartida`, `RetoResultado`) y el aviso de perfil guardado
-  (`EditarPerfil`, `Perfil`) pasan a un almacén en memoria con su test unitario.
+  (`EditarPerfil`, `Perfil`) pasan a `src/spa/lib/entryState.ts`, con su test unitario: viajan en
+  memoria y se guardan en la entrada del historial de destino. Solo en memoria se perderían al
+  recargar, y hoy no se pierden (decidido el 27 de noviembre de 2026).
 - **Aceptación:**
   - [ ] No queda ningún `state` en `navigate` ni en `useLocation().state`.
   - [ ] El almacén decide qué pasa al recargar y al volver atrás igual que el comportamiento actual,
