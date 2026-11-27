@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate } from '../router'
 import { useRepository } from './hooks'
 
 /** Cierra la sesión una sola vez y lleva a la pantalla de entrada. */

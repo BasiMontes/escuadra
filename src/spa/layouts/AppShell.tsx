@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { NavLink, Link } from 'react-router'
+import { NavLink, Link } from '../router'
 import { BarChart3, Flame, House, Lightbulb, Plus, Trophy, User } from 'lucide-react'
 import { Logo } from '../components/Logo'
 import { cx } from '../components/cx'

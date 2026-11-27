@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router'
+import { useNavigate } from '../../router'
 import { ArrowRight, BarChart3, Lightbulb, Trophy } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'

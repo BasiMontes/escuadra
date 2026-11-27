@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate } from '../../router'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorNotice } from '../../components/States'
 import { useRepository } from '../../data/hooks'

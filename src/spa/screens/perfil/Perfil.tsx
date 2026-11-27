@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { BadgeCheck, ChevronRight, LogOut, SlidersHorizontal, SquarePen, Trophy } from 'lucide-react'
-import { Link } from 'react-router'
+import { Link } from '../../router'
 import { BallIcon } from '../../components/BallIcon'
 import { Card } from '../../components/Card'
 import { ErrorNotice, Skeleton } from '../../components/States'

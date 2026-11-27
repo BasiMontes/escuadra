@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { Navigate, useNavigate } from 'react-router'
+import { Navigate, useNavigate } from '../../router'
 import { Button } from '../../components/Button'
 import { TextField } from '../../components/Field'
 import { ErrorNotice } from '../../components/States'

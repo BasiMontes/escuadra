@@ -1,4 +1,4 @@
-import { useSearchParams } from 'react-router'
+import { useSearchParams } from '../../router'
 import { Card } from '../../components/Card'
 import { IconBox, ProgressBar } from '../../components/Controls'
 import { EmptyCard, ErrorNotice, Skeleton } from '../../components/States'

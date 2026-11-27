@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Outlet } from 'react-router'
+import { Outlet } from '../../router'
 import { OnboardingCtx, type OnboardingDraft } from './onboardingState'
 
 /** Guarda las elecciones del onboarding mientras se recorren sus pantallas. */

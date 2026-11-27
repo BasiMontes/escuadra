@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { LayoutDashboard, Share2, Trophy } from 'lucide-react'
-import { Navigate } from 'react-router'
+import { Navigate } from '../../router'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { IconBox } from '../../components/Controls'
