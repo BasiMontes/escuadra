@@ -12,7 +12,7 @@
 .knob {
   position: absolute;
   top: 0;
-  right: 0;
+  left: 0;
   width: 24px;
   height: 26px;
   background: var(--c-grey-soft);
@@ -21,8 +21,8 @@
 }
 
 .on .knob {
-  right: auto;
-  left: 0;
+  left: auto;
+  right: 0;
   background: var(--c-yellow);
 }
 
