@@ -1,0 +1,38 @@
+# From a linked worktree git exports GIT_DIR to this hook. Tests that run
+# `git config` on throwaway repos would then write into the real .git/config.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+
+# CI runs the Bun version pinned in `.bun-version`. Another local version can fail
+# the suite with errors unrelated to the change, so stop here and say what to
+# install. This runs before the gates below because they run Bun scripts too.
+BUN_VERSION_FILE="$(git rev-parse --show-toplevel)/.bun-version"
+if [ -f "$BUN_VERSION_FILE" ]; then
+  BUN_WANTED="$(tr -d '[:space:]' < "$BUN_VERSION_FILE")"
+  BUN_HAVE="$(bun --version 2>/dev/null)"
+  if [ "$BUN_HAVE" != "$BUN_WANTED" ]; then
+    echo "Push stopped: Bun ${BUN_HAVE:-"not found"} is installed, this repo expects $BUN_WANTED (.bun-version, the version CI pins)."
+    echo "   Install it: curl -fsSL https://bun.sh/install | bash -s \"bun-v$BUN_WANTED\""
+    echo "   Do not run 'bun upgrade': it moves you to the latest version again."
+    exit 1
+  fi
+fi
+
+# Framework gates, in one call: the full-repo checks pre-commit skips for speed
+# (format, lint, env-var parity, and the unconditional freshness/parity safety
+# nets). They live in `.husky/framework-gates.sh`, which the boilerplate updater
+# SYNCS, while this hook is project-owned and never overwritten, so a gate added
+# upstream lands here without rewriting your file. Read that file for what each
+# gate covers and why.
+#
+# The `-f` guard is required: `.husky/_/h` runs this under `sh -e`, and sourcing
+# a file that is not there would kill the hook.
+#
+# Your own pre-push gates go around this call; the ordering in this file is yours.
+GATES="$(dirname -- "$0")/framework-gates.sh"
+if [ -f "$GATES" ]; then
+  . "$GATES"
+  framework_gates_pre_push
+else
+  echo "⚠️  .husky/framework-gates.sh missing: framework pre-push gates SKIPPED."
+  echo "   Restore it with: bun sync"
+fi

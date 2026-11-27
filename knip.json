@@ -1,0 +1,33 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "cli/**/*.ts",
+    "scripts/**/*.ts",
+    "eslint.config.tooling.mjs",
+    ".opencode/plugins/personality-reinject.js",
+    ".pi/extensions/agentic-dev.js",
+    "public/sw.js"
+  ],
+  "ignore": [
+    ".agents/**",
+    "modules/**",
+    "src/features/consent/**",
+    "src/spa/data/supabaseClient.ts"
+  ],
+  "ignoreIssues": {
+    "cli/**": ["files", "exports", "types"],
+    "scripts/**": ["files", "exports", "types"],
+    "eslint.config.base.js": ["exports"],
+    "src/platform/ui/**": ["exports", "types"],
+    "src/types/supabase.ts": ["exports", "types"],
+    "src/features/auth/**": ["exports"],
+    "src/spa/**": ["exports"]
+  },
+  "rules": {
+    "types": "off",
+    "enumMembers": "off",
+    "duplicates": "off"
+  },
+  "ignoreDependencies": ["bun-types", "shadcn", "tailwindcss", "tw-animate-css"],
+  "ignoreBinaries": ["vercel", "playwright-cli", "supabase"]
+}

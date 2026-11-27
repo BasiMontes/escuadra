@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { expectFullScreen } from './helpers'
+import { alerta, expectFullScreen } from './helpers'
 
 /** Reto de la comunidad: base 80, fácil, respuesta "Francia". */
 const RETO = '/retos/mundiales-90s'
@@ -88,7 +88,7 @@ test.describe('Respuesta libre', () => {
   test('sin errores de accesibilidad graves, también con el error visible', async ({ page }) => {
     await page.goto(`${RETO}/jugar`)
     await page.getByTestId('reto-responder').click()
-    await page.getByRole('alert').waitFor()
+    await alerta(page).waitFor()
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
     expect(results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => v.id)).toEqual([])
   })

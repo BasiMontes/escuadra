@@ -1,0 +1,41 @@
+{
+  "version": "1.0",
+  "features": [
+    {
+      "name": "auth",
+      "door": "src/features/auth/index.ts",
+      "exports": [
+        "AuthScreen",
+        "ErrorMessage",
+        "ForgotPasswordForm",
+        "LoginForm",
+        "Notice",
+        "SignOutButton",
+        "SignupForm",
+        "UpdatePasswordForm",
+        "getSignedInUser",
+        "handleEmailLink",
+        "requireUser"
+      ]
+    },
+    {
+      "name": "consent",
+      "door": "src/features/consent/index.ts",
+      "exports": [
+        "ConsentBanner",
+        "ConsentProvider",
+        "LegalFooter",
+        "LegalPage",
+        "Telemetry"
+      ]
+    },
+    {
+      "name": "health",
+      "door": "src/features/health/index.ts",
+      "exports": [
+        "handleHealthCheck"
+      ]
+    }
+  ],
+  "warnings": []
+}

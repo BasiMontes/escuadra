@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
+import { alerta } from './helpers'
 
 /** Navega sin recargar, para conservar los datos en memoria. */
 const abrir = (page: Page, ruta: string) =>
@@ -70,11 +71,11 @@ test.describe('Preferencias de juego', () => {
     await liga(page, 'uefa').click()
     await dificultad(page, 'facil').click()
     await guardar(page)
-    await expect(page.getByRole('alert')).toHaveText('Elige al menos una competición.')
+    await expect(alerta(page)).toHaveText('Elige al menos una competición.')
     await expect(page.getByTestId('preferencias-aviso')).toHaveText('')
 
     await liga(page, 'seriea').click()
-    await expect(page.getByRole('alert')).toHaveCount(0)
+    await expect(alerta(page)).toHaveCount(0)
 
     await volverAEntrar(page)
     await expect(liga(page, 'laliga')).toBeChecked()
@@ -105,7 +106,7 @@ test.describe('Preferencias de juego', () => {
     await liga(page, 'laliga').click()
     await liga(page, 'uefa').click()
     await guardar(page)
-    await page.getByRole('alert').waitFor()
+    await alerta(page).waitFor()
     await expectNoSeriousA11y(page)
   })
 })

@@ -1,0 +1,11 @@
+{
+  "summary": "Subscriptions with Stripe Checkout, the customer portal and a signed webhook",
+  "dependencies": {
+    "stripe": "^23.2.0"
+  },
+  "nextSteps": [
+    "Read docs/modules/stripe.md",
+    "Set STRIPE_SECRET_KEY, STRIPE_PRICE_ID, STRIPE_WEBHOOK_SECRET and SUPABASE_SECRET_KEY",
+    "Run bun run repo:check and bun run test, then commit"
+  ]
+}

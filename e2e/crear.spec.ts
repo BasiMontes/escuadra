@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { expectFullScreen } from './helpers'
+import { alerta, expectFullScreen } from './helpers'
 
 const PREGUNTA = '¿Qué equipo juega en el Emirates Stadium?'
 
@@ -115,7 +115,7 @@ test.describe('Crear reto', () => {
     for (const valor of ['', '5', '500']) {
       await page.getByTestId('crear-puntos').fill(valor)
       await siguiente(page)
-      await expect(page.getByRole('alert')).toHaveText('Escribe un número entero entre 10 y 200.')
+      await expect(alerta(page)).toHaveText('Escribe un número entero entre 10 y 200.')
     }
     await expect(page.getByTestId('crear-puntos')).toBeFocused()
     await expect(page).toHaveURL(/\/crear\/2$/)
@@ -255,7 +255,7 @@ test.describe('Crear reto · accesibilidad', () => {
   test('paso 1 con errores', async ({ page }) => {
     await page.goto('/crear/1')
     await siguiente(page)
-    await page.getByRole('alert').first().waitFor()
+    await alerta(page).first().waitFor()
     await expectNoSeriousA11y(page)
   })
 
@@ -263,14 +263,14 @@ test.describe('Crear reto · accesibilidad', () => {
     await hastaPaso2(page)
     await page.getByTestId('crear-puntos').fill('')
     await siguiente(page)
-    await page.getByRole('alert').waitFor()
+    await alerta(page).waitFor()
     await expectNoSeriousA11y(page)
   })
 
   test('paso 3 con errores', async ({ page }) => {
     await hastaPaso3(page)
     await page.getByTestId('crear-publicar').click()
-    await page.getByRole('alert').first().waitFor()
+    await alerta(page).first().waitFor()
     await expectNoSeriousA11y(page)
   })
 
