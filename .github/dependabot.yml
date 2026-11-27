@@ -1,0 +1,37 @@
+# Keeps SHA-pinned GitHub Actions fresh (Dependabot bumps the SHA and the trailing
+# version comment together) and watches runtime dependencies through the text
+# `bun.lock`. PRs target the default branch: there is no integration branch yet.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: ci
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    # One catch-all group lets a single failing major close the whole PR, taking
+    # every safe patch with it. Majors get their own PR; minor and patch batch.
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+      major:
+        update-types: [major]
+    ignore:
+      # TypeScript 7 is the native compiler with no JavaScript API:
+      # typescript-eslint and scripts/check-import-cycles.ts need that API.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+      # varlock's version is pinned in the MCP env loaders and a test requires it
+      # to equal package.json. Those files come from `bun sync`, with their pin.
+      - dependency-name: varlock
+    commit-message:
+      prefix: chore

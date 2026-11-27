@@ -1,0 +1,68 @@
+name: Uptime monitor
+
+# Asks production `/api/health` and keeps one issue open while it does not answer 200. GitHub schedules are
+# best-effort, often late by far: this is a backup for an external monitor, not a replacement.
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: uptime-monitor
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: vars.UPTIME_MONITOR_ENABLED == 'true' || github.event_name == 'workflow_dispatch'
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      TITLE: 'Production health check failing'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Probe, retrying before declaring an outage
+        id: probe
+        run: |
+          url="$(bun scripts/ops-config.ts production web_url)/api/health"
+          code=000
+          for attempt in 1 2 3; do
+            code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$url" || echo 000)"
+            echo "attempt ${attempt}: HTTP ${code}"
+            [ "$code" = "200" ] && break
+            [ "$attempt" -lt 3 ] && sleep 15
+          done
+          echo "code=${code}" >> "$GITHUB_OUTPUT"
+          [ "$code" = "200" ]
+
+      - name: Open or update the issue
+        if: failure()
+        env:
+          CODE: ${{ steps.probe.outputs.code }}
+        run: |
+          existing="$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Still failing (HTTP ${CODE:-unknown}): $RUN_URL"
+          else
+            gh issue create --title "$TITLE" --body "/api/health did not answer 200 (HTTP ${CODE:-unknown}). Run: $RUN_URL. See docs/workflows/operations.md."
+          fi
+
+      - name: Close the issue once it recovers
+        if: success()
+        run: |
+          existing="$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number // empty')"
+          [ -z "$existing" ] || gh issue close "$existing" --comment "Recovered: $RUN_URL"
