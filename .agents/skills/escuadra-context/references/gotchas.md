@@ -8,4 +8,7 @@
   solo la envía en peticiones HTTPS.
 - Las capturas de referencia son de Linux y se comparan en la imagen Docker de Playwright (ver README).
 - Los datos de ejemplo viven en memoria: recargar la página los reinicia, así que los tests que
-  necesitan conservarlos navegan sin recargar.
+  necesitan conservarlos navegan con `abrir(page, ruta)` de `e2e/helpers.ts`.
+- Next reescribe `history.state` en cada navegación. Lo que deba quedar en una entrada se guarda desde
+  la pantalla de destino (`entryState`), y los parámetros de la URL se cambian con `history`, que no
+  pide la página al servidor.

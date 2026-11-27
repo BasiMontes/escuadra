@@ -4,6 +4,13 @@
 
 La app vive en `src/spa/` hasta que se reparta en capas (ver `tasks/plan.md`).
 
+- `src/app/`: una ruta por pantalla, que solo reexporta el componente. `providers.tsx` pinta la app
+  únicamente en el navegador y mantiene los datos de ejemplo entre rutas; los layouts de `onboarding`
+  y `crear` conservan sus borradores.
+- `src/spa/router.tsx`: la navegación que usan las pantallas (`Link`, `useNavigate`, `useLocation`…).
+  No importar `next/navigation` desde una pantalla.
+- `src/spa/lib/entryState.ts`: datos que una pantalla deja a la siguiente (resultado, aviso de perfil).
+
 - `src/spa/styles/tokens.css`: colores, bordes, sombras y patrón. Nunca valores sueltos en componentes.
 - `src/spa/components/`: Button, Card, Tag y DifficultyTag, TextField, TextArea y SelectField,
   Controls (Toggle, RadioDot, CheckSquare, ProgressBar, StepBar, IconBox), Logo (`border`, `shadow`).
