@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useParams } from 'react-router'
+import { useParams } from '../../router'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { ProgressBar } from '../../components/Controls'

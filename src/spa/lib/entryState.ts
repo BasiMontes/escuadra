@@ -1,5 +1,5 @@
 import { useLayoutEffect } from 'react'
-import { useLocation } from 'react-router'
+import { useLocation } from '../router'
 
 /**
  * Datos que una pantalla deja a la siguiente. Viajan en memoria y se guardan en la entrada del

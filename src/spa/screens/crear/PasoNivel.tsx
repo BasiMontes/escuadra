@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Flame, Laugh, Smile } from 'lucide-react'
-import { Navigate, useNavigate } from 'react-router'
+import { Navigate, useNavigate } from '../../router'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { RadioDot } from '../../components/Controls'

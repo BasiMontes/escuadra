@@ -1,5 +1,5 @@
 import { Lightbulb, Trophy } from 'lucide-react'
-import { useSearchParams } from 'react-router'
+import { useSearchParams } from '../../router'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { EmptyCard, ErrorNotice, Skeleton } from '../../components/States'

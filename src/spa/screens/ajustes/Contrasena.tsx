@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { Link } from 'react-router'
+import { Link } from '../../router'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { TextField } from '../../components/Field'

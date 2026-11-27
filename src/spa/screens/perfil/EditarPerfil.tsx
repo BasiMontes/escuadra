@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Camera } from 'lucide-react'
-import { useNavigate } from 'react-router'
+import { useNavigate } from '../../router'
 import { Button } from '../../components/Button'
 import { TextArea, TextField } from '../../components/Field'
 import { ErrorNotice, Skeleton } from '../../components/States'

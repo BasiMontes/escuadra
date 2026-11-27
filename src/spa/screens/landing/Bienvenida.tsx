@@ -1,5 +1,5 @@
 import { ArrowRight, Check, ChevronDown, Clock } from 'lucide-react'
-import { Link } from 'react-router'
+import { Link } from '../../router'
 import { Button } from '../../components/Button'
 import { Logo } from '../../components/Logo'
 import { cx } from '../../components/cx'

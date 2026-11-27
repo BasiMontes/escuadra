@@ -56,7 +56,7 @@ Los hooks de git de la plantilla ya están activos en esta copia (`core.hooksPat
 
 ## Salto 2a: rutas
 - [x] 8. Estado de navegación fuera de React Router
-- [ ] 9. Adaptador de navegación
+- [x] 9. Adaptador de navegación
 - [ ] 10. Rutas de Next
 - [ ] 11. Retirar React Router
 - [ ] Punto de control C: PR del salto 2a

@@ -1,5 +1,5 @@
 import { useLayoutEffect } from 'react'
-import { useLocation, useNavigationType } from 'react-router'
+import { useLocation, useNavigationType } from '../router'
 
 /** Cada pantalla nueva empieza arriba. Al volver atrás, el scroll lo decide el navegador. */
 export function ScrollToTop() {

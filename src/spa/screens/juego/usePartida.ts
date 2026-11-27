@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate } from '../../router'
 import { useRepository } from '../../data/hooks'
 import type { OpenAttempt } from '../../data/types'
 import { handOff } from '../../lib/entryState'

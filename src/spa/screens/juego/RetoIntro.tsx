@@ -1,5 +1,5 @@
 import { Play, Timer } from 'lucide-react'
-import { useParams } from 'react-router'
+import { useParams } from '../../router'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { EmptyCard, ErrorNotice, Skeleton } from '../../components/States'

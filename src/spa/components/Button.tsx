@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
-import { Link } from 'react-router'
+import { Link } from '../router'
 import { cx } from './cx'
 import styles from './Button.module.css'
 

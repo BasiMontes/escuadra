@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate } from '../router'
 import { ArrowLeft } from 'lucide-react'
 import { Logo } from '../components/Logo'
 import { StepBar } from '../components/Controls'

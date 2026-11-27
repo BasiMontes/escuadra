@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Trophy } from 'lucide-react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useSearchParams } from '../../router'
 import { Avatar } from '../../components/Avatar'
 import { Card } from '../../components/Card'
 import { EmptyCard, ErrorNotice, Skeleton } from '../../components/States'

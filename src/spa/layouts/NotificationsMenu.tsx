@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Bell, Trophy, CalendarClock } from 'lucide-react'
-import { Link, useLocation } from 'react-router'
+import { Link, useLocation } from '../router'
 import { useRepository } from '../data/hooks'
 import type { NotificationItem } from '../data/types'
 import styles from './NotificationsMenu.module.css'

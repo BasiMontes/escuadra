@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Bell, ChevronRight, CircleHelp, KeyRound, Lock, Target } from 'lucide-react'
-import { Link } from 'react-router'
+import { Link } from '../../router'
 import { BlockTitle } from '../../components/BlockTitle'
 import { Button } from '../../components/Button'
 import { ErrorNotice } from '../../components/States'

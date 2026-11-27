@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { useLocation, useNavigate } from '../../router'
 import { Button } from '../../components/Button'
 import { SelectField, TextArea, TextField } from '../../components/Field'
 import { useLoad } from '../../data/hooks'

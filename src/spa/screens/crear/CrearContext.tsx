@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet } from 'react-router'
+import { Outlet } from '../../router'
 import { CrearCtx, EMPTY_DRAFT, type CrearDraft, type PublishedChallenge } from './crearState'
 
 /** Conserva el borrador mientras se recorren los pasos. */

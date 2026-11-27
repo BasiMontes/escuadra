@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { CircleCheck, CircleStar, Timer } from 'lucide-react'
-import { Navigate, useParams } from 'react-router'
+import { Navigate, useParams } from '../../router'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { ErrorNotice, Skeleton } from '../../components/States'

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate } from '../../router'
 import { Logo } from '../../components/Logo'
 import styles from './Onboarding.module.css'
 
