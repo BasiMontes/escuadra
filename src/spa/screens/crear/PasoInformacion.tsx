@@ -74,10 +74,8 @@ export function PasoInformacion() {
           <SelectField
             label="Liga"
             options={(competitions ?? []).map((c) => ({ value: c.id, label: c.name }))}
-            // La selección se aplica cuando ya han llegado las opciones
-            key={competitions ? 'cargadas' : 'cargando'}
             value={draft.competitionId}
-            onChange={(e) => update({ competitionId: e.target.value })}
+            onValueChange={(competitionId) => update({ competitionId })}
             data-testid="crear-liga"
           />
         </div>

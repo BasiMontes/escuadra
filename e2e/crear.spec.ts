@@ -1,16 +1,22 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { alerta, expectFullScreen } from './helpers'
+import { alerta, elegir, expectFullScreen } from './helpers'
 
 const PREGUNTA = '¿Qué equipo juega en el Emirates Stadium?'
 
 async function expectNoSeriousA11y(page: Page) {
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa'])
+    // Centinelas invisibles de la lista desplegable: en WebKit llevan `role="button"` a propósito para VoiceOver
+    .exclude('[data-base-ui-focus-guard]')
+    .analyze()
   const serious = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
   expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([])
 }
 
 const siguiente = (page: Page) => page.getByTestId('crear-siguiente').click()
+
+const LIGA_INICIAL = 'Champions, UEFA, Conference'
 
 async function hastaPaso2(page: Page) {
   await page.goto('/crear/1')
@@ -59,13 +65,37 @@ test.describe('Crear reto', () => {
     await expect(page).toHaveURL(/\/inicio$/)
   })
 
+  test('la liga se elige con el teclado en una lista propia', async ({ page }) => {
+    await page.goto('/crear/1')
+    const liga = page.getByRole('combobox', { name: 'Liga' })
+    await expect(liga).toHaveText(LIGA_INICIAL)
+    await expect(page.locator('select')).toHaveCount(0)
+    await liga.press('Enter')
+    await expect(page.getByRole('listbox')).toBeVisible()
+    await expect(page.getByRole('option', { name: LIGA_INICIAL })).toHaveAttribute('aria-selected', 'true')
+    // La lista mide lo mismo que su campo
+    const campo = (await liga.locator('..').boundingBox())!
+    const lista = (await page.getByRole('listbox').locator('..').boundingBox())!
+    expect(Math.abs(lista.x - campo.x)).toBeLessThan(1)
+    expect(Math.abs(lista.width - campo.width)).toBeLessThan(1)
+    await expectNoSeriousA11y(page)
+    await page.keyboard.press('Home')
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('listbox')).toHaveCount(0)
+    await expect(liga).toHaveText('Premier League')
+    await expect(liga).toBeFocused()
+  })
+
   test('flujo completo hasta el resumen', async ({ page }) => {
     await page.goto('/crear/1')
-    await expect(page.getByTestId('crear-tipo').locator('option')).toHaveText(['Pregunta de respuesta libre'])
-    await expect(page.getByTestId('crear-liga')).toHaveValue('uefa')
+    await expect(page.getByTestId('crear-tipo')).toHaveText('Pregunta de respuesta libre')
+    await page.getByTestId('crear-tipo').click()
+    await expect(page.getByRole('option')).toHaveText(['Pregunta de respuesta libre'])
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('crear-liga')).toHaveText(LIGA_INICIAL)
     await page.getByTestId('crear-titulo').fill('Mundiales 90s')
     await page.getByTestId('crear-descripcion').fill(PREGUNTA)
-    await page.getByTestId('crear-liga').selectOption('premier')
+    await elegir(page, 'crear-liga', 'Premier League')
     await siguiente(page)
 
     await expect(page.getByTestId('crear-dificultad-medio')).toBeChecked()
@@ -240,7 +270,7 @@ test.describe('Compartir reto', () => {
 test.describe('Crear reto · accesibilidad', () => {
   test('pasos 1 a 3 sin errores', async ({ page }) => {
     await page.goto('/crear/1')
-    await expect(page.getByTestId('crear-liga')).toHaveValue('uefa')
+    await expect(page.getByTestId('crear-liga')).toHaveText(LIGA_INICIAL)
     await expectNoSeriousA11y(page)
     await page.getByTestId('crear-titulo').fill('Mundiales 90s')
     await page.getByTestId('crear-descripcion').fill(PREGUNTA)
@@ -312,7 +342,7 @@ test.describe('Crear reto en portátil @portatil', () => {
 test.describe('Crear reto · visual @visual', () => {
   test('paso 1', async ({ page }) => {
     await page.goto('/crear/1')
-    await expect(page.getByTestId('crear-liga')).toHaveValue('uefa')
+    await expect(page.getByTestId('crear-liga')).toHaveText(LIGA_INICIAL)
     await expectFullScreen(page, 'crear-1.png')
   })
 

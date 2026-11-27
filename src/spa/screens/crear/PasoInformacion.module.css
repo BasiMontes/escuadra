@@ -23,7 +23,7 @@
   }
 
   .form input,
-  .form select {
+  .form [role='combobox'] {
     padding-block: var(--s-3);
     font-size: 16px;
   }
