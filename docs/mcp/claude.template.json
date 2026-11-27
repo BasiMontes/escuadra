@@ -1,0 +1,124 @@
+{
+  "mcpServers": {
+    "openapi": {
+      "command": "bunx",
+      "args": [
+        "-p",
+        "varlock@1.20.0",
+        "varlock",
+        "run",
+        "--no-redact-stdout",
+        "--inject",
+        "vars",
+        "--filter",
+        "API_HEADERS",
+        "--",
+        "npx",
+        "-y",
+        "@ivotoby/openapi-mcp-server",
+        "--tools",
+        "dynamic"
+      ],
+      "env": {
+        "API_BASE_URL": "{{API_BASE_URL}}",
+        "OPENAPI_SPEC_PATH": "{{OPENAPI_SPEC_URL}}"
+      }
+    },
+    "sql": {
+      "command": "bunx",
+      "args": [
+        "-p",
+        "varlock@1.20.0",
+        "varlock",
+        "run",
+        "--no-redact-stdout",
+        "--inject",
+        "vars",
+        "--filter",
+        "DB_HOST,DB_USER,DB_PASSWORD",
+        "--",
+        "npx",
+        "-y",
+        "@bytebase/dbhub@latest",
+        "--config",
+        "dbhub.toml"
+      ]
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ]
+    },
+    "postman": {
+      "type": "http",
+      "url": "https://mcp.postman.com/mcp",
+      "headers": {
+        "Authorization": "Bearer {{POSTMAN_API_KEY}}"
+      }
+    },
+    "sentry": {
+      "type": "http",
+      "url": "https://mcp.sentry.dev/mcp/{{SENTRY_ORG}}/{{SENTRY_PROJECT}}"
+    },
+    "vercel": {
+      "type": "http",
+      "url": "https://mcp.vercel.com/"
+    },
+    "notion": {
+      "type": "http",
+      "url": "https://mcp.notion.com/mcp"
+    },
+    "atlassian": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote@0.14.3",
+        "https://mcp.atlassian.com/v1/sse"
+      ]
+    },
+    "nanobanana": {
+      "command": "bunx",
+      "args": [
+        "-p",
+        "varlock@1.20.0",
+        "varlock",
+        "run",
+        "--no-redact-stdout",
+        "--inject",
+        "vars",
+        "--filter",
+        "GEMINI_API_KEY",
+        "--",
+        "uvx",
+        "nanobanana-mcp-server@latest"
+      ]
+    },
+    "slack": {
+      "command": "bunx",
+      "args": [
+        "-p",
+        "varlock@1.20.0",
+        "varlock",
+        "run",
+        "--no-redact-stdout",
+        "--inject",
+        "vars",
+        "--filter",
+        "SLACK_MCP_XOXP_TOKEN",
+        "--",
+        "npx",
+        "-y",
+        "slack-mcp-server@latest",
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "SLACK_MCP_ADD_MESSAGE_TOOL": "true",
+        "SLACK_MCP_USERS_CACHE": "./.session/mcp/slack/",
+        "SLACK_MCP_CHANNELS_CACHE": "./.session/mcp/slack/"
+      }
+    }
+  }
+}

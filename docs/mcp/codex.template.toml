@@ -1,0 +1,173 @@
+# ============================================
+# OPT-IN MCP BLOCKS FOR CODEX CLI + CODEX DESKTOP
+# ============================================
+# The servers this repo runs are declared in `.codex/config.toml` (committed,
+# kept in parity with `.mcp.json` and `opencode.jsonc` by
+# `bun run agents:compat:check`). A project checkout needs nothing from here.
+#
+# Each block below is an OPT-IN server the repo does not enable. To add one:
+#   1. copy the block into `.codex/config.toml`,
+#   2. add the same server to `.mcp.json` and `opencode.jsonc`
+#      (docs/mcp/claude.template.json, docs/mcp/opencode.template.json),
+#   3. declare its variables in `.env.schema` (`@sensitive` on a secret), add
+#      them empty to `.env.example` and set them in `.env`, then run
+#      `bun run agents:compat:check`.
+#
+# Project `.codex/` config loads only in a repository Codex trusts.
+#
+# LOADER: every stdio block that needs `.env` values starts through the same
+# `.env` loader the committed configs use on every host:
+#   bunx -p varlock@1.20.0 varlock run --no-redact-stdout --inject vars --filter A,B -- <real command>
+# (`MCP_ENV_LOADER_*` in cli/lib/agent-compatibility-contracts.ts, ADR-0012).
+# It reads `.env` / `.env.local` (or the secret manager the schema names)
+# whatever launched Codex, and hands the server ONLY the names in --filter,
+# which are the exact variable names the server reads. No `env_vars` beside it.
+# A block that needs no value (shadcn, atlassian) launches bare.
+# `startup_timeout_sec = 30` covers a cold package fetch plus the loader hop.
+#
+# SECRETS: Codex never expands `${VAR}` in `args` or in `[X.env]`. A remote
+# (HTTP) server cannot start through the loader: it names its token with
+# `bearer_token_env_var = "VAR"`, read from Codex's own process environment,
+# which `.env` never reaches (ADR-0016): it resolves only if the operator
+# exported that ONE variable in the shell before launching. Prefer the
+# server's OAuth login when it offers one.
+#
+# `{{VARIABLE}}` marks a NON-secret value to paste by hand (a URL, an org slug).
+#
+# OAuth on an HTTP server may need `experimental_use_rmcp_client = true`.
+
+# ============================================
+# LOCAL (STDIO) SERVERS
+# ============================================
+
+# API_HEADERS carries the bearer inside the value, and no host interpolates it:
+# put the whole `API_HEADERS="Authorization:Bearer <token>"` in .env.
+[mcp_servers.openapi]
+command = "bunx"
+startup_timeout_sec = 30
+args = [
+  "-p",
+  "varlock@1.20.0",
+  "varlock",
+  "run",
+  "--no-redact-stdout",
+  "--inject",
+  "vars",
+  "--filter",
+  "API_HEADERS",
+  "--",
+  "npx",
+  "-y",
+  "@ivotoby/openapi-mcp-server",
+  "--tools",
+  "dynamic",
+]
+
+[mcp_servers.openapi.env]
+API_BASE_URL = "{{API_BASE_URL}}"
+OPENAPI_SPEC_PATH = "{{OPENAPI_SPEC_URL}}"
+
+# DBHub reads its sources from dbhub.toml (start from docs/mcp/dbhub.example.toml)
+# and interpolates its `${VAR}` from the environment the loader fills: the
+# filter lists the names that file references.
+[mcp_servers.sql]
+command = "bunx"
+startup_timeout_sec = 30
+args = [
+  "-p",
+  "varlock@1.20.0",
+  "varlock",
+  "run",
+  "--no-redact-stdout",
+  "--inject",
+  "vars",
+  "--filter",
+  "DB_HOST,DB_USER,DB_PASSWORD",
+  "--",
+  "npx",
+  "-y",
+  "@bytebase/dbhub@latest",
+  "--config",
+  "dbhub.toml",
+]
+
+[mcp_servers.shadcn]
+command = "npx"
+startup_timeout_sec = 30
+args = [
+  "shadcn@latest",
+  "mcp",
+]
+
+[mcp_servers.slack]
+command = "bunx"
+startup_timeout_sec = 30
+args = [
+  "-p",
+  "varlock@1.20.0",
+  "varlock",
+  "run",
+  "--no-redact-stdout",
+  "--inject",
+  "vars",
+  "--filter",
+  "SLACK_MCP_XOXP_TOKEN",
+  "--",
+  "npx",
+  "-y",
+  "slack-mcp-server@latest",
+  "--transport",
+  "stdio",
+]
+
+[mcp_servers.slack.env]
+SLACK_MCP_ADD_MESSAGE_TOOL = "true"
+SLACK_MCP_USERS_CACHE = "./.session/mcp/slack/"
+SLACK_MCP_CHANNELS_CACHE = "./.session/mcp/slack/"
+
+[mcp_servers.nanobanana]
+command = "bunx"
+startup_timeout_sec = 30
+args = [
+  "-p",
+  "varlock@1.20.0",
+  "varlock",
+  "run",
+  "--no-redact-stdout",
+  "--inject",
+  "vars",
+  "--filter",
+  "GEMINI_API_KEY",
+  "--",
+  "uvx",
+  "nanobanana-mcp-server@latest",
+]
+
+# Atlassian through mcp-remote: OAuth in the browser, no token in .env, so it
+# launches bare (same block on every host).
+# Opt-in only: acli is the default Jira / Confluence path (`.agents/instructions/agent-tool-resolution.md` section 6).
+[mcp_servers.atlassian]
+command = "npx"
+startup_timeout_sec = 30
+args = [
+  "-y",
+  "mcp-remote@0.14.3",
+  "https://mcp.atlassian.com/v1/sse",
+]
+
+# ============================================
+# REMOTE (STREAMABLE HTTP) SERVERS
+# ============================================
+
+[mcp_servers.postman]
+url = "https://mcp.postman.com/mcp"
+bearer_token_env_var = "POSTMAN_API_KEY"
+
+[mcp_servers.sentry]
+url = "https://mcp.sentry.dev/mcp/{{SENTRY_ORG}}/{{SENTRY_PROJECT}}"
+
+[mcp_servers.vercel]
+url = "https://mcp.vercel.com/"
+
+[mcp_servers.notion]
+url = "https://mcp.notion.com/mcp"

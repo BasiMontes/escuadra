@@ -1,11 +1,11 @@
 # Producto: decisiones pendientes y limitaciones
 
-Lista única de lo que queda abierto en el producto. "Hoy" describe cómo se comporta la app con los
+Lista única de lo que queda abierto en el producto. "Comportamiento" describe cómo se comporta la app con los
 datos de ejemplo (revisado el 25 de noviembre de 2026). Cuando algo se resuelva, se borra de aquí.
 
 ## Decisiones pendientes
 
-| Pregunta | Hoy |
+| Pregunta | Comportamiento |
 |---|---|
 | ¿Qué puntos base puede poner un usuario? Solo sirven de marcador | De 10 a 200 |
 | ¿Puede alguien jugar su propio reto? | No |

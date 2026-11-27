@@ -1,0 +1,142 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "openapi": {
+      "type": "local",
+      "command": [
+        "bunx",
+        "-p",
+        "varlock@1.20.0",
+        "varlock",
+        "run",
+        "--no-redact-stdout",
+        "--inject",
+        "vars",
+        "--filter",
+        "API_HEADERS",
+        "--",
+        "npx",
+        "-y",
+        "@ivotoby/openapi-mcp-server",
+        "--tools",
+        "dynamic"
+      ],
+      "environment": {
+        "API_BASE_URL": "{{API_BASE_URL}}",
+        "OPENAPI_SPEC_PATH": "{{OPENAPI_SPEC_URL}}"
+      },
+      "enabled": false
+    },
+    "sql": {
+      "type": "local",
+      "command": [
+        "bunx",
+        "-p",
+        "varlock@1.20.0",
+        "varlock",
+        "run",
+        "--no-redact-stdout",
+        "--inject",
+        "vars",
+        "--filter",
+        "DB_HOST,DB_USER,DB_PASSWORD",
+        "--",
+        "npx",
+        "-y",
+        "@bytebase/dbhub@latest",
+        "--config",
+        "dbhub.toml"
+      ],
+      "enabled": false
+    },
+    "shadcn": {
+      "type": "local",
+      "command": [
+        "npx",
+        "shadcn@latest",
+        "mcp"
+      ],
+      "enabled": false
+    },
+    "postman": {
+      "type": "remote",
+      "url": "https://mcp.postman.com/mcp",
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {{POSTMAN_API_KEY}}"
+      },
+      "enabled": false
+    },
+    "sentry": {
+      "type": "remote",
+      "url": "https://mcp.sentry.dev/mcp/{{SENTRY_ORG}}/{{SENTRY_PROJECT}}",
+      "enabled": false
+    },
+    "vercel": {
+      "type": "remote",
+      "url": "https://mcp.vercel.com/",
+      "enabled": false
+    },
+    "notion": {
+      "type": "remote",
+      "url": "https://mcp.notion.com/mcp",
+      "enabled": false
+    },
+    "atlassian": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "mcp-remote@0.14.3",
+        "https://mcp.atlassian.com/v1/sse"
+      ],
+      "enabled": false
+    },
+    "nanobanana": {
+      "type": "local",
+      "command": [
+        "bunx",
+        "-p",
+        "varlock@1.20.0",
+        "varlock",
+        "run",
+        "--no-redact-stdout",
+        "--inject",
+        "vars",
+        "--filter",
+        "GEMINI_API_KEY",
+        "--",
+        "uvx",
+        "nanobanana-mcp-server@latest"
+      ],
+      "enabled": false
+    },
+    "slack": {
+      "type": "local",
+      "command": [
+        "bunx",
+        "-p",
+        "varlock@1.20.0",
+        "varlock",
+        "run",
+        "--no-redact-stdout",
+        "--inject",
+        "vars",
+        "--filter",
+        "SLACK_MCP_XOXP_TOKEN",
+        "--",
+        "npx",
+        "-y",
+        "slack-mcp-server@latest",
+        "--transport",
+        "stdio"
+      ],
+      "environment": {
+        "SLACK_MCP_ADD_MESSAGE_TOOL": "true",
+        "SLACK_MCP_USERS_CACHE": "./.session/mcp/slack/",
+        "SLACK_MCP_CHANNELS_CACHE": "./.session/mcp/slack/"
+      },
+      "enabled": false
+    }
+  }
+}

@@ -62,7 +62,7 @@ La plantilla se trae desde el commit `a377e29` (`git archive`), y después se no
 
 - Cada ruta pasa a ser una página de Next.
 - Los proveedores de onboarding y de crear reto pasan a layouts.
-- El resultado de la partida y el aviso de «perfil guardado» viajan hoy en el estado de navegación de
+- El resultado de la partida y el aviso de «perfil guardado» viajan en el estado de navegación de
   React Router, que Next no tiene: pasan a memoria de la app.
 - Se elimina React Router.
 
