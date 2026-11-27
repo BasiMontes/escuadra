@@ -1,0 +1,84 @@
+# ============================================
+# DBHUB CONFIGURATION - EXAMPLE
+# ============================================
+# Target file: dbhub.toml (project root), read by the opt-in `sql` MCP block in
+# docs/mcp/*.template.*. This repo does not enable DBHub: its database
+# capability (`db`) is the committed `supabase` MCP. Add DBHub only when a
+# project needs raw SQL against a database the Supabase MCP does not cover.
+# Documentation: https://dbhub.ai/config/toml
+#
+# Credentials never live in this file. DBHub interpolates `${VAR}` from its
+# process environment at load time, which the opt-in `sql` block fills through
+# the .env loader (`varlock run --filter DB_HOST,DB_USER,DB_PASSWORD`), so a
+# dbhub.toml written with `${VAR}` can be committed while the values stay in
+# .env. A name added here goes into that block's --filter on every host.
+# Literal credentials go in dbhub.local.toml, which .gitignore already covers.
+#
+# An unset variable is left as the literal `${VAR}` text and DBHub raises no
+# error: the connection fails later (AGENTS.md Critical Rule #9).
+
+# ============================================
+# DATA SOURCE: PostgreSQL (Supabase pooler)
+# ============================================
+# Supabase pooler user is `postgres.<project-ref>`; the pooler host is shown
+# in the Supabase dashboard (Connect -> Session pooler).
+
+[[sources]]
+id = "app"
+type = "postgres"
+host = "${DB_HOST}"
+port = 5432
+database = "postgres"
+user = "${DB_USER}"
+password = "${DB_PASSWORD}"
+sslmode = "require"
+
+# .env (gitignored), for example:
+#   DB_HOST=<region>.pooler.supabase.com
+#   DB_USER=postgres.<project-ref>
+#   DB_PASSWORD=<db-password>
+
+# ============================================
+# ADVANCED OPTIONS
+# ============================================
+# Per-source options:
+# lazy = true              # Defer connection until first query
+# connection_timeout = 60  # Connection timeout in seconds
+# query_timeout = 30       # Query timeout in seconds
+
+# ============================================
+# EXAMPLE: SEVERAL DATABASES
+# ============================================
+
+# [[sources]]
+# id = "production"
+# type = "postgres"
+# dsn = "postgres://readonly_user:${PROD_DB_PASSWORD}@prod-host:5432/mydb"
+# lazy = true
+# connection_timeout = 60
+# query_timeout = 30
+# sslmode = "require"
+
+# [[sources]]
+# id = "staging"
+# type = "postgres"
+# dsn = "postgres://readonly_user:${STAGING_DB_PASSWORD}@staging-host:5432/mydb"
+# connection_timeout = 30
+# query_timeout = 15
+
+# [[sources]]
+# id = "local_sqlite"
+# type = "sqlite"
+# dsn = "sqlite:///./data/local.db"
+
+# ============================================
+# CUSTOM TOOLS (OPTIONAL)
+# ============================================
+
+# [[tools]]
+# name = "search_employees"
+# description = "Search employees by name"
+# source = "production"
+# statement = "SELECT emp_no, first_name, last_name FROM employee WHERE first_name ILIKE '%' || $1 || '%' LIMIT $2"
+# readonly = true
+# max_rows = 100

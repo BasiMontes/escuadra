@@ -116,9 +116,9 @@ incompleta: la primera revisión útil es el punto de control A.
 - **Hace:** excluye `src/spa/**`, `e2e/**` y `playwright.config.ts` en `eslint.config.js`; corrige el
   error restante de `spa.tsx`; añade `src/spa` a `.prettierignore`; declara en `knip.json` las
   exportaciones dormidas; reescribe las frases con «hoy» de `docs/producto.md` y del diseño; añade el
-  script `check` (`repo:check`, `test` y `build`).
+  script `check:all` (`repo:check`, `test` y `build`; no puede llamarse `check` porque taparía `bun check`, que usa `types:check`).
 - **Aceptación:**
-  - [ ] `bun run check` en verde.
+  - [ ] `bun run check:all` en verde.
   - [ ] Cada exclusión lleva un comentario o nota que diga que se retira en el salto 2b.
   - [ ] Un commit de prueba pasa los hooks `pre-commit` y `commit-msg`.
 - **Depende de:** 4. **Tamaño:** mediano.
@@ -143,12 +143,12 @@ incompleta: la primera revisión útil es el punto de control A.
   queda margen), anota ahí la excepción de commits en español y actualiza el README.
 - **Aceptación:**
   - [ ] `CLAUDE.md` es solo `@AGENTS.md`.
-  - [ ] `bun run skills:registry` ejecutado y `bun run check` en verde.
+  - [ ] `bun run skills:registry` ejecutado y `bun run check:all` en verde.
   - [ ] README sin comandos de npm.
 - **Depende de:** 5.
 
 #### Punto de control B: PR del salto 1 listo
-- [ ] `bun run check`, flujos, WebKit y capturas en verde en CI.
+- [ ] `bun run check:all`, flujos, WebKit y capturas en verde en CI.
 - [ ] Revisión y aprobación antes de fusionar.
 
 ---
@@ -231,7 +231,7 @@ incompleta: la primera revisión útil es el punto de control A.
 - **Hace:** retira las exclusiones de ESLint, Prettier y `knip`; autocorrige en un commit aparte,
   incluidos los tests.
 - **Aceptación:**
-  - [ ] `bun run check` en verde sin exclusiones temporales.
+  - [ ] `bun run check:all` en verde sin exclusiones temporales.
   - [ ] El commit de autocorrección no cambia aserciones ni capturas.
   - [ ] Las rutas y comandos de `escuadra-context` y el README están al día.
 - **Depende de:** 14.
