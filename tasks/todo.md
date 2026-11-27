@@ -2,9 +2,9 @@
 
 Detalle y criterios de aceptación en [`plan.md`](plan.md).
 
-## Estado a 2026-11-27
+## Salto 1 cerrado el 2026-11-27
 
-Rama `migracion/salto-1`, con el PR del salto 1 contra `main`, que sigue sin fusionar.
+El PR #13 está fusionado en `main` con los cuatro trabajos de la CI en verde. Sigue el salto 2a.
 
 Los dos commits con código pasan tipos, tests unitarios y build cada uno por separado.
 
@@ -35,7 +35,7 @@ emulado). Los flujos emulados en un Mac agotan los tiempos de espera: no sirven 
    `lint-staged` con `--no-error-on-unmatched-pattern`.
 4. ~~Punto de control A~~ **Revisado el 2026-11-27**: las observaciones son de diseño y ya existían antes
    de migrar. Quedan en "Diseño pendiente de revisar" de [`docs/producto.md`](../docs/producto.md).
-5. Tarea 6 (CI): `pr-check.yml` escrito y probado en local; falta verlo en verde en GitHub.
+5. ~~Tarea 6 (CI)~~ **Hecho el 2026-11-27**.
 
 Los hooks de git de la plantilla ya están activos en esta copia (`core.hooksPath=.husky/_`).
 
@@ -50,9 +50,9 @@ Los hooks de git de la plantilla ya están activos en esta copia (`core.hooksPat
 - [x] 4. Tests de navegador
 - [x] Punto de control A: la app funciona igual
 - [x] 5. Comprobaciones del repositorio
-- [ ] 6. CI: faltan los cuatro trabajos en verde en el PR
+- [x] 6. CI
 - [x] 7. Documentación y contexto
-- [ ] Punto de control B: PR del salto 1
+- [x] Punto de control B: PR del salto 1
 
 ## Salto 2a: rutas
 - [ ] 8. Estado de navegación fuera de React Router
@@ -69,4 +69,5 @@ Los hooks de git de la plantilla ya están activos en esta copia (`core.hooksPat
 - [ ] Punto de control D: migración terminada
 
 ## Después del salto 1
-- [ ] PR de diseño: lista en "Diseño pendiente de revisar" de `docs/producto.md`
+- [x] Diseño, prioridad alta: desplegables, interruptores y texto de ejemplo (`fix/diseno-controles`)
+- [ ] Diseño, resto: lista en "Diseño pendiente de revisar" de `docs/producto.md`
