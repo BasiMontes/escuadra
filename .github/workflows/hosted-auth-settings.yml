@@ -1,0 +1,60 @@
+name: Hosted Auth settings
+
+# Reads the Auth settings of the production project, which only exist in the Supabase dashboard, and fails when one
+# the app relies on differs. Read only.
+
+on:
+  schedule:
+    - cron: '41 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: vars.AUTH_SETTINGS_CHECK_ENABLED == 'true' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      # Switched on but half configured must fail here, with the missing names.
+      - name: Check the secrets are set
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          missing=0
+          for name in SUPABASE_ACCESS_TOKEN; do
+            [ -n "${!name}" ] || { echo "::error::secret ${name} is not set"; missing=1; }
+          done
+          [ "$missing" = 0 ]
+
+      - name: Check the settings
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          EXPECT_CAPTCHA: ${{ vars.EXPECT_CAPTCHA }}
+        run: bun scripts/check-hosted-auth-settings.ts
+
+      # A red scheduled run notifies nobody, so a failure opens (or comments on) one issue.
+      - name: Open or update the issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: 'Hosted Auth settings differ from what the app relies on'
+        run: |
+          existing="$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Failed again: $RUN_URL"
+          else
+            gh issue create --title "$TITLE" --body "Run: $RUN_URL. The log of the run lists each setting."
+          fi

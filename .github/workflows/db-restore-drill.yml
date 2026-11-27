@@ -1,0 +1,148 @@
+name: Database restore drill
+
+# Takes the newest backup, restores it into a Supabase project created for the run, times every step and deletes that
+# project. Production is not an input. See docs/workflows/operations.md.
+
+on:
+  schedule:
+    - cron: '43 4 1 1,4,7,10 *' # quarterly
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: db-restore-drill
+  cancel-in-progress: false
+
+jobs:
+  drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: vars.RESTORE_DRILL_ENABLED == 'true' || github.event_name == 'workflow_dispatch'
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      SUPABASE_ORG_ID: ${{ vars.SUPABASE_ORG_ID }}
+      DRILL_REGION: ${{ vars.SUPABASE_REGION }}
+      PG_IMAGE: postgres:17
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+    steps:
+      # Switched on but half configured must fail here, with the missing names.
+      - name: Check the secrets are set
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          missing=0
+          for name in SUPABASE_ACCESS_TOKEN BACKUP_PASSPHRASE R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET; do
+            [ -n "${!name}" ] || { echo "::error::secret ${name} is not set"; missing=1; }
+          done
+          [ "$missing" = 0 ]
+
+      - name: Check the variables are set
+        run: |
+          [ -n "$SUPABASE_ORG_ID" ] || { echo "::error::repository variable SUPABASE_ORG_ID is not set"; exit 1; }
+          [ -n "$DRILL_REGION" ] || { echo "::error::repository variable SUPABASE_REGION is not set"; exit 1; }
+          echo "T0=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Download and decrypt the newest backup
+        run: |
+          endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          key="$(aws s3 ls "s3://${R2_BUCKET}/" --endpoint-url "$endpoint" | awk '{print $4}' | grep '\.dump\.enc$' | sort | tail -1)"
+          [ -n "$key" ] || { echo "::error::the bucket holds no backup"; exit 1; }
+          aws s3 cp "s3://${R2_BUCKET}/${key}" "$RUNNER_TEMP/restore.dump.enc" --endpoint-url "$endpoint"
+          aws s3 cp "s3://${R2_BUCKET}/${key%.dump.enc}.counts.json" "$RUNNER_TEMP/counts.json" --endpoint-url "$endpoint"
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -pass env:BACKUP_PASSPHRASE \
+            -in "$RUNNER_TEMP/restore.dump.enc" -out "$RUNNER_TEMP/restore.dump"
+          echo "T_DOWNLOADED=$(date +%s)" >> "$GITHUB_ENV"
+          echo "BACKUP_KEY=${key}" >> "$GITHUB_ENV"
+
+      - name: Create the scratch project
+        run: |
+          password="$(openssl rand -base64 33 | tr -d '/+=' | cut -c1-32)"
+          echo "::add-mask::${password}"
+          echo "DRILL_DB_PASSWORD=${password}" >> "$GITHUB_ENV"
+          body="$(jq -n --arg password "$password" --arg org "$SUPABASE_ORG_ID" --arg region "$DRILL_REGION" \
+            '{name: "restore-drill", organization_id: $org, region: $region, db_pass: $password}')"
+          ref="$(curl -fsS -X POST https://api.supabase.com/v1/projects \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" -H 'Content-Type: application/json' -d "$body" | jq -r '.id')"
+          echo "DRILL_REF=${ref}" >> "$GITHUB_ENV"
+          status=unknown
+          for attempt in $(seq 1 90); do
+            status="$(curl -fsS "https://api.supabase.com/v1/projects/${ref}" -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" | jq -r '.status')"
+            echo "attempt ${attempt}: ${status}"
+            [ "$status" = "ACTIVE_HEALTHY" ] && break
+            sleep 10
+          done
+          [ "$status" = "ACTIVE_HEALTHY" ] || { echo "::error::the scratch project never became healthy"; exit 1; }
+          echo "T_PROJECT_READY=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Restore and compare the accounts
+        run: |
+          pooler="$(curl -fsS "https://api.supabase.com/v1/projects/${DRILL_REF}/config/database/pooler" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}")"
+          # A fresh project may answer without `db_host`: the host is also inside the connection string.
+          host="$(echo "$pooler" | jq -r '[.[] | (.db_host // ((.connectionString // .connection_string // "") | (capture("@(?<h>[^:/]+)")? | .h)))] | map(select(. != null)) | .[0] // empty')"
+          [ -n "$host" ] || { echo "::error::could not resolve the pooler host"; exit 1; }
+          encoded="$(printf '%s' "$DRILL_DB_PASSWORD" | jq -sRr @uri)"
+          url="postgresql://postgres.${DRILL_REF}:${encoded}@${host}:5432/postgres"
+          echo "::add-mask::${url}"
+          # pg_restore also fails on harmless things: the comparison below is the verdict.
+          docker run --rm -v "$RUNNER_TEMP:/in" "$PG_IMAGE" \
+            pg_restore --no-owner --no-privileges -d "$url" /in/restore.dump 2> "$RUNNER_TEMP/restore.err" || true
+          echo "pg_restore errors: $(grep -c '^pg_restore: error:' "$RUNNER_TEMP/restore.err" || true)"
+          users="$(docker run --rm "$PG_IMAGE" psql "$url" -At -c 'select count(*) from auth.users')"
+          low="$(jq '[.before["auth.users"], .after["auth.users"]] | min' "$RUNNER_TEMP/counts.json")"
+          high="$(jq '[.before["auth.users"], .after["auth.users"]] | max' "$RUNNER_TEMP/counts.json")"
+          echo "accounts restored: ${users} (expected ${low} to ${high})"
+          [ "$users" -ge "$low" ] && [ "$users" -le "$high" ] || { echo "::error::the restored accounts do not match the backup"; exit 1; }
+          echo "T_RESTORED=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Report the timings
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          {
+            echo "Backup restored: \`${BACKUP_KEY}\`"
+            echo
+            echo "| Step | Seconds |"
+            echo "| --- | --- |"
+            echo "| Download and decrypt | $((T_DOWNLOADED - T0)) |"
+            echo "| Create the project | $((T_PROJECT_READY - T_DOWNLOADED)) |"
+            echo "| Restore and compare | $((T_RESTORED - T_PROJECT_READY)) |"
+            echo "| Total | $((T_RESTORED - T0)) |"
+          } | tee "$RUNNER_TEMP/drill.md" >> "$GITHUB_STEP_SUMMARY"
+          gh issue create --title "Restore drill $(date -u +%Y-%m-%d): $((T_RESTORED - T0)) s" --body-file "$RUNNER_TEMP/drill.md"
+
+      # A red scheduled run notifies nobody, so a failure opens (or comments on) one issue.
+      - name: Open or update the issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: 'Database restore drill failed'
+        run: |
+          existing="$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Failed again: $RUN_URL"
+          else
+            gh issue create --title "$TITLE" --body "Run: $RUN_URL. Until a drill succeeds, restoring is unproven. Check in the Supabase dashboard that no restore-drill project was left behind."
+          fi
+
+      - name: Delete the scratch project
+        if: always()
+        run: |
+          [ -n "${DRILL_REF:-}" ] || { echo "no scratch project was created"; exit 0; }
+          curl -fsS -X DELETE "https://api.supabase.com/v1/projects/${DRILL_REF}" -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" > /dev/null

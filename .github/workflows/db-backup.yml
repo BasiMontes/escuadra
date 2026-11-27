@@ -1,0 +1,94 @@
+name: Database backup
+
+# Daily logical backup of the production database: dump, encrypt, prove it restores into a throwaway Postgres, then
+# upload to Cloudflare R2. The source is only read. Setup and restore: docs/workflows/operations.md.
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: vars.DB_BACKUP_ENABLED == 'true' || github.event_name == 'workflow_dispatch'
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      # Switched on but half configured must fail here, with the missing names.
+      - name: Check the secrets are set
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          missing=0
+          for name in SUPABASE_DB_PASSWORD BACKUP_PASSPHRASE R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET; do
+            [ -n "${!name}" ] || { echo "::error::secret ${name} is not set"; missing=1; }
+          done
+          [ "$missing" = 0 ]
+
+      - name: Check the bucket is reachable before the long part
+        run: aws s3 ls "s3://${R2_BUCKET}/" --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" > /dev/null
+
+      - name: Dump, encrypt and verify the restore
+        env:
+          DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          # The session pooler: GitHub runners have no IPv6, which the direct address needs.
+          POOLER_HOST: ${{ vars.SUPABASE_POOLER_HOST }}
+        run: |
+          [ -n "$POOLER_HOST" ] || { echo "::error::repository variable SUPABASE_POOLER_HOST is not set"; exit 1; }
+          ref="$(bun scripts/ops-config.ts production db_project_ref)"
+          encoded="$(printf '%s' "$DB_PASSWORD" | jq -sRr @uri)"
+          export SUPABASE_DB_URL="postgresql://postgres.${ref}:${encoded}@${POOLER_HOST}:5432/postgres"
+          echo "::add-mask::${SUPABASE_DB_URL}"
+          bun scripts/db-backup.ts run --out "$RUNNER_TEMP/db.dump.enc"
+
+      # Only reached when the restore check passed, so every object in the bucket was restored once.
+      - name: Upload
+        run: |
+          stamp="$(date -u +%Y-%m-%dT%H%M%SZ)"
+          endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          aws s3 cp "$RUNNER_TEMP/db.dump.enc" "s3://${R2_BUCKET}/db-${stamp}.dump.enc" --endpoint-url "$endpoint"
+          aws s3 cp "$RUNNER_TEMP/db.dump.enc.counts.json" "s3://${R2_BUCKET}/db-${stamp}.counts.json" --endpoint-url "$endpoint"
+
+      # A red scheduled run notifies nobody, so a failure opens (or comments on) one issue.
+      - name: Open or update the issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: 'Database backup failed'
+        run: |
+          existing="$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Failed again: $RUN_URL"
+          else
+            gh issue create --title "$TITLE" --body "Run: $RUN_URL. Until a run succeeds the newest backup keeps getting older. See docs/workflows/operations.md."
+          fi
