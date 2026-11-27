@@ -186,10 +186,14 @@ test.describe('Crear reto', () => {
   test('volver conserva lo escrito', async ({ page }) => {
     await hastaPaso3(page)
     await rellenarPaso3(page)
+    // Cada paso comparte botones con el anterior: hay que esperar a que se pinte antes de pulsar otra vez
+    const paso = page.getByTestId('crear-paso')
     await page.getByTestId('crear-volver').click()
+    await expect(paso).toHaveText('Paso 2 de 4')
     await page.getByTestId('crear-volver').click()
     await expect(page.getByTestId('crear-titulo')).toHaveValue('Mundiales 90s')
     await siguiente(page)
+    await expect(paso).toHaveText('Paso 2 de 4')
     await siguiente(page)
     await expect(page.getByTestId('crear-pista-2')).toHaveValue('Su estadio se llama Emirates Stadium.')
   })
