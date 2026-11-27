@@ -95,7 +95,7 @@
 }
 
 .grow textarea::placeholder {
-  color: var(--c-slate-400);
+  color: var(--c-grey-text-soft);
 }
 
 .remove {
@@ -139,7 +139,7 @@
 }
 
 .answer input::placeholder {
-  color: var(--c-slate-400);
+  color: var(--c-grey-text-soft);
 }
 
 @media (min-width: 1024px) and (max-height: 899px) {

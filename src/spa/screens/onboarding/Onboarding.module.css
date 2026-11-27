@@ -85,7 +85,7 @@
 }
 
 .form input::placeholder {
-  color: #b5b5b5;
+  color: var(--c-grey-text-soft);
 }
 
 /* Separación suficiente para que la sombra del campo no toque los requisitos, también en portátil */
