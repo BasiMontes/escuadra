@@ -15,7 +15,7 @@ export function EditarPerfil() {
   const { data, error, loading, reload } = useLoad((r) => r.getMe())
 
   return (
-    <AppShell tab="perfil" title="Editar perfil">
+    <AppShell tab="perfil" title="Editar perfil" parent="/perfil">
       {error && <ErrorNotice message="No se ha podido cargar tu perfil." onRetry={reload} />}
       {loading && <Skeleton height={480} />}
       {data && <Formulario profile={data} />}

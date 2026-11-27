@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
-import { NavLink, Link } from '../router'
+import { Link, NavLink, useLocation, useNavigate } from '../router'
 import { BarChart3, Flame, House, Lightbulb, Plus, Trophy, User } from 'lucide-react'
+import { BackButton } from '../components/BackButton'
 import { Logo } from '../components/Logo'
 import { cx } from '../components/cx'
 import { useLoad } from '../data/hooks'
@@ -21,6 +22,8 @@ type Props = {
   tab: Tab | null
   /** Título de la cabecera en desktop */
   title: string
+  /** Con ella aparece la flecha de volver; es el destino si se ha entrado directamente en la pantalla */
+  parent?: string
   /** Fondo de la zona de contenido en móvil; en desktop siempre es amarillo con patrón */
   mobileBg?: 'yellow' | 'game' | 'white'
   /** Margen lateral de 16 px en móvil (Reto del día y Reto) en lugar de 24 */
@@ -31,7 +34,10 @@ type Props = {
 }
 
 /** Estructura común de las pantallas con sesión iniciada. */
-export function AppShell({ tab, title, mobileBg = 'yellow', narrow = false, hintsLeft, children }: Props) {
+export function AppShell({ tab, title, parent, mobileBg = 'yellow', narrow = false, hintsLeft, children }: Props) {
+  const navigate = useNavigate()
+  const { key } = useLocation()
+  const back = () => (key === 'default' ? navigate(parent!, { replace: true }) : navigate(-1))
   const { data: stats } = useLoad((r) => r.getStats())
   return (
     <div className={styles.shell}>
@@ -72,7 +78,10 @@ export function AppShell({ tab, title, mobileBg = 'yellow', narrow = false, hint
 
         {/* Cabecera desktop */}
         <header className={styles.topbar}>
-          <h1 className={styles.topTitle}>{title}</h1>
+          <div className={styles.topLeft}>
+            {parent && <BackButton onClick={back} data-testid="topbar-volver" />}
+            <h1 className={styles.topTitle}>{title}</h1>
+          </div>
           <div className={styles.topRight}>
             <span className={styles.pill} data-testid="topbar-racha">
               <Flame aria-hidden="true" /> Racha {stats?.streak ?? 0}
@@ -88,6 +97,11 @@ export function AppShell({ tab, title, mobileBg = 'yellow', narrow = false, hint
           <h1 className="visually-hidden" data-mobile-title>
             {title}
           </h1>
+          {parent && (
+            <div className={styles.mobileBack}>
+              <BackButton onClick={back} data-testid="header-volver" />
+            </div>
+          )}
           {children}
         </main>
 

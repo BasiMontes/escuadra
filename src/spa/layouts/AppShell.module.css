@@ -58,6 +58,10 @@
   fill: currentColor;
 }
 
+.mobileBack {
+  margin-bottom: var(--s-4);
+}
+
 .content {
   flex: 1;
   padding: var(--s-6) var(--mobile-gutter) var(--s-12);
@@ -147,6 +151,7 @@
   }
 
   .mobileHeader,
+  .mobileBack,
   .bottomNav {
     display: none;
   }
@@ -242,6 +247,12 @@
     padding: 16px var(--desktop-pad);
     background: var(--c-white);
     border-bottom: var(--bw) solid var(--c-black);
+  }
+
+  .topLeft {
+    display: flex;
+    align-items: center;
+    gap: var(--s-4);
   }
 
   .topTitle {

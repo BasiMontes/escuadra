@@ -16,7 +16,7 @@ export function Privacidad() {
   const { data, error, loading, reload } = useLoad((r) => r.getMe())
 
   return (
-    <AppShell tab="perfil" title="Privacidad" narrow>
+    <AppShell tab="perfil" title="Privacidad" parent="/ajustes" narrow>
       {error && <ErrorNotice message="No se han podido cargar tus datos." onRetry={reload} />}
       {loading && <Skeleton height={420} />}
       {data && <Opciones profile={data} />}

@@ -23,7 +23,7 @@ export function Ajustes() {
   const [deleting, setDeleting] = useState(false)
 
   return (
-    <AppShell tab="perfil" title="Ajustes">
+    <AppShell tab="perfil" title="Ajustes" parent="/perfil">
       {failed && <ErrorNotice message="No se ha podido cerrar la sesión." onRetry={signOut} />}
       <div className={styles.screen}>
         <BlockTitle>Ajustes</BlockTitle>

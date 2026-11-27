@@ -20,7 +20,7 @@ export function MisRetos() {
   })
 
   return (
-    <AppShell tab="perfil" title="Mis retos">
+    <AppShell tab="perfil" title="Mis retos" parent="/perfil">
       {error && <ErrorNotice message="No se han podido cargar tus retos." onRetry={reload} />}
       {loading && <Skeleton height={420} />}
       {data && (

@@ -50,7 +50,7 @@ export function Contrasena() {
   }
 
   return (
-    <AppShell tab="perfil" title="Cambiar contraseña" narrow>
+    <AppShell tab="perfil" title="Cambiar contraseña" parent="/ajustes" narrow>
       <Card className={styles.card}>
         <form onSubmit={onSubmit} noValidate>
           <h2>Seguridad</h2>

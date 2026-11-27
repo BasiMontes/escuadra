@@ -29,7 +29,7 @@ export function RetoDetalle() {
   )
 
   return (
-    <AppShell tab="retos" title="Detalle del reto" mobileBg="white">
+    <AppShell tab="retos" title="Detalle del reto" parent="/retos" mobileBg="white">
       {error && <ErrorNotice message="No se ha podido cargar el reto." onRetry={reload} />}
       {loading && <Skeleton height={460} />}
       {data &&

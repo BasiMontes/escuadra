@@ -21,7 +21,7 @@ export function Logros() {
   const fresh = data?.achievements.find((a) => a.code === params.get('nuevo') && a.state === 'desbloqueado')
 
   return (
-    <AppShell tab="perfil" title="Mis logros" narrow>
+    <AppShell tab="perfil" title="Mis logros" parent="/perfil" narrow>
       {error && <ErrorNotice message="No se han podido cargar tus logros." onRetry={reload} />}
       {loading && <Skeleton height={480} />}
       {data && (

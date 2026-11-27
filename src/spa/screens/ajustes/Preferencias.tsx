@@ -17,7 +17,7 @@ export function Preferencias() {
   const [hintsLeft, setHintsLeft] = useState<number>()
 
   return (
-    <AppShell tab="perfil" title="Preferencias de juego" hintsLeft={hintsLeft}>
+    <AppShell tab="perfil" title="Preferencias de juego" parent="/ajustes" hintsLeft={hintsLeft}>
       {error && <ErrorNotice message="No se han podido cargar tus preferencias." onRetry={reload} />}
       {loading && <Skeleton height={520} />}
       {data && <Formulario {...data} onSaved={setHintsLeft} />}
