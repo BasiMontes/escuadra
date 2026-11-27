@@ -1,0 +1,850 @@
+# Page craft: the `/qa` golden file
+
+> **Purpose**: The visual and structural target for the generated `/qa` page. It is what makes the output better than a flat accordion list: a page with its own layout (sticky TOC, hero, domain-colored sections), a clean RSC split, copy-buttoned multi-agent code blocks, a real architecture diagram, and a one-object bridge from detection to render so nothing is hardcoded.
+>
+> **When to read**: Phase 4 (page codegen), together with `page-structure.md` (section order and copy) and `mcp-and-env-setup.md` (the content inside §3 to §6).
+>
+> **How to use the golden**: copy the structure, then fill `qaConfig` (below) from the Phase 1 detection. Adapt the primitives to the detected UI kit (the golden uses shadcn/ui, Tailwind, lucide-react and next-themes, the most common host stack). For non-Next frameworks keep the same component decomposition and swap the routing and RSC mechanics per `routing-patterns.md`.
+
+---
+
+## Design principles
+
+1. **Own layout, not a doc dump.** Two columns on desktop: a sticky TOC rail and the content. A hero band on top. Each section is a self-contained card with a domain accent color.
+2. **Scannable.** The sticky TOC highlights the active section and has anchor deep-links and a copy-link, so a tester can jump straight to "DB testing".
+3. **Show, don't tell.** A real architecture diagram (Frontend, API, DB, the MCP layer and the Repos), copy-buttoned snippets, and agent tabs so each tester copies the block for their own tool.
+4. **Zero hardcode at the source.** One typed `qaConfig` object holds every detected value. The JSX reads from it and codegen fills it. A `null` value renders an explicit "ask your lead" gap, never a fabricated default.
+5. **Clean RSC split.** `page.tsx` is a Server Component (static markup and metadata). Anything with state or interaction lives in a `'use client'` sibling under `_components/`.
+6. **Dark and light from the host.** Mirror the host's theme mechanism (the golden assumes `next-themes`, `dark:` variants and CSS-variable tokens) and ship no second theme system.
+
+---
+
+## File structure (Next.js App Router)
+
+```
+app/qa/
+├── page.tsx                 # Server Component — markup, metadata, snapshot comment
+├── qa-config.ts             # the detection→render bridge (typed; codegen fills it)
+├── _lib/
+│   ├── highlight.ts         # server-only Shiki bridge — memoized highlighter, dual theme
+│   ├── prepare.ts           # server one-shot: highlight every client-bound snippet
+│   └── build.ts             # server-only: resolves the deployed commit SHA at runtime
+└── _components/
+    ├── QaShell.tsx          # async SERVER orchestrator: layout + prepareQa() + sections
+    ├── Toc.tsx              # 'use client' — sticky nav, active-section, copy-link
+    ├── CodeBlock.tsx        # async SERVER CodeBlock + presentational CodeFrame (terminal|editor)
+    ├── CopyButton.tsx       # 'use client' — the only interactive leaf (clipboard + 2s check)
+    ├── AgentCodeBlock.tsx   # 'use client' — tabs over PRE-highlighted per-agent blocks
+    ├── RequestCard.tsx      # 'use client' — Postman-style request viewer (Visual/curl toggle)
+    ├── RequestCards.tsx     # 'use client' — tab group over RequestCards (§5 auth)
+    ├── ArchDiagram.tsx      # boxes-and-arrows + MCP layer + Repos (mono/poly)
+    ├── TwoWayTabs.tsx       # reusable 2-way tabs (DB: toml|URI · API: OpenAPI|Postman)
+    └── EnvSetup.tsx         # .env slots + activation (per process) + missing-var table
+```
+
+> **Why the `_lib/` split**: the highlighter is server-only. It loads WASM and grammars, which is expensive, and it must never ship to the browser. Client components (`AgentCodeBlock`, `RequestCard`) cannot import it, so the server pre-highlights every snippet into html-string props (`prepare.ts`) and passes them down. Server components highlight inline through the async `<CodeBlock>`.
+
+For non-App-Router frameworks, collapse to a single page file plus the framework's interactivity pattern and keep the component boundaries conceptually. If the framework has no RSC or server-component model, run the highlighter at build time (or in the route loader) and pass html strings to the components. The split "highlight on the server, copy on the client" is what matters, not the exact directory.
+
+---
+
+## The `qaConfig` contract (qa-config.ts)
+
+Every value here comes from `pre-flight-discovery.md`. `null` renders a gap, not a guess.
+
+```ts
+// app/qa/qa-config.ts — codegen fills every field from Phase-1 detection.
+export type AgentKey = "claude" | "opencode" | "codex" | "gemini";
+export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
+
+// Postman-style description of ONE detected API request. Mirrors the project's
+// REAL auth call — no invented endpoints. `body`/`response` are JSON strings
+// (highlighted server-side); `curl` is the equivalent shell command. Every
+// value is a placeholder (<API_BASE_URL>, <see credentials source>) — never a
+// literal host/secret. (Q8 — request viewer.)
+export interface ApiRequest {
+  id: string;
+  label: string;                          // e.g. "<METHOD> <path>" of the DETECTED request
+  method: HttpMethod;
+  url: string;                            // "<API_BASE_URL>/<detected-path>"
+  description?: string;
+  headers: { key: string; value: string }[];
+  body: string | null;                    // JSON request body, or null
+  response: string | null;                // example JSON response, or null
+  curl: string;                           // the raw curl equivalent (toggle's "curl" view)
+}
+
+export interface DbRole { name: string; access: string; }   // e.g. "read-only (SELECT). BYPASSRLS."
+
+// WHERE the deployed commit lives, never WHAT it is. Codegen writes env var
+// NAMES only; `_lib/build.ts` reads their values at runtime. A SHA literal in
+// this file is a defect: it goes stale on the next deploy.
+export interface BuildSource {
+  shaEnvVars: string[];                   // DETECTED, priority order, e.g. ["VERCEL_GIT_COMMIT_SHA"]
+  repoUrl: string | null;                 // from .agents/project.yaml (frontend/backend repo) → commit link
+}
+
+export interface QaConfig {
+  lang: "es" | "en";
+  project: { name: string; reposShape: "mono" | "poly"; backendRepo: string | null; frontendRepo: string | null };
+  stack: { framework: string; ui: string; db: string; orm: string | null; auth: string[] };
+  credentialsSource: { label: string; url: string } | null;   // Jira Epic / Confluence / Notion …
+  build: BuildSource | null;                                   // null ⇒ no SHA source detected → hero shows the fallback
+  docs: { ui: "scalar" | "redoc" | "swagger" | null; route: string | null; specUrl: string | null };
+  api: {
+    baseUrl: string | null;
+    loginEndpoint: string | null;        // DETECTED — never "/api/auth/callback/credentials" by default
+    tokenShape: string | null;           // e.g. '{ access_token, token_type, expires_in }'
+    loginHelper: string | null;          // e.g. "bun run api:login" if present (Q5 — PAT bootstrap)
+    authMethods: { id: string; label: string; snippet: string }[];   // raw-curl fallback (Q8=curl-blocks)
+    apiRequests: ApiRequest[];           // Postman-style cards (Q8=request-cards, default) — DETECTED requests
+    endpoints?: { method: string; path: string; purpose: string }[]; // §7 quick-reference table
+  };
+  db: {
+    engine: "postgres" | "sqlserver" | "mysql" | "sqlite" | "mariadb";
+    tomlPath: string; uriScheme: string;
+    tomlBlock: string; uriBlock: string;             // teaching snippets (placeholders only) — see §4
+    roles: DbRole[];                                 // DETECTED QA roles (only render what exists)
+    revokedColumns: string[];                        // column-level REVOKE list (hashes stay opaque)
+    poolerNote: string | null;                       // session-vs-transaction pooler note (null if N/A)
+    rlsProbe: string | null;                         // cross-tenant RLS probe instruction (null if no RLS)
+  };
+  mcp: { agents: AgentKey[]; dbhub: Record<AgentKey, string>; openapi: Record<AgentKey, string>;
+         postman: Record<AgentKey, string> };        // playwright driven by CLI, not an MCP record (Q7)
+  env: { strategy: "expansion" | "literal"; activation: ("mcp-loader" | "varlock-run" | "auto")[]; slots: string[] };
+  demoUsers: { email: string; note: string }[];               // emails only on the page; passwords gated
+  playwright: {                                       // §6 fixtures + agentic CLI (Q7)
+    loginTestIds: { id: string; purpose: string }[];
+    scriptedFixture: string;                          // regression over the DETECTED login flow
+    hybridBridge: string | null;                      // UI→API bridge (only when a token path exists)
+    cliExample: string;                               // playwright-cli command cookbook
+    agenticPrompts: string[];
+  };
+}
+
+export const qaConfig: QaConfig = {/* DETECTED — filled by the skill */} as QaConfig;
+```
+
+> The point of the golden is that a reviewer sees at a glance that the page contains no literal endpoint, host, token or commit SHA, only `qaConfig.*` reads. The `apiRequests`, `db.roles`, `db.poolerNote` and `db.rlsProbe` fields are all detection-driven: render only what the project exposes, and let `null` or empty render a gap. The sample-project values (signup, signin and tokens, BYPASSRLS roles, the Supabase pooler) are examples, and a fresh run never bakes them in.
+
+---
+
+## Color system (domain accents)
+
+Use the host's token palette and map one hue per domain, so a tester learns the page visually.
+
+| Domain | Accent (Tailwind family) | Icon (lucide) |
+| --- | --- | --- |
+| Credentials | `amber` | `KeyRound` |
+| Architecture / Repos | `slate` / `blue` | `Network` / `GitBranch` |
+| DB testing | `emerald` | `Database` |
+| API testing | `violet` | `Plug` / `FileJson` |
+| UI testing | `pink` | `MousePointerClick` / `TestTube2` |
+| Env setup | `cyan` | `Terminal` |
+
+Accents are `border-l-4` plus a soft `bg-<hue>-50 dark:bg-<hue>-950/30` for callouts. Body text stays on the host's `foreground` and `muted-foreground` tokens, so dark and light work without extra code.
+
+---
+
+## Golden: `page.tsx` (Server Component)
+
+```tsx
+/* qa-guide-snapshot
+   …fields per idempotency-snapshot.md…
+*/
+import type { Metadata } from "next";
+import { qaConfig } from "./qa-config";
+import { QaShell } from "./_components/QaShell";
+
+export const metadata: Metadata = { title: "Software Testability Guide for QA" };
+
+// Env-gate is CONDITIONAL (see SKILL.md T3): gate only for internal-tool projects.
+// For public practice/demo apps the page is the teaching surface — leave it public.
+export default function QaPage() {
+  return <QaShell config={qaConfig} />;
+}
+```
+
+## Golden: `QaShell.tsx` (async SERVER orchestrator)
+
+`QaShell` is an async Server Component (no `'use client'`). It runs `prepareQa(config)` once, the single place where async Shiki work happens, and threads the prepared html into the client `RequestCards`, `AgentCodeBlock` and `TwoWayTabs`. The interactive leaves (`CopyButton`, `Toc`, the tab triggers, the request toggle) carry their own `'use client'`.
+
+```tsx
+import { Toc } from "./Toc";
+import { ArchDiagram } from "./ArchDiagram";
+import { TwoWayTabs } from "./TwoWayTabs";
+import { RequestCards } from "./RequestCards";          // §5 default (Q8); AuthMethods is the curl fallback
+import { EnvSetup } from "./EnvSetup";
+import { CodeBlock } from "./CodeBlock";
+import { prepareQa } from "../_lib/prepare";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { KeyRound, ExternalLink, Database, Plug, MousePointerClick, Network, GitCommit } from "lucide-react";
+import { resolveBuild } from "../_lib/build";
+import type { QaConfig } from "../qa-config";
+
+export async function QaShell({ config }: { config: QaConfig }) {
+  const t = config.lang === "es" ? es : en;
+  const prepared = await prepareQa(config);               // highlight everything once, server-side
+  const build = resolveBuild(config.build);               // runtime env read, never a codegen literal
+  return (
+    <div data-testid="qa-page" className="mx-auto max-w-7xl px-4 py-10">
+      {/* Hero */}
+      <header className="mb-10 text-center">
+        <h1 data-testid="qa-title" className="text-4xl font-bold tracking-tight">
+          Software Testability Guide for QA
+        </h1>
+        <p className="mx-auto mt-3 max-w-2xl text-lg text-muted-foreground">{t.subtitle}</p>
+        {/* Build stamp: which deploy this page describes. Always rendered; fallback copy when no SHA. */}
+        <p data-testid="qa-build-sha" data-sha={build?.full ?? ""}
+           className="mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs text-muted-foreground">
+          <GitCommit className="h-3.5 w-3.5" aria-hidden />
+          {build
+            ? (build.href
+                ? <a href={build.href} target="_blank" rel="noopener noreferrer" className="underline">{build.short}</a>
+                : build.short)
+            : t.buildGap}
+        </p>
+      </header>
+
+      <div className="lg:grid lg:grid-cols-[16rem_1fr] lg:gap-10">
+        {/* Sticky TOC rail (desktop) */}
+        <aside className="hidden lg:block">
+          <Toc className="sticky top-20" />
+        </aside>
+
+        <main className="min-w-0 space-y-8">
+          {/* §1 Credentials CTA — above the fold */}
+          <Card id="credenciales" data-testid="qa-credentials-card"
+                className="border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                {t.credsTitle}
+              </CardTitle>
+              <CardDescription>{t.credsDesc}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {config.credentialsSource ? (
+                <Button asChild size="lg" className="bg-amber-600 text-white hover:bg-amber-700"
+                        data-testid="qa-credentials-button">
+                  <a href={config.credentialsSource.url} target="_blank" rel="noopener noreferrer">
+                    <KeyRound className="mr-2 h-5 w-5" />
+                    {t.credsCta} ({config.credentialsSource.label})
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground">{t.credsGap}</p>
+              )}
+              <p className="mt-3 text-xs text-muted-foreground">{t.credsAsk}</p>
+            </CardContent>
+          </Card>
+
+          {/* §2 Architecture + Repos */}
+          <Section id="arquitectura" testid="qa-architecture-card" icon={<Network className="h-5 w-5" />}
+                   title={t.archTitle} desc={t.archDesc} accent="slate">
+            <ArchDiagram config={config} />
+          </Section>
+
+          {/* §3 Trinity overview + Env setup */}
+          <Section id="trifuerza" testid="qa-section-trinity" title={t.trinityTitle} desc={t.trinityDesc} accent="cyan">
+            <TrinityCards t={t} />
+            <EnvSetup config={config} />
+          </Section>
+
+          {/* §4 DB testing — two ways */}
+          <Section id="db" testid="qa-section-database" icon={<Database className="h-5 w-5" />}
+                   title={t.dbTitle} desc={t.dbDesc} accent="emerald">
+            <TwoWayTabs config={config} domain="db" />
+          </Section>
+
+          {/* §5 API testing — Postman-style request cards (Q8 default) + two ways + docs */}
+          <Section id="api" testid="qa-section-api" icon={<Plug className="h-5 w-5" />}
+                   title={t.apiTitle} desc={t.apiDesc} accent="violet">
+            <RequestCards requests={prepared.requests} />   {/* curl-wall AuthMethods only when Q8=curl-blocks */}
+            <TwoWayTabs config={config} domain="api" />
+            {config.docs.route && (
+              <Button asChild variant="outline" className="mt-4" data-testid="qa-docs-button">
+                <a href={config.docs.route} target="_blank" rel="noopener noreferrer">
+                  {t.docsCta} ({config.docs.ui ?? "API docs"}) <ExternalLink className="ml-2 h-4 w-4" />
+                </a>
+              </Button>
+            )}
+          </Section>
+
+          {/* §6 UI testing — Playwright scripted + agentic (playwright-cli, Q7) */}
+          <Section id="ui" testid="qa-section-ui" icon={<MousePointerClick className="h-5 w-5" />}
+                   title={t.uiTitle} desc={t.uiDesc} accent="pink">
+            {/* (a) scripted: regression over the DETECTED login + the hybrid UI→API bridge when a token path exists */}
+            <CodeBlock language="typescript" code={config.playwright.scriptedFixture} title="login.spec.ts" />
+            {config.playwright.hybridBridge && (
+              <CodeBlock language="typescript" code={config.playwright.hybridBridge} title="auth.fixture.ts" />
+            )}
+            {/* (b) agentic: the playwright-cli command cookbook (NOT a Playwright MCP block) */}
+            <CodeBlock language="bash" code={config.playwright.cliExample} title="playwright-cli" />
+            {/* agentic prompts + decision rule rendered here — see page-structure.md §6 */}
+          </Section>
+
+          {/* §7 Quick reference */}
+          <Section id="referencia" testid="qa-section-reference" title={t.refTitle} accent="blue">
+            {/* demo users (emails only), endpoints table, troubleshooting */}
+          </Section>
+        </main>
+      </div>
+    </div>
+  );
+}
+```
+
+> `t.buildGap` is the fallback copy for the build stamp (es: `build local, sin SHA de despliegue`; en: `local build, no deploy SHA`). The same dictionaries carry the two lead-gap strings (`t.leadGap`: es `preguntá a tu lead`, en `ask your lead`; `t.authGap`: es `Auth no detectado: preguntá a tu lead.`, en `Auth not detected: ask your lead.`), so no golden hardcodes one language.
+>
+> `Section` is a tiny local wrapper (Card, accent border, anchor heading and a copy-link button). `TrinityCards` renders the three-card grid from `mcp-and-env-setup.md` §3. The §4 DB section also renders the roles table, the REVOKE callout, the pooler note and the RLS-probe callout (see "DB-roles depth" in `page-structure.md` §4), all conditional on the detected `config.db.*` fields. `es` and `en` are copy dictionaries, and `qaConfig.lang` (Q5) picks the active one.
+
+---
+
+## Server highlight pipeline (`_lib/highlight.ts` + `_lib/prepare.ts`)
+
+The highlighter is what makes the code blocks read like an IDE instead of a monochrome wall. Never call it from a `'use client'` module: Shiki loads WASM and grammars, so it is server-only and expensive. Highlight on the server and pass html strings down. Q6 gates this; reuse the host's highlighter if one exists (`SKILL.md` Notes has the one-dependency sanction).
+
+```ts
+// app/qa/_lib/highlight.ts — server-only Shiki bridge.
+// Memoized singleton highlighter (createHighlighter loads WASM + grammars — never
+// per-call). Dual theme + defaultColor:false → emits CSS variables (--shiki /
+// --shiki-dark); the class-based dark flip lives in globals.css: `html.dark .shiki ...`.
+import type { Highlighter } from "shiki";
+import { createHighlighter } from "shiki";
+
+// Only the langs the QA snippets actually use — keep the grammar set tight.
+const LANGS = ["bash", "json", "jsonc", "toml", "typescript"] as const;
+const THEMES = ["github-light", "github-dark"] as const;          // any dual light/dark pair
+
+let highlighterPromise: Promise<Highlighter> | null = null;
+async function getHighlighter(): Promise<Highlighter> {
+  if (!highlighterPromise) {
+    highlighterPromise = createHighlighter({ langs: [...LANGS], themes: [...THEMES] });
+  }
+  return highlighterPromise;                                       // one instance per process
+}
+
+const ALIASES: Record<string, string> = { sh: "bash", shell: "bash", zsh: "bash", ts: "typescript", tsx: "typescript" };
+function resolveLang(lang: string): string {
+  const r = ALIASES[lang.toLowerCase()] ?? lang.toLowerCase();
+  return (LANGS as readonly string[]).includes(r) ? r : "bash";
+}
+
+/** Highlight `code` → a Shiki `<pre class="shiki">` html string with dual-theme CSS vars.
+ *  Server-only — never import this from a 'use client' module. */
+export async function highlight(code: string, lang: string): Promise<string> {
+  const hl = await getHighlighter();
+  return hl.codeToHtml(code, { lang: resolveLang(lang), themes: { light: "github-light", dark: "github-dark" }, defaultColor: false });
+}
+```
+
+```ts
+// app/qa/_lib/prepare.ts — server one-shot. Client components can't import the
+// highlighter, so the SERVER pre-highlights everything they need into html-string
+// props here. Server components highlight inline via the async <CodeBlock/>.
+import type { ApiRequest, QaConfig } from "../qa-config";
+import { AGENT_LANGS } from "../_components/CodeBlock";
+import { highlight } from "./highlight";
+
+export interface CodeHtml { html: string; code: string; }
+export interface AgentBlock { code: string; html: string; language: string; }
+
+async function codeHtml(code: string, lang: string): Promise<CodeHtml> { return { html: await highlight(code, lang), code }; }
+async function maybe(code: string | null, lang: string) { return code ? codeHtml(code, lang) : null; }
+
+// { agent → snippet } → { agent → { code, html, language } } the client AgentCodeBlock expects.
+async function prepareAgentBlocks(blocks: Record<string, string>, agents: string[]): Promise<Record<string, AgentBlock>> {
+  const entries = await Promise.all(agents.map(async (a) => {
+    const code = blocks[a] ?? "";
+    const language = AGENT_LANGS[a] ?? "json";
+    return [a, { code, html: await highlight(code, language), language }] as const;
+  }));
+  return Object.fromEntries(entries);
+}
+
+export interface PreparedRequest extends Omit<ApiRequest, "body" | "response" | "curl"> {
+  body: CodeHtml | null; response: CodeHtml | null; curl: CodeHtml;
+}
+async function prepareRequest(req: ApiRequest): Promise<PreparedRequest> {
+  const [body, response, curl] = await Promise.all([maybe(req.body, "json"), maybe(req.response, "json"), codeHtml(req.curl, "bash")]);
+  return { ...req, body, response, curl };
+}
+
+export async function prepareQa(config: QaConfig) {
+  const agents = config.mcp.agents;
+  const [dbhub, openapi, postman, tomlBlock, uriBlock, requests] = await Promise.all([
+    prepareAgentBlocks(config.mcp.dbhub, agents),
+    prepareAgentBlocks(config.mcp.openapi, agents),
+    prepareAgentBlocks(config.mcp.postman, agents),
+    codeHtml(config.db.tomlBlock, "toml"),
+    codeHtml(config.db.uriBlock, "bash"),
+    Promise.all(config.api.apiRequests.map(prepareRequest)),
+  ]);
+  return { mcp: { dbhub, openapi, postman }, db: { tomlBlock, uriBlock }, requests };
+}
+```
+
+---
+
+## Build stamp (`_lib/build.ts`)
+
+The hero tells a tester which deploy the page describes, so a finding can be pinned to a commit and "is my fix live?" is answered on the page itself. The value is read from the platform at runtime, and codegen writes only the env var names into `qaConfig.build` (detected in `pre-flight-discovery.md`). A literal SHA would go stale on the next deploy and would put a per-deploy value inside a file the idempotency diff reads.
+
+```ts
+// app/qa/_lib/build.ts — server-only. Never import from a 'use client' module.
+// Resolves the deployed commit from the env var NAMES detection wrote into
+// qaConfig.build. On Vercel the system var is present at build AND runtime;
+// in local dev it is absent, so the stamp falls back to the gap copy.
+import type { QaConfig } from "../qa-config";
+
+export interface BuildStamp { full: string; short: string; href: string | null; }
+
+export function resolveBuild(build: QaConfig["build"]): BuildStamp | null {
+  if (!build) return null;
+  const full = build.shaEnvVars
+    .map((name) => process.env[name])
+    .find((v): v is string => !!v && /^[0-9a-f]{7,40}$/i.test(v));
+  if (!full) return null;
+  const href = build.repoUrl ? `${build.repoUrl.replace(/\/$/, "")}/commit/${full}` : null;
+  return { full, short: full.slice(0, 7), href };
+}
+```
+
+Rules:
+
+- **Read on the server only.** `resolveBuild` runs in the server `QaShell`. A statically prerendered `/qa` still shows the right commit, because every deploy rebuilds from its own commit. Keep the page on the Node runtime (dynamic `process.env[name]` lookups are a server feature).
+- **No server model** (a Vite SPA and similar): read the framework-prefixed build-time copy instead, for example `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` or a `VITE_*` value injected at build. The rule is the same: a build-time injection, never a value the skill writes.
+- **The fallback is visible.** When no source is detected (`build: null`) or the var is unset (local dev, a deploy without git metadata), the node shows `t.buildGap`. The `qa-build-sha` node always renders so automation can read it, and `data-sha` carries the full SHA (empty on the fallback).
+- **Render only the SHA.** No other platform env value appears next to it (`security-rules.md`).
+
+---
+
+## Golden: `CodeBlock.tsx` (server highlight + two chrome variants)
+
+`CodeBlock` is an async server component that highlights inline. `CodeFrame` is presentational (no directive, so it works in both server and client trees). `CopyButton` is the only `'use client'` leaf.
+
+Two chrome variants make the surface match the content:
+
+| Variant    | For languages                         | Chrome                                            |
+| ---------- | ------------------------------------- | ------------------------------------------------- |
+| `terminal` | `bash` / `sh` / `shell` / `zsh`       | macOS traffic-light dots + lang label             |
+| `editor`   | `ts` / `json` / `jsonc` / `toml` / …  | filename tab + lang label                         |
+
+`variantFor(language)` picks the variant automatically, and a `variant` prop overrides it. For agent config blocks the filename comes from `AGENT_FILES` (claude is `.mcp.json`, opencode is `opencode.jsonc`, codex is `codex.toml`, gemini is `.gemini/settings.json`).
+
+```tsx
+// app/qa/_components/CodeBlock.tsx — async SERVER component. NEVER import highlight() from 'use client'.
+import type { ReactNode } from "react";
+import { highlight } from "../_lib/highlight";
+import { CopyButton } from "./CopyButton";
+
+export const AGENT_LABELS: Record<string, string> = { claude: "Claude Code", opencode: "OpenCode", codex: "Codex", gemini: "Gemini" };
+export const AGENT_LANGS: Record<string, string> = { claude: "json", opencode: "jsonc", codex: "toml", gemini: "json" };
+// Config filename shown in the editor tab per agent — adapt to the agents the project supports.
+export const AGENT_FILES: Record<string, string> = { claude: ".mcp.json", opencode: "opencode.jsonc", codex: "codex.toml", gemini: ".gemini/settings.json" };
+
+type Variant = "terminal" | "editor";
+function variantFor(language: string): Variant {
+  return ["bash", "sh", "shell", "zsh"].includes(language.toLowerCase()) ? "terminal" : "editor";
+}
+
+function TrafficLights() {
+  return (
+    <div className="flex shrink-0 items-center gap-1.5" aria-hidden>
+      <span className="h-3 w-3 rounded-full" style={{ background: "#ff5f56" }} />
+      <span className="h-3 w-3 rounded-full" style={{ background: "#ffbd2e" }} />
+      <span className="h-3 w-3 rounded-full" style={{ background: "#27c93f" }} />
+    </div>
+  );
+}
+
+/** Presentational chrome — no 'use client', renders in server AND client trees.
+ *  `html` is a pre-rendered Shiki string; `code` feeds CopyButton. */
+export function CodeFrame({ html, code, variant, title, language }: {
+  html: string; code: string; variant: Variant; title?: string; language: string;
+}) {
+  const chrome: ReactNode = variant === "terminal"
+    ? (<><TrafficLights /><span className="ml-1 truncate font-mono text-xs uppercase tracking-wider text-muted-foreground">{title ?? language}</span><span className="flex-1" /><CopyButton code={code} /></>)
+    : (<><span className="truncate rounded-t border-b-2 border-primary bg-muted px-2.5 py-1 font-mono text-xs">{title ?? `snippet.${language}`}</span><span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{language}</span><span className="flex-1" /><CopyButton code={code} /></>);
+  return (
+    <div className="group overflow-hidden rounded-lg border bg-card" data-testid="qa-code-block" data-variant={variant}>
+      <div className="flex items-center gap-2 border-b bg-muted/50 px-3 py-2">{chrome}</div>
+      <div dangerouslySetInnerHTML={{ __html: html }} />
+    </div>
+  );
+}
+
+/** Async SERVER code block — highlights `code`, frames it as terminal (bash) or editor (else). */
+export async function CodeBlock({ code, language = "bash", variant, title }: {
+  code: string; language?: string; variant?: Variant; title?: string;
+}) {
+  const html = await highlight(code, language);
+  return <CodeFrame html={html} code={code} variant={variant ?? variantFor(language)} title={title} language={language} />;
+}
+```
+
+```tsx
+// app/qa/_components/CopyButton.tsx — the ONLY interactive leaf of a code block.
+"use client";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Check, Copy } from "lucide-react";
+export function CopyButton({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => { void navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  return (
+    <Button variant="ghost" size="icon" onClick={copy} aria-label="Copy code"
+            className="h-7 w-7 shrink-0" data-testid="qa-copy-code-button">
+      {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+    </Button>
+  );
+}
+```
+
+```tsx
+// app/qa/_components/AgentCodeBlock.tsx — tabs over PRE-highlighted per-agent blocks.
+"use client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AGENT_FILES, AGENT_LABELS, CodeFrame } from "./CodeBlock";
+import type { AgentBlock } from "../_lib/prepare";
+
+// Highlighting happens in the SERVER parent (prepareQa). This client component
+// only renders the Tabs shell + the editor-variant CodeFrame around each html string.
+export function AgentCodeBlock({ blocks, agents }: { blocks: Record<string, AgentBlock>; agents: string[] }) {
+  return (
+    <Tabs defaultValue={agents[0]} data-testid="qa-agent-tabs">
+      <TabsList className="flex-wrap">
+        {agents.map(a => <TabsTrigger key={a} value={a} data-testid={`qa-agent-tab-${a}`}>{AGENT_LABELS[a] ?? a}</TabsTrigger>)}
+      </TabsList>
+      {agents.map((a) => {
+        const b = blocks[a];
+        if (!b) return null;
+        return (
+          <TabsContent key={a} value={a}>
+            <CodeFrame html={b.html} code={b.code} variant="editor" title={AGENT_FILES[a] ?? `config.${b.language}`} language={b.language} />
+          </TabsContent>
+        );
+      })}
+    </Tabs>
+  );
+}
+```
+
+---
+
+## Golden: `RequestCard.tsx` + `RequestCards.tsx` (Postman-style request viewer)
+
+This is the §5 default (Q8). It replaces the curl-wall `AuthMethods` with a read-only request viewer: a verb-colored METHOD badge, URL with copy, a Headers table, Body and Response editor panels, and a Visual/curl toggle. Keep the plain-curl `AuthMethods` (below) only as the Q8 fallback. The viewer is detection-driven: the skill reads the project's real auth requests into `apiRequests[]` as `<METHOD> <path>` placeholders and bakes in no signup, signin or token endpoints.
+
+```tsx
+// app/qa/_components/RequestCard.tsx
+"use client";
+import { useState } from "react";
+import { Copy } from "lucide-react";
+import { CodeFrame } from "./CodeBlock";
+import type { HttpMethod } from "../qa-config";
+
+// Verb → accent map (kept literal so Tailwind's JIT preserves the classes).
+const METHOD_STYLES: Record<HttpMethod, string> = {
+  GET: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+  POST: "bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/30",
+  PUT: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
+  DELETE: "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30",
+};
+type CodePayload = { html: string; code: string };
+
+function Toggle({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return <button type="button" onClick={onClick}
+    className={`rounded px-2.5 py-1 text-xs font-medium ${active ? "bg-background text-foreground shadow" : "text-muted-foreground hover:text-foreground"}`}>{children}</button>;
+}
+function Panel({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div className="space-y-1.5"><p className="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>{children}</div>;
+}
+
+export function RequestCard({ method, url, description, headers, body, response, curl }: {
+  method: HttpMethod; url: string; description?: string;
+  headers?: { key: string; value: string }[]; body?: CodePayload | null; response?: CodePayload | null; curl: CodePayload;
+}) {
+  const [mode, setMode] = useState<"visual" | "curl">("visual");
+  const [copied, setCopied] = useState(false);
+  const copyUrl = () => { void navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  return (
+    <div data-testid="qa-request-card" className="overflow-hidden rounded-lg border bg-card">
+      <div className="flex flex-wrap items-center gap-2 border-b bg-muted/50 px-3 py-2">
+        <span className={`shrink-0 rounded border px-2 py-0.5 font-mono text-xs font-bold uppercase ${METHOD_STYLES[method]}`}>{method}</span>
+        <code className="min-w-0 flex-1 truncate font-mono text-xs">{url}</code>
+        <button type="button" onClick={copyUrl} aria-label="Copy URL" className="shrink-0 p-1 text-muted-foreground hover:text-foreground">
+          <Copy className="h-3.5 w-3.5" />{copied && <span className="sr-only">copied</span>}
+        </button>
+        <div data-testid="qa-request-toggle" className="flex shrink-0 items-center gap-0.5 rounded border p-0.5">
+          <Toggle active={mode === "visual"} onClick={() => setMode("visual")}>Visual</Toggle>
+          <Toggle active={mode === "curl"} onClick={() => setMode("curl")}>curl</Toggle>
+        </div>
+      </div>
+      <div className="space-y-3 p-3">
+        {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        {mode === "visual" ? (
+          <>
+            {headers && headers.length > 0 && (
+              <Panel label="Headers">
+                <div className="overflow-x-auto rounded border">
+                  <table className="w-full text-left text-xs"><tbody>
+                    {headers.map(h => (
+                      <tr key={h.key} className="border-b last:border-0">
+                        <td className="whitespace-nowrap px-3 py-1.5 font-mono font-medium">{h.key}</td>
+                        <td className="break-all px-3 py-1.5 font-mono text-muted-foreground">{h.value}</td>
+                      </tr>
+                    ))}
+                  </tbody></table>
+                </div>
+              </Panel>
+            )}
+            {body && <Panel label="Body"><CodeFrame html={body.html} code={body.code} variant="editor" title="request.json" language="json" /></Panel>}
+            {response && <Panel label="Response (example)"><CodeFrame html={response.html} code={response.code} variant="editor" title="response.json" language="json" /></Panel>}
+          </>
+        ) : (
+          <CodeFrame html={curl.html} code={curl.code} variant="terminal" title="curl" language="bash" />
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+```tsx
+// app/qa/_components/RequestCards.tsx — tab group over the prepared RequestCards.
+"use client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RequestCard } from "./RequestCard";
+import type { PreparedRequest } from "../_lib/prepare";
+
+export function RequestCards({ requests }: { requests: PreparedRequest[] }) {
+  if (!requests.length) return <p className="text-sm text-muted-foreground">No auth requests detected — ask your lead.</p>;
+  return (
+    <Tabs defaultValue={requests[0].id} data-testid="qa-auth-methods">
+      <TabsList className="flex-wrap">
+        {requests.map(r => <TabsTrigger key={r.id} value={r.id} data-testid={`qa-auth-tab-${r.id}`}>{r.label}</TabsTrigger>)}
+      </TabsList>
+      {requests.map(r => (
+        <TabsContent key={r.id} value={r.id}>
+          <RequestCard method={r.method} url={r.url} description={r.description} headers={r.headers} body={r.body} response={r.response} curl={r.curl} />
+        </TabsContent>
+      ))}
+    </Tabs>
+  );
+}
+```
+
+> `data-testid`s: `qa-request-card` and `qa-request-toggle`; the tab group reuses `qa-auth-methods` and `qa-auth-tab-<id>`, so it slots in where `AuthMethods` was. The `PreparedRequest` type comes from `_lib/prepare.ts`.
+
+---
+
+## Golden: `ArchDiagram.tsx` (Frontend → API → DB + MCP + Repos)
+
+```tsx
+import { Globe, Server, Database, GitBranch } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import type { QaConfig } from "../qa-config";
+
+function Box({ icon, label, sub, hue }: { icon: React.ReactNode; label: string; sub: string; hue: string }) {
+  return (
+    <div className="flex flex-col items-center">
+      <div className={`flex h-24 w-32 flex-col items-center justify-center rounded-lg border-2 border-${hue}-500 bg-${hue}-100 dark:bg-${hue}-950`}>
+        {icon}<span className="mt-1 text-sm font-medium">{label}</span>
+      </div>
+      <span className="mt-2 text-xs text-muted-foreground">{sub}</span>
+    </div>
+  );
+}
+
+export function ArchDiagram({ config }: { config: QaConfig }) {
+  const Arrow = () => (<><span className="hidden text-3xl text-muted-foreground md:block">→</span>
+                         <span className="text-3xl text-muted-foreground md:hidden">↓</span></>);
+  return (
+    <div data-testid="qa-architecture-diagram" className="py-6">
+      <div className="flex flex-col items-center justify-center gap-4 md:flex-row md:gap-8">
+        <Box icon={<Globe className="h-8 w-8 text-blue-600 dark:text-blue-400" />} label="Frontend" sub={config.stack.framework} hue="blue" />
+        <Arrow />
+        <Box icon={<Server className="h-8 w-8 text-violet-600 dark:text-violet-400" />} label="API" sub={config.stack.auth.join(" · ")} hue="violet" />
+        <Arrow />
+        <Box icon={<Database className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />} label="Database" sub={`${config.stack.db}${config.stack.orm ? " + " + config.stack.orm : ""}`} hue="emerald" />
+      </div>
+
+      {/* MCP layer */}
+      <div className="mt-8 flex flex-col items-center justify-center gap-3 border-t border-dashed pt-6 md:flex-row md:gap-6">
+        <Badge variant="outline">DBHub MCP → DB</Badge>
+        <Badge variant="outline">OpenAPI / Postman MCP → API</Badge>
+        <Badge variant="outline">playwright-cli → UI</Badge>   {/* Q7: CLI binary, not @playwright/mcp */}
+      </div>
+
+      {/* Repos (mono vs poly) */}
+      <div className="mt-8 border-t border-dashed pt-6" data-testid="qa-repos">
+        <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><GitBranch className="h-4 w-4" /> Repositorios</p>
+        {config.project.reposShape === "mono" ? (
+          <RepoRow label="Monorepo" url={config.project.backendRepo ?? config.project.frontendRepo} gap={t.leadGap} />
+        ) : (
+          <div className="grid gap-2 md:grid-cols-2">
+            <RepoRow label="Frontend" url={config.project.frontendRepo} gap={t.leadGap} />
+            <RepoRow label="Backend" url={config.project.backendRepo} gap={t.leadGap} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RepoRow({ label, url, gap }: { label: string; url: string | null; gap: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-3 text-sm">
+      <Badge>{label}</Badge>
+      {url ? <a className="font-mono underline" href={url} target="_blank" rel="noopener noreferrer">{url}</a>
+           : <span className="text-muted-foreground">{gap}</span>}
+    </div>
+  );
+}
+```
+
+---
+
+## Golden: `AuthMethods.tsx` (Q8 fallback), `TwoWayTabs.tsx`, `EnvSetup.tsx`
+
+```tsx
+// AuthMethods.tsx — the Q8=curl-blocks FALLBACK (RequestCards is the default).
+// One tab per DETECTED method (Supabase token / Bearer / cookie / X-API-Key / custom JWT).
+"use client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CodeBlock } from "./CodeBlock";
+import type { QaConfig } from "../qa-config";
+export function AuthMethods({ config }: { config: QaConfig }) {
+  const t = config.lang === "es" ? es : en;
+  const methods = config.api.authMethods;
+  if (!methods.length) return <p className="text-sm text-muted-foreground">{t.authGap}</p>;
+  return (
+    <Tabs defaultValue={methods[0].id} data-testid="qa-auth-methods">
+      <TabsList>{methods.map(m => <TabsTrigger key={m.id} value={m.id} data-testid={`qa-auth-tab-${m.id}`}>{m.label}</TabsTrigger>)}</TabsList>
+      {methods.map(m => <TabsContent key={m.id} value={m.id}><CodeBlock language="bash" code={m.snippet} /></TabsContent>)}
+    </Tabs>
+  );
+}
+```
+
+```tsx
+// TwoWayTabs.tsx — DB: ["DBHub MCP", "URI VSCode"]  ·  API: ["OpenAPI MCP", "Postman"]
+"use client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AgentCodeBlock, CodeBlock } from "./CodeBlock";
+import type { QaConfig } from "../qa-config";
+export function TwoWayTabs({ config, domain }: { config: QaConfig; domain: "db" | "api" }) {
+  if (domain === "db") return (
+    <Tabs defaultValue="mcp" data-testid="qa-db-ways">
+      <TabsList><TabsTrigger value="mcp">DBHub MCP</TabsTrigger><TabsTrigger value="uri">URI (VSCode)</TabsTrigger></TabsList>
+      <TabsContent value="mcp"><AgentCodeBlock agents={config.mcp.agents} blocks={config.mcp.dbhub} /></TabsContent>
+      <TabsContent value="uri"><CodeBlock language="bash" code={`${config.db.uriScheme}://<DBHUB_USER>:<DBHUB_PASSWORD>@<host>/<db>`} /></TabsContent>
+    </Tabs>
+  );
+  return (
+    <Tabs defaultValue="openapi" data-testid="qa-api-ways">
+      <TabsList><TabsTrigger value="openapi">OpenAPI MCP</TabsTrigger><TabsTrigger value="postman">Postman</TabsTrigger></TabsList>
+      <TabsContent value="openapi"><AgentCodeBlock agents={config.mcp.agents} blocks={config.mcp.openapi} /></TabsContent>
+      <TabsContent value="postman"><AgentCodeBlock agents={config.mcp.agents} blocks={config.mcp.postman} /></TabsContent>
+    </Tabs>
+  );
+}
+```
+
+```tsx
+// EnvSetup.tsx — .env slots (names only) + the per-process activation paths + the
+// CORRECT env verification. Server component (renders <CodeBlock> server-side).
+import { Badge } from "@/components/ui/badge";
+import { AlertTriangle } from "lucide-react";
+import { CodeBlock } from "./CodeBlock";
+import type { QaConfig } from "../qa-config";
+
+// <PREFIX> = the project's MCP env prefix (e.g. DBHUB) — DETECTED, never baked in.
+const openBareBlock = `# Open the agent bare, in the project folder (or its desktop app). It holds no .env value:
+claude
+opencode`;
+const mcpLoaderBlock = `# Each MCP server that needs a value starts through the .env loader (its committed config entry):
+bunx varlock run --filter <ITS_VARS> -- <server command>`;
+const varlockRunBlock = `# A command that needs a value: loads .env for THAT process only (never into your shell):
+bunx varlock run -- sh -c '<command using "$VAR">'`;
+
+export function EnvSetup({ config }: { config: QaConfig }) {
+  return (
+    <div data-testid="qa-env-setup" className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {config.env.slots.map(s => <Badge key={s} variant="secondary" className="font-mono">{s}</Badge>)}
+      </div>
+
+      {/* Activation — per process (render only the ones DETECTED in env.activation) */}
+      <div className="space-y-3">
+        <p className="text-sm font-semibold">Open the agent bare; <code>.env</code> reaches only the process that needs it (never the agent, never your shell):</p>
+        <CodeBlock language="bash" code={openBareBlock} title="open the agent" />
+        {config.env.activation.includes("mcp-loader") && <CodeBlock language="bash" code={mcpLoaderBlock} title="MCP .env loader" />}
+        {config.env.activation.includes("varlock-run") && <CodeBlock language="bash" code={varlockRunBlock} title="varlock run" />}
+        {config.env.activation.includes("auto") && (
+          <p className="text-sm text-muted-foreground">The project's own scripts auto-load <code>.env</code> (e.g. Bun); the MCP servers still get theirs through the loader.</p>
+        )}
+      </div>
+
+      {/* The CORRECT env verification — a bare `env | grep` is MISLEADING. */}
+      <div className="rounded-lg border-l-4 border-amber-500 bg-amber-50 p-3 text-sm dark:bg-amber-950/30">
+        <p className="flex items-center gap-2 font-medium"><AlertTriangle className="h-4 w-4" /> If a var doesn't load</p>
+        <p className="mt-1 text-muted-foreground">
+          The MCP returns 401/403 (or DBHub: a cryptic auth error because it substitutes the literal <code>{"${VAR}"}</code>).
+          Exit the agent, fix <code>.env</code>, re-enter — vars are read once at MCP spawn. A bare
+          {" "}<code>env | grep &lt;PREFIX&gt;</code> comes back EMPTY even when correct, because the loader
+          hands the vars to each MCP server process at spawn, never to the agent or your shell. Verify with the trio:
+        </p>
+        <ul className="ml-5 mt-1 list-disc text-muted-foreground">
+          <li><code>grep -E '^&lt;PREFIX&gt;[A-Z0-9_]*=.' .env | cut -d= -f1</code> — is the var set in the file? (names only)</li>
+          <li><code>bunx varlock run -- env | grep '^&lt;PREFIX&gt;' | cut -d= -f1</code> — what the MCP actually sees (names only).</li>
+          <li><code>bunx varlock load --agent</code> — does every value pass the schema? (redacted).</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## data-testid conventions
+
+- Page root: `qa-page`. Title: `qa-title`. Build stamp: `qa-build-sha` (carries `data-sha="<full sha>"`, empty on the fallback).
+- Sections: `qa-section-<name>` (`-trinity`, `-database`, `-api`, `-ui`, `-reference`). One id per node, never two on the same element.
+- Credentials: `qa-credentials-card`, `qa-credentials-button`. Docs: `qa-docs-button`.
+- Code: `qa-code-block` (carries `data-variant="terminal|editor"`), `qa-copy-code-button`. Agent tabs: `qa-agent-tabs`, `qa-agent-tab-<agent>`.
+- Request viewer: `qa-request-card`, `qa-request-toggle`. The §5 tab group reuses `qa-auth-methods` and `qa-auth-tab-<id>`, so it drops in where `AuthMethods` was.
+- Tabs: `qa-auth-methods` and `qa-auth-tab-<id>`, `qa-db-ways`, `qa-api-ways`. Env: `qa-env-setup`. Repos: `qa-repos`.
+- TOC: `qa-toc`, `qa-toc-link-<section>`.
+
+---
+
+## Responsive + a11y
+
+- Mobile-first. The `[16rem_1fr]` TOC grid collapses to a single column under `lg`; on mobile the TOC becomes a top `<details>` or is omitted (sections stay anchor-linkable).
+- ArchDiagram arrows flip from horizontal to vertical under `md`. Two-way tabs and agent tabs scroll horizontally when cramped.
+- Accordions and tabs are keyboard-navigable (the shadcn primitives are). Icon-only buttons carry `aria-label`. Headings are semantic (`h1`, then one `h2` per section).
+- Dark and light come from the host theme: no inline colors, only token classes and the per-domain `<hue>` families (which have `dark:` variants).
+
+---
+
+## Adapt-don't-copy checklist
+
+- [ ] `qaConfig` is filled entirely from detection. Grep the page for literal hosts, endpoints and tokens: the count is zero.
+- [ ] The build stamp is runtime-only. `qaConfig.build.shaEnvVars` holds env var names; grep `app/qa/**` for a 7 to 40 character hex commit literal: the count is zero.
+- [ ] UI primitives are the detected host kit (not shadcn when the host uses MUI, Mantine or Chakra).
+- [ ] A missing primitive is not a missing dependency. If the golden needs a primitive the host kit has not scaffolded yet (for example Tabs or Badge) but the underlying dependency exists (`@radix-ui/*`) or none is needed (`cva`), scaffold the local `components/ui/<x>.tsx` in the host's style. A local component file is allowed; the rule against adding a dependency is about `package.json`.
+- [ ] Custom token vocabulary. The golden is coded against shadcn-neutral tokens (`text-muted-foreground`, `bg-card`, `border`). If the host uses a custom token system (for example `fg-0..4`, `surface-0..2`, `stroke-*`, `accent`), read an existing host component (`components/ui/card.tsx`, a real page) for the real vocabulary and map the golden's classes onto it, so no raw shadcn-neutral class lands in an app that does not use them. The domain-accent hues (amber, emerald, violet, cyan, pink, slate) come from default Tailwind and are safe regardless. Mirror the host's dark mechanism (`darkMode:'class'` or `next-themes`) and add `next-themes` only if the host already has it.
+- [ ] Icons are the detected icon lib (lucide here; inline SVG if the host has none).
+- [ ] Visible copy is in `qaConfig.lang` (Q5, the host's language signal); identifiers and `data-testid`s stay English.
+- [ ] Agent tabs include only `qaConfig.mcp.agents`; the 4-tab set is the documentation default.
+- [ ] Highlighter (Q6). If the host already ships one (Shiki, Prism, highlight.js, `rehype-pretty-code`), adapt the `_lib/highlight.ts` bridge onto it instead of adding Shiki. Add Shiki only when the host has none (the single sanctioned dependency, `SKILL.md` Notes). Highlight on the server and pass html down; a `'use client'` module never imports `highlight()`. With no server model, run it at build time or in the route loader.
+- [ ] Request viewer (Q8). `apiRequests[]` is filled from the project's detected auth requests (`<METHOD> <path>` placeholders), not the example signup, signin or token shapes. Fall back to plain-curl `AuthMethods` only when the host kit cannot render tabs or tables.
+- [ ] Agentic UI driver (Q7). The default is `playwright-cli` (binary and skill), and the ArchDiagram UI badge reads "playwright-cli → UI". Use a `@playwright/mcp` block only when detection says so.
+- [ ] DB depth. Render `db.roles`, `db.revokedColumns`, `db.poolerNote` and `db.rlsProbe` only when the project has them; `null` or empty omits the callout, with no invented roles or RLS story.

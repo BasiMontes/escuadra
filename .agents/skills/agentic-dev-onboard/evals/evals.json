@@ -1,0 +1,81 @@
+{
+  "evals": [
+    {
+      "name": "should-trigger-first-time-orientation",
+      "prompt": "I just cloned this repo. First time using it — where do I start?",
+      "expected_skill": "agentic-dev-onboard",
+      "expected_behavior": "Activates agentic-dev-onboard. Reads `.template/installer.lock.json` (no `adopted: true` = new project path) and presents the stack from the `stack:` block of `.agents/project.yaml` (the greenfield defaults: Next.js + Supabase on bun), points at `bun setup` for installation, walks through the primary `/sprint-development` workflow and its hand-offs, lists the MCP capabilities (servers from `.mcp.json`, web search at harness level), lists critical env vars, gives the docs hub URL `https://upex-galaxy.github.io/agentic-dev-boilerplate/`, and ends with a checklist of next steps. Does NOT start implementing anything.",
+      "category": "positive"
+    },
+    {
+      "name": "should-trigger-onboard-me",
+      "prompt": "Onboard me to this repo. I've never used an AI-driven workflow before.",
+      "expected_skill": "agentic-dev-onboard",
+      "expected_behavior": "Activates agentic-dev-onboard as a guided tour. Explains the boilerplate, the stack as the `stack:` block declares it and the support set `V1_SUPPORTED` names, the ticket-driven `/sprint-development` workflow, the MCP decision rule (library docs vs web search), and the env vars required. Points at the docs hub and the `/sprint-development` deck, then hands off to `/sprint-development` for the user's first ticket.",
+      "category": "positive"
+    },
+    {
+      "name": "should-trigger-explain-this-repo",
+      "prompt": "Explain what this repo does and how the dev flow works.",
+      "expected_skill": "agentic-dev-onboard",
+      "expected_behavior": "Activates agentic-dev-onboard. Describes the boilerplate purpose (dev-only boilerplate for Next.js apps on the Postgres family; the concrete stack read from `stack:`), the `/sprint-development` loop and its stages (Planning → Implementation → Code Review → Staging → Production), the Jira state machine (the default Ready For Dev → In Progress → In Review → Ready For QA, with the instance's real statuses read from `.agents/jira-workflows.json`), where the skill catalog lives (`.agents/skills/REGISTRY.md`) and the deck per workflow skill on the docs hub, and the MCP capabilities. No implementation work.",
+      "category": "positive"
+    },
+    {
+      "name": "should-trigger-spanish-first-time",
+      "prompt": "Es la primer vez que uso este repo, qué tengo que correr primero?",
+      "expected_skill": "agentic-dev-onboard",
+      "expected_behavior": "Activates agentic-dev-onboard. Points at `bun setup` first, then opening the agent with its own binary in the project folder (`claude`, `opencode`, `codex`, no wrapper), the workflow, MCP capabilities, env vars, the docs hub URL, and the next-steps checklist. Hands off to `/sprint-development` once foundation is green. May respond in Spanish to mirror the user.",
+      "category": "positive"
+    },
+    {
+      "name": "adopted-app-tours-the-adoption-hand-off",
+      "prompt": "We just ran bunx create-agentic-dev --adopt on our existing Next.js app and committed it. First time using this, where do we start?",
+      "expected_skill": "agentic-dev-onboard",
+      "expected_behavior": "Activates agentic-dev-onboard. Reads `.template/installer.lock.json`, finds `adopted: true`, and tours the ADOPTED path: load `/project-adoption` (plan first, writes only after approval), then its hand-off one session each (`/project-context refresh-all`, `/project-foundation` Discovery-only, `/git-flow-master` Strategy Setup, optional `/design-system extract` and `/testability-guide`). Presents the stack from the `stack:` block, not from defaults. Does NOT send the user to `/project-bootstrap` base phases or to `/project-foundation` PRD/SRS, and says `bun run bootstrap:guard` refuses the base phases on this repo.",
+      "category": "positive"
+    },
+    {
+      "name": "should-trigger-spanish-adopted-next-step",
+      "prompt": "Acabamos de adoptar nuestra app con create-agentic-dev --adopt y ya hicimos el commit. Qué sigue?",
+      "expected_skill": "agentic-dev-onboard",
+      "expected_behavior": "Activates agentic-dev-onboard. Reads `.template/installer.lock.json`, finds `adopted: true`, and tours the adoption hand-off in order, one session each: `/project-adoption`, `/project-context refresh-all`, `/project-foundation` Discovery-only, `/git-flow-master` Strategy Setup, optionally `/design-system extract` and `/testability-guide`. Does NOT send the user to `/project-bootstrap` base phases. May respond in Spanish to mirror the user.",
+      "category": "positive"
+    },
+    {
+      "name": "should-trigger-spanish-how-it-works",
+      "prompt": "Soy nuevo en el equipo, me explicas cómo funciona este repo y por dónde empiezo?",
+      "expected_skill": "agentic-dev-onboard",
+      "expected_behavior": "Activates agentic-dev-onboard as a guided tour. Says which entry path the repo took, presents the stack from the `stack:` block of `.agents/project.yaml`, walks the `/sprint-development` loop, the MCP capabilities and the critical env vars, gives the docs hub URL and ends with the next-steps checklist. Does NOT start implementing anything. May respond in Spanish to mirror the user.",
+      "category": "positive"
+    },
+    {
+      "name": "unsupported-stack-said-plainly",
+      "prompt": "Onboard me. Our app is a Remix app on MySQL with pnpm, can we use this?",
+      "expected_skill": "agentic-dev-onboard",
+      "expected_behavior": "Activates agentic-dev-onboard. Says plainly that the support set (`V1_SUPPORTED` in `cli/lib/stack-descriptor.ts`) is Next.js on the Postgres family with bun, one app per repo, and that this app would stop at the adoption preflight / `/project-adoption` analysis naming the framework, database and package-manager values. Does NOT tour `/sprint-development` as if it applied, and does NOT suggest switching the package manager or rewriting the app.",
+      "category": "positive"
+    },
+    {
+      "name": "should-not-trigger-implement-story",
+      "prompt": "Implement story UPEX-123 — add empty state to user list.",
+      "expected_skill": "sprint-development",
+      "expected_behavior": "Does NOT activate agentic-dev-onboard. Routes to `/sprint-development UPEX-123` because the request is a concrete ticket implementation, not orientation. agentic-dev-onboard never executes implementation work.",
+      "category": "negative"
+    },
+    {
+      "name": "should-not-trigger-write-unit-tests",
+      "prompt": "Write unit tests for the formatPrice utility — TDD style.",
+      "expected_skill": "unit-testing",
+      "expected_behavior": "Does NOT activate agentic-dev-onboard. Routes to `/unit-testing` because the request is for TDD red-green-refactor on a specific unit. agentic-dev-onboard does not write tests.",
+      "category": "negative"
+    },
+    {
+      "name": "should-not-trigger-create-epic",
+      "prompt": "Create the epic for the new payments module — seed the stories from the PRD.",
+      "expected_skill": "product-management",
+      "expected_behavior": "Does NOT activate agentic-dev-onboard. Routes to `/product-management` because the request is backlog seeding / epic creation / story refinement. agentic-dev-onboard does not touch the backlog.",
+      "category": "negative"
+    }
+  ]
+}

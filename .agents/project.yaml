@@ -1,0 +1,248 @@
+# Project configuration read by AI agents. VALUES ONLY: every key is documented in
+# .agents/project.schema.yaml, the template this file was seeded from. Edit by hand or
+# run `bun run agents:setup`. `bun run agents:schema --project` lists keys added upstream.
+
+project:
+  project_name: escuadra
+  project_key: null
+  webapp_domain: null
+
+backend:
+  backend_repo: null
+  backend_stack: null
+  backend_entry: null
+
+frontend:
+  frontend_repo: null
+  frontend_stack: null
+  frontend_entry: null
+  design_md_path: null
+
+database:
+  db_type: null
+
+stack:
+  app_root: .
+  framework: nextjs-app-router
+  package_manager: bun
+  scripts:
+    dev: dev
+    build: build
+    lint: lint:check
+    types: types:check
+    test: test
+    db_types: db:types
+  database:
+    engine: postgres
+    provider: supabase
+    schema_source: migrations
+    migrations_dir: supabase/migrations
+    migrations_tool: supabase-cli
+    types_path: src/types/supabase.ts
+  ui:
+    css: tailwind-v4
+    kit: shadcn
+    icons: lucide
+  hosting: vercel
+  ci: github-actions
+  local_build: true
+  test_runner: bun
+  conventions:
+    import_alias: '@/'
+    testid_style: null
+    features_root: src/features
+
+issue_tracker:
+  issue_tracker: null
+  issue_tracker_cli: null
+  atlassian_url: null
+  github:
+    project_owner: '@me'
+    project_number: null
+    status_field: Status
+    statuses:
+      backlog: Backlog
+      in_progress: In progress
+      in_review: In review
+      on_staging: Staging
+      released: Released
+    releases_dir: .context/releases
+
+trail:
+  enabled: null
+  dir: .context/trail
+
+testing:
+  default_env: null
+  automation_identity:
+    email_var: null
+    password_var: null
+    scope: null
+    per_env: {}
+
+harnesses: null
+
+git_strategy:
+  strategy: solo-main
+  description: >
+    TODO: describe this project's branching strategy in prose: which branches are
+    long-lived, how work reaches the release branch, and any operational note the AI
+    needs before it runs a git command. Filled by the git-flow-master Strategy Setup
+    questionnaire, or by hand.
+  branches:
+    production: main
+    integration: null
+    ephemeral_pattern: null
+  protected: [main]
+  decisions:
+    promote_method: n/a
+    feature_merge: n/a
+    hotfix_policy: n/a
+  policy:
+    direct_push_to_protected: confirm
+    admin_bypass: false
+    require_pr_reviews: 1
+    accepted_divergences: []
+    required_checks: [quality, e2e]
+  branch_prefixes:
+    precedence: [feat, fix, refactor, test, docs, chore]
+    naming_with_key: '{prefix}/{ISSUE-KEY}-{kebab-slug}'
+    naming_without_key: '{prefix}/{kebab-slug}'
+  meta:
+    setup_version: 1
+    created: null
+    policy_verified: null
+    policy_source: declared
+    strategy_source: inherited
+
+promotion:
+  source: staging
+  targets: [main]
+  workflow: pr-check.yml
+
+decision_authority:
+  product: escalate
+
+autonomous_delivery:
+  enabled: false
+  modes: [story, bug, discovery]
+  caps:
+    story: 1
+    bug: 3
+    discovery: 0
+    discovery_definitions: 2
+  lock_staleness_minutes: 90
+  automation_gh_account: null
+  migrations: confirm
+  isolation: worktree
+  context_budget:
+    handoff_checkpoint: every-phase
+    stop_at_remaining_pct: 20
+  report_channel: null
+  escalation_channel: null
+  escalation_log: .session/autonomous-delivery/escalation-log.md
+
+orchestration:
+  max_workers: 3
+  default_agent: claude
+  default_model: claude-sonnet-5-5
+  default_effort: medium
+  conductor_model: claude-opus-5-5
+  conductor_effort: high
+  subagent_model: sonnet
+  permission_modes:
+    conductor: auto
+    worker: bypass
+    subagent: inherit
+  model_overrides:
+    - topics: [security, auth, migration, rollback, architecture]
+      tier: worker
+      model: claude-opus-5-5
+      effort: high
+  orchestrator_name: Orca
+  orchestrator_cli: orca
+
+updater:
+  protected_paths:
+    - AGENTS.md
+    - .context/ADR/README.md
+    - cli/doctor.ts
+    - cli/install.ts
+    - cli/lib/agent-compatibility-contracts.ts
+    - scripts/provision-worktree.ts
+    - .agents/skills/sprint-development/SKILL.md
+    - .agents/skills/sprint-development/references/live-ui-identity.md
+    - .agents/skills/sprint-development/references/live-ui-validation.md
+    - cli/lib/bootstrap-guard.ts
+    - scripts/bootstrap-guard.ts
+    - .agents/skills/project-bootstrap/SKILL.md
+    - .agents/skills/project-bootstrap/references/frontend-setup.md
+    - README.md
+    - cli/lib/variables-manifest.ts
+    - .env.example
+    - .env.core.schema # generated from the protected variable manifest: a sync would replace it with upstream's
+    - docs/mcp/claude.template.json # pins the Atlassian bridge version
+    - docs/mcp/codex.template.toml
+    - docs/workflows/README.md
+
+checks:
+  mcp_parity:
+    mode: strict
+    relay: {}
+    unrelayed: {}
+  hooks:
+    scope: full
+  vars_check:
+    skip_paths: []
+  docs_check:
+    include: []
+    exclude: []
+
+secrets:
+  provider: local
+  onepassword:
+    vault: null
+    account: null
+    auth: app
+
+external_consumers:
+  - promotion # key of the `promotion:` block, read directly by scripts/git-promote.ts
+  - source # leaf of `promotion:`, read by scripts/git-promote.ts
+  - targets # leaf of `promotion:`, read by scripts/git-promote.ts
+  - workflow # leaf of `promotion:`, read by scripts/git-promote.ts
+  - required_checks # leaf of `git_strategy.policy`, read by scripts/required-checks.ts
+  - automation_identity
+  - decision_authority
+  - product
+  - autonomous_delivery
+  - enabled
+  - modes
+  - caps
+  - lock_staleness_minutes
+  - automation_gh_account
+  - migrations
+  - isolation
+  - context_budget
+  - report_channel
+  - escalation_channel
+  - escalation_log
+  - updater
+  - protected_paths
+  - provider
+  - onepassword
+  - strategy_source
+  - default_env
+  - permission_modes
+  - model_overrides
+  - orchestrator_skills
+  - design_md_path
+
+environments:
+  local:
+    web_url: null
+    api_url: null
+    db_project_ref: null
+  staging:
+    web_url: null
+    api_url: null
+    db_project_ref: null
